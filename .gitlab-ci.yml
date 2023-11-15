@@ -19,9 +19,10 @@ unit tests:
     - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
     - composer install
   script:
-    - php ./vendor/bin/phpunit --coverage-text --coverage-cobertura=coverage.cobertura.xml
+    - php ./vendor/bin/phpunit --log-junit=junit.xml --coverage-text --coverage-cobertura=coverage.cobertura.xml
   artifacts:
     reports:
+      junit: junit.xml
       coverage_report:
         coverage_format: cobertura
         path: coverage.cobertura.xml
