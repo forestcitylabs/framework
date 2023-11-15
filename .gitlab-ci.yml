@@ -1,9 +1,30 @@
 stages:
+  - test
   - build
 # To contribute improvements to CI/CD templates, please follow the Development guide at:
 # https://docs.gitlab.com/ee/development/cicd/templates.html
 # This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Composer.gitlab-ci.yml
+
+unit tests:
+  stage: test
+  image: php:8.2-cli
+  variables:
+    XDEBUG_MODE: coverage
+  before_script:
+    - apt-get update && apt-get -yq install git unzip zip libzip-dev zlib1g-dev
+    - docker-php-ext-install zip
+    - pecl install xdebug && docker-php-ext-enable xdebug
+    - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    - composer install
+  script:
+    - php ./vendor/bin/phpunit --coverage-text --coverage-cobertura=coverage.cobertura.xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.cobertura.xml
 
 # Publishes a tag/branch to Composer Packages of the current project
 publish:

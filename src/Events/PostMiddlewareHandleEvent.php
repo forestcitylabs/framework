@@ -1,4 +1,3 @@
-
 <?php
 
 namespace ForestCityLabs\Framework\Events;
@@ -13,7 +12,8 @@ class PostMiddlewareHandleEvent
         private MiddlewareInterface $middleware,
         private RequestInterface $request,
         private ResponseInterface $response
-    ) {}
+    ) {
+    }
 
     public function getMiddleware(): MiddlewareInterface
     {
