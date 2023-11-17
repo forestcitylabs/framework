@@ -16,6 +16,7 @@ unit tests:
     - composer install
   script:
     - php ./vendor/bin/phpunit --log-junit=junit.xml --coverage-text --coverage-cobertura=coverage.cobertura.xml
+  coverage: '/^\s*Lines:\s*\d+.\d+\%/'
   artifacts:
     reports:
       junit: junit.xml
