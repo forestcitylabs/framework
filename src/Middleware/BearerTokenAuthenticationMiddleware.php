@@ -50,7 +50,7 @@ class BearerTokenAuthenticationMiddleware
             }
 
             // Check that the token is not expired.
-            if (null === $access_token->getExpiry() || $access_token->getExpiry() > $now) {
+            if ($access_token->getExpiry() > $now) {
                 // Attach the token to the request.
                 $request = $request->withAttribute('_access_token', $access_token);
             }
