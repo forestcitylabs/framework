@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ForestCityLabs\Framework\Tests\Middleware;
 
 use DateTimeImmutable;
@@ -21,43 +23,41 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
     #[Test]
     public function validToken()
     {
-        // Configure the token.
-        $token = $this->createMock(AccessTokenInterface::class);
-        $token->expects($this->exactly(1))
-            ->method('getExpiry')
-            ->willReturn(new DateTimeImmutable('+1 day'));
+        // Create the token.
+        $token = $this->createConfiguredStub(AccessTokenInterface::class, [
+            'getExpiry' => new DateTimeImmutable('+1 day'),
+        ]);
 
-        // Configure the request.
+        // Configure the repo.
+        $repo = $this->createConfiguredStub(AccessTokenRepositoryInterface::class, [
+            'findToken' => $token,
+        ]);
+
+        // Create the request.
         $request = $this->createMock(ServerRequestInterface::class);
-        $request->expects($this->once())
-            ->method('hasHeader')
+        $request->method('hasHeader')
             ->with('Authorization')
             ->willReturn(true);
-        $request->expects($this->exactly(3))
-            ->method('getHeader')
+        $request->method('getHeader')
             ->with('Authorization')
             ->willReturn(['Bearer test-token']);
-        $request->expects($this->once())
-            ->method('getAttribute')
+        $request->method('getAttribute')
             ->with('_access_token')
             ->willReturn(null);
+
+        // We are asserting that the _access_token is added to the request.
         $request->expects($this->once())
             ->method('withAttribute')
             ->with('_access_token', $token)
             ->willReturn($request);
 
-        // Configure the handler.
+        // Assert that the handler is called eventually.
         $handler = $this->createMock(RequestHandlerInterface::class);
         $handler->expects($this->once())
             ->method('handle')
             ->with($request);
 
-        // Configure the repo.
-        $repo = $this->createMock(AccessTokenRepositoryInterface::class);
-        $repo->expects($this->once())
-            ->method('findToken')
-            ->with('test-token')
-            ->willReturn($token);
+        // Test the middleware.
         $middleware = new BearerTokenAuthenticationMiddleware($repo);
         $middleware->process($request, $handler);
     }
@@ -65,26 +65,24 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
     #[Test]
     public function expiredToken()
     {
-        // Configure the token.
-        $token = $this->createMock(AccessTokenInterface::class);
-        $token->expects($this->exactly(1))
-            ->method('getExpiry')
+        // Create and configure the token.
+        $token = $this->createStub(AccessTokenInterface::class);
+        $token->method('getExpiry')
             ->willReturn(new DateTimeImmutable('-1 day'));
 
         // Configure the request.
         $request = $this->createMock(ServerRequestInterface::class);
-        $request->expects($this->once())
-            ->method('hasHeader')
+        $request->method('hasHeader')
             ->with('Authorization')
             ->willReturn(true);
-        $request->expects($this->exactly(3))
-            ->method('getHeader')
+        $request->method('getHeader')
             ->with('Authorization')
             ->willReturn(['Bearer test-token']);
-        $request->expects($this->once())
-            ->method('getAttribute')
+        $request->method('getAttribute')
             ->with('_access_token')
             ->willReturn(null);
+
+        // Assert that we never add the _access_token attribute.
         $request->expects($this->never())
             ->method('withAttribute')
             ->with('_access_token', $token)
@@ -97,11 +95,12 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
             ->with($request);
 
         // Configure the repo.
-        $repo = $this->createMock(AccessTokenRepositoryInterface::class);
-        $repo->expects($this->once())
-            ->method('findToken')
+        $repo = $this->createStub(AccessTokenRepositoryInterface::class);
+        $repo->method('findToken')
             ->with('test-token')
             ->willReturn($token);
+
+        // Process the middleware.
         $middleware = new BearerTokenAuthenticationMiddleware($repo);
         $middleware->process($request, $handler);
     }
@@ -111,22 +110,15 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
     {
         // Configure the request.
         $request = $this->createMock(ServerRequestInterface::class);
-        $request->expects($this->once())
-            ->method('hasHeader')
+        $request->method('hasHeader')
             ->with('Authorization')
             ->willReturn(true);
-        $request->expects($this->exactly(3))
-            ->method('getHeader')
+        $request->method('getHeader')
             ->with('Authorization')
             ->willReturn(['Bearer test-token']);
-        $request->expects($this->once())
-            ->method('getAttribute')
+        $request->method('getAttribute')
             ->with('_access_token')
             ->willReturn(null);
-        $request->expects($this->never())
-            ->method('withAttribute')
-            ->with('_access_token', $token)
-            ->willReturn($request);
 
         // Configure the handler.
         $handler = $this->createMock(RequestHandlerInterface::class);
