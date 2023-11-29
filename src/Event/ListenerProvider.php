@@ -58,7 +58,7 @@ class ListenerProvider implements ListenerProviderInterface
 
     public function getListenersForEvent(object $event): iterable
     {
-        foreach ($this->data[$event::class] as $listeners) {
+        foreach ($this->data[$event::class] ?? [] as $listeners) {
             foreach ($listeners as $listener) {
                 yield $this->container->get($listener);
             }
