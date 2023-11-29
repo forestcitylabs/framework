@@ -13,7 +13,7 @@ namespace ForestCityLabs\Framework\Session;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use MongoDB\Driver\Exception\LogicException;
+use LogicException;
 use Psr\Http\Message\ServerRequestInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
