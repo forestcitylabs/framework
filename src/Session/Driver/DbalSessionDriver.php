@@ -7,7 +7,6 @@ namespace ForestCityLabs\Framework\Session\Driver;
 use Doctrine\DBAL\Connection;
 use ForestCityLabs\Framework\Session\Session;
 use ForestCityLabs\Framework\Session\SessionDriverInterface;
-use iterable;
 use Ramsey\Uuid\UuidInterface;
 
 class DbalSessionDriver implements SessionDriverInterface
