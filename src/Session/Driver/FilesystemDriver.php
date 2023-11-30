@@ -10,7 +10,7 @@ use League\Flysystem\Filesystem;
 use League\Flysystem\FileAttributes;
 use Ramsey\Uuid\UuidInterface;
 
-class FilesystemDriverMiddleware implements SessionDriverInterface
+class FilesystemDriver implements SessionDriverInterface
 {
     public function __construct(
         private Filesystem $filesystem,
