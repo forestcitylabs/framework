@@ -30,6 +30,9 @@ class FilesystemSessionDriver implements SessionDriverInterface
     public function save(Session $session): void
     {
         $filename = $this->determineFilename($session->getId());
+        if ($this->filesystem->has($filename)) {
+            $this->filesystem->delete($filename);
+        }
         $this->filesystem->write($filename, serialize($session));
     }
 
