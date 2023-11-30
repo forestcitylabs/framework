@@ -10,7 +10,7 @@ use League\Flysystem\Filesystem;
 use League\Flysystem\FileAttributes;
 use Ramsey\Uuid\UuidInterface;
 
-class FilesystemDriver implements SessionDriverInterface
+class FilesystemSessionDriver implements SessionDriverInterface
 {
     public function __construct(
         private Filesystem $filesystem,
@@ -20,7 +20,7 @@ class FilesystemDriver implements SessionDriverInterface
     public function load(UuidInterface $uuid): ?Session
     {
         $filename = $this->determineFilename($uuid);
-        if (!$this->filesystem->fileExists($filename)) {
+        if (!$this->filesystem->has($filename)) {
             return null;
         }
         $session = unserialize($this->filesystem->read($filename));
