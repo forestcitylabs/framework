@@ -8,7 +8,7 @@ use Psr\Cache\CacheItemInterface;
 
 class CacheItem implements CacheItemInterface
 {
-    private ?\DateTimeInterface $expires;
+    private ?\DateTimeInterface $expires = null;
     private mixed $value;
     private bool $hit = false;
 
