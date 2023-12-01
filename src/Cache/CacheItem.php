@@ -66,7 +66,7 @@ class CacheItem implements CacheItemInterface
     {
         return [
             'key' => $this->key,
-            'expiry' => ($this->expires === null) ? null : $this->expires->format('c'),
+            'expires' => ($this->expires === null) ? null : $this->expires->format('c'),
             'value' => serialize($this->value),
         ];
     }
@@ -74,7 +74,7 @@ class CacheItem implements CacheItemInterface
     public function unserialize(array $data): void
     {
         $this->key = $data['key'];
-        $this->expires = new \DateTimeImmutable($data['expiry']);
+        $this->expires = new \DateTimeImmutable($data['expires']);
         $this->value = unserialize($data['value']);
         $this->hit = true;
     }
