@@ -66,7 +66,7 @@ class CacheItem implements CacheItemInterface
     {
         return [
             'key' => $this->key,
-            'expiry' => $this->expires->format('c') ?? null,
+            'expiry' => ($this->expires === null) ? null : $this->expires->format('c'),
             'value' => serialize($this->value),
         ];
     }
