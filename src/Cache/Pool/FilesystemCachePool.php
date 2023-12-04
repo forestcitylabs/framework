@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Cache\Pool;
 
+use DateTime;
 use ForestCityLabs\Framework\Cache\CacheItem;
 use League\Flysystem\Filesystem;
 use Psr\Cache\CacheItemInterface;
@@ -21,14 +22,20 @@ class FilesystemCachePool extends AbstractCachePool
         if (!$this->filesystem->has($path)) {
             return new CacheItem($key);
         }
+        $item = unserialize($this->filesystem->read($path));
+        if (!$item instanceof CacheItem) {
+            return new CacheItem($key);
+        }
+        $now = new DateTime();
+        if ($item->getExpires() !== null && $item->getExpires() < $now) {
+            return new CacheItem($key);
+        }
         return unserialize($this->filesystem->read($path));
     }
 
     public function hasItem(string $key): bool
     {
-        $this->checkKey($key);
-        $path = implode(DIRECTORY_SEPARATOR, str_split(md5($key), 4));
-        return $this->filesystem->has($path);
+        return $this->getItem($key)->isHit();
     }
 
     public function deleteItem(string $key): bool

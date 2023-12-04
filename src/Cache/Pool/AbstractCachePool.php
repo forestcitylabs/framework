@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Cache\Pool;
 
+use ForestCityLabs\Framework\Cache\CacheItem;
+use ForestCityLabs\Framework\Cache\Exception\InvalidArgumentException;
 use Psr\Cache\CacheItemInterface;
-use Psr\Cache\InvalidArgumentException;
 use Psr\Cache\CacheItemPoolInterface;
 
 abstract class AbstractCachePool implements CacheItemPoolInterface
@@ -14,7 +15,7 @@ abstract class AbstractCachePool implements CacheItemPoolInterface
 
     protected function checkKey(mixed $key)
     {
-        if (!is_string($key) || preg_match('/^[a-zA-Z0-9\-\.]$/', $key) === false) {
+        if (!is_string($key) || preg_match('/^[a-zA-Z0-9\-\.]$/', $key) === false || strlen($key) > 128) {
             throw new InvalidArgumentException();
         }
     }

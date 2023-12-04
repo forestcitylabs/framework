@@ -34,6 +34,7 @@ class CacheTableCreateCommand extends Command
             ->setLength(128);
         $table->setPrimaryKey(['key']);
         $table->addColumn('data', 'blob');
+        $table->addColumn('expires', 'datetime')->setNotNull(false);
 
         // Create the new table.
         $comparator = $sm->createComparator();
@@ -45,5 +46,6 @@ class CacheTableCreateCommand extends Command
 
         // Report success.
         $io->success('Created the cache table!');
+        return Command::SUCCESS;
     }
 }
