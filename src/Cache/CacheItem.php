@@ -77,10 +77,10 @@ class CacheItem implements CacheItemInterface
         ];
     }
 
-    public function unserialize(array $data): void
+    public function __unserialize(array $data): void
     {
         $this->key = $data['key'];
-        $this->expires = new \DateTimeImmutable($data['expires']);
+        $this->expires = $data['expires'] === null ? null : new \DateTimeImmutable($data['expires']);
         $this->value = unserialize($data['value']);
         $this->hit = true;
     }
