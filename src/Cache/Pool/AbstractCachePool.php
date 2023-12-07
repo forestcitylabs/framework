@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Cache\Pool;
 
-use ForestCityLabs\Framework\Cache\CacheItem;
 use ForestCityLabs\Framework\Cache\Exception\InvalidArgumentException;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
