@@ -43,6 +43,36 @@ class DbalCachePool extends AbstractCachePool
         return new CacheItem($key, unserialize($result['data']), $result['expires'], true);
     }
 
+    public function getItems(array $keys = []): iterable
+    {
+        foreach ($keys as $key) {
+            $this->checkKey($key);
+        }
+
+        // Get all cache items from the passed keys.
+        $qb = $this->connection->createQueryBuilder();
+        $qb->select('data', 'expires')
+            ->from($this->table)
+            ->where('key IN :keys')
+            ->setParameter(':keys', $keys)
+            ->andWhere($qb->expr()->or(
+                $qb->expr()->isNotNull('expires'),
+                $qb->expr()->gt('expires', ':now')
+            ))
+            ->setParameter(':now', new DateTime());
+
+        // Pass back the results.
+        $result = $qb->executeQuery()->fetchAllAssociativeIndexed();
+        foreach ($keys as $key) {
+            if (isset($result[$key])) {
+                $item = new CacheItem($key, unserialize($result[$key]['data']), $result[$key]['expires'], true);
+            } else {
+                $item = new CacheItem($key);
+            }
+            yield $key => $item;
+        }
+    }
+
     public function hasItem(string $key): bool
     {
         // Ensure this is a valid key.
