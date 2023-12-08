@@ -19,7 +19,6 @@ use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
-use LogicException;
 
 class TypeRegistry
 {
@@ -32,7 +31,7 @@ class TypeRegistry
     ) {
     }
 
-    public function getType(string $name): Type
+    public function getType(string $name): ?Type
     {
         // Return a scalar type if possible.
         switch ($name) {
@@ -57,7 +56,7 @@ class TypeRegistry
         if (!isset($this->types[$name])) {
             // Get the metadata.
             if (null === $metadata = $this->metadata_provider->getTypeMetadata($name)) {
-                throw new LogicException(sprintf('No metadata for "%s"!', $name));
+                return null;
             }
 
             // Determine if this is an input or type.
