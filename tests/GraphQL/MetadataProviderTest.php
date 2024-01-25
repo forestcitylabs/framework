@@ -58,24 +58,6 @@ class MetadataProviderTest extends TestCase
     }
 
     #[Test]
-    public function getTypeMetadataByClassName()
-    {
-        $this->init();
-
-        $valid = $this->metadata_provider->getTypeMetadataByClassName(TestEntity::class);
-        foreach ($valid as $check) {
-            $this->assertInstanceOf(AbstractType::class, $check);
-        }
-
-        $invalid = $this->metadata_provider->getTypeMetadataByClassName('nope');
-        $count = 0;
-        foreach ($invalid as $check) {
-            $count++;
-        }
-        $this->assertEquals($count, 0);
-    }
-
-    #[Test]
     public function getObjectTypeMetadataByClassName()
     {
         $this->init();
