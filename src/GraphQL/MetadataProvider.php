@@ -13,10 +13,11 @@ namespace ForestCityLabs\Framework\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
-use ForestCityLabs\Framework\GraphQL\Attribute\InputField;
+use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
+use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
-use ForestCityLabs\Framework\GraphQL\Attribute\ObjectField;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
 use LogicException;
@@ -40,15 +41,14 @@ class MetadataProvider
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
-            // Create query and mutation types.
-            $this->metadata['Query'] = new ObjectType('Query');
-            $this->metadata['Mutation'] = new ObjectType('Mutation');
-
-            // Parse types first.
+            // Parse types.
             $this->parseTypes($types);
 
-            // Parse fields for all types.
+            // Parse fields.
             $this->parseFields();
+
+            // Add interfaces.
+            $this->mapInterfaces();
 
             // Parse controllers.
             $this->parseControllers($controllers);
@@ -60,12 +60,17 @@ class MetadataProvider
         }
     }
 
+    public function getAllTypeMetadata(): iterable
+    {
+        return $this->metadata;
+    }
+
     public function getTypeMetadata(string $name): ?AbstractType
     {
         return $this->metadata[$name] ?? null;
     }
 
-    public function getTypeMetadataByClassName(string $class_name): iterable
+    public function getMetadataByClassName(string $class_name): iterable
     {
         foreach ($this->metadata as $type) {
             if ($type->getClassName() === $class_name) {
@@ -76,9 +81,9 @@ class MetadataProvider
 
     public function getObjectTypeMetadataByClassName(string $class_name): ?ObjectType
     {
-        foreach ($this->getTypeMetadataByClassName($class_name) as $type) {
-            if ($type instanceof ObjectType) {
-                return $type;
+        foreach ($this->getMetadataByClassName($class_name) as $metadata) {
+            if ($metadata instanceof ObjectType) {
+                return $metadata;
             }
         }
         return null;
@@ -86,9 +91,19 @@ class MetadataProvider
 
     public function getInputTypeMetadataByClassName(string $class_name): ?InputType
     {
-        foreach ($this->getTypeMetadataByClassName($class_name) as $type) {
-            if ($type instanceof InputType) {
-                return $type;
+        foreach ($this->getMetadataByClassName($class_name) as $metadata) {
+            if ($metadata instanceof InputType) {
+                return $metadata;
+            }
+        }
+        return null;
+    }
+
+    public function getInterfaceTypeMetadataByClassName(string $class_name): ?InterfaceType
+    {
+        foreach ($this->getMetadataByClassName($class_name) as $metadata) {
+            if ($metadata instanceof InterfaceType) {
+                return $metadata;
             }
         }
         return null;
@@ -131,8 +146,9 @@ class MetadataProvider
 
                 // Determine which fields to parse.
                 switch ($type::class) {
+                    case InterfaceType::class:
                     case ObjectType::class:
-                        foreach ($this->parseObjectPropertyFields($reflection) as $field) {
+                        foreach ($this->parsePropertyFields($reflection) as $field) {
                             $type->addField($field);
                         }
                         foreach ($this->parseMethodFields($reflection) as $field) {
@@ -140,10 +156,26 @@ class MetadataProvider
                         }
                         break;
                     case InputType::class:
-                        foreach ($this->parseInputPropertyFields($reflection) as $field) {
-                            $type->addField($field);
+                        foreach ($this->parsePropertyArguments($reflection) as $argument) {
+                            $type->addArgument($argument);
                         }
                         break;
+                    case EnumType::class:
+                }
+            }
+        }
+    }
+
+    private function mapInterfaces(): void
+    {
+        foreach ($this->metadata as $metadata) {
+            if ($metadata instanceof ObjectType) {
+                if ($metadata->getClassName() !== null) {
+                    foreach (class_implements($metadata->getClassName()) as $interface) {
+                        if (null !== $interface = $this->getInterfaceTypeMetadataByClassName($interface)) {
+                            $metadata->addInterface($interface->getName());
+                        }
+                    }
                 }
             }
         }
@@ -157,20 +189,23 @@ class MetadataProvider
 
             // Parse the fields from this controller.
             foreach ($this->parseMethodFields($reflection) as $type => $field) {
+                if (!array_key_exists($type, $this->metadata)) {
+                    $this->metadata[$type] = new ObjectType($type);
+                }
                 $this->metadata[$type]->addField($field);
             }
         }
     }
 
-    private function parseObjectPropertyFields(ReflectionClass $reflection): iterable
+    private function parsePropertyFields(ReflectionClass $reflection): iterable
     {
         foreach ($reflection->getProperties() as $property) {
             // Iterate over field attributes.
-            foreach ($property->getAttributes(ObjectField::class) as $attribute) {
+            foreach ($property->getAttributes(Field::class) as $attribute) {
                 // Set type and data.
                 $field = $attribute->newInstance();
-                $field->setFieldType(ObjectField::TYPE_PROPERTY);
-                $field->setData($property->getName());
+                $field->setAttributeType(Field::TYPE_PROPERTY);
+                $field->setAttributeName($property->getName());
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $property->getName());
@@ -184,23 +219,24 @@ class MetadataProvider
         }
     }
 
-    private function parseInputPropertyFields(ReflectionClass $reflection): iterable
+    private function parsePropertyArguments(ReflectionClass $reflection): iterable
     {
         foreach ($reflection->getProperties() as $property) {
             // Iterate over field attributes.
-            foreach ($property->getAttributes(InputField::class) as $attribute) {
+            foreach ($property->getAttributes(Argument::class) as $attribute) {
                 // Set type and data.
-                $field = $attribute->newInstance();
-                $field->setData($property->getName());
+                $argument = $attribute->newInstance();
+                $argument->setAttributeType(Argument::TYPE_PROPERTY);
+                $argument->setAttributeName($property->getName());
 
                 // Reasonable defaults.
-                $field->setName($field->getName() ?? $property->getName());
-                $field->setType($field->getType() ?? $this->mapInputType($property->getType()));
-                $field->setNotNull($field->getNotNull() ?? $this->mapNotNull($property->getType()));
-                $field->setList($field->getList() ?? $this->mapList($property->getType()));
+                $argument->setName($argument->getName() ?? $property->getName());
+                $argument->setType($argument->getType() ?? $this->mapInputType($property->getType()));
+                $argument->setNotNull($argument->getNotNull() ?? $this->mapNotNull($property->getType()));
+                $argument->setList($argument->getList() ?? $this->mapList($property->getType()));
 
-                // Yield the field attribute.
-                yield $field;
+                // Yield the argument attribute.
+                yield $argument;
             }
         }
     }
@@ -209,14 +245,11 @@ class MetadataProvider
     {
         foreach ($reflection->getMethods() as $method) {
             // Iterate over field attributes.
-            foreach ($method->getAttributes(ObjectField::class) as $attribute) {
+            foreach ($method->getAttributes(Field::class) as $attribute) {
                 // Create the field attribute.
                 $field = $attribute->newInstance();
-                $field->setFieldType(ObjectField::TYPE_METHOD);
-                $field->setData([
-                    $reflection->getName(),
-                    $method->getName(),
-                ]);
+                $field->setAttributeType(Field::TYPE_METHOD);
+                $field->setAttributeName($reflection->getName() . '::' . $method->getName());
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $method->getName());
@@ -225,7 +258,7 @@ class MetadataProvider
                 $field->setList($field->getList() ?? $this->mapList($method->getReturnType()));
 
                 // Parse arguments for this method.
-                foreach ($this->parseArguments($method) as $argument) {
+                foreach ($this->parseParameterArguments($method) as $argument) {
                     $field->addArgument($argument);
                 }
 
@@ -240,19 +273,20 @@ class MetadataProvider
                 }
 
                 // This is a field on an object type.
-                if (null !== $type = $this->getObjectTypeMetadataByClassName($reflection->getName())) {
-                    yield $type->getName() => $field;
+                foreach ($this->getMetadataByClassName($reflection->getName()) as $metadata) {
+                    yield $metadata->getName() => $field;
                 }
             }
         }
     }
 
-    private function parseArguments(ReflectionMethod $method): iterable
+    private function parseParameterArguments(ReflectionMethod $method): iterable
     {
         foreach ($method->getParameters() as $parameter) {
             foreach ($parameter->getAttributes(Argument::class) as $attribute) {
                 $argument = $attribute->newInstance();
-                $argument->setParameterName($parameter->getName());
+                $argument->setAttributeType(Argument::TYPE_PARAMETER);
+                $argument->setAttributeName($parameter->getName());
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $parameter->getName());
@@ -301,7 +335,7 @@ class MetadataProvider
         }
 
         // Attempt to map type by class name as a last resort.
-        foreach ($this->getTypeMetadataByClassName($type->getName()) as $metadata) {
+        foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
             if ($metadata instanceof ObjectType) {
                 return $metadata->getName();
             }
@@ -345,7 +379,7 @@ class MetadataProvider
         }
 
         // Attempt to map type by class name as a last resort.
-        foreach ($this->getTypeMetadataByClassName($type->getName()) as $metadata) {
+        foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
             if ($metadata instanceof InputType) {
                 return $metadata->getName();
             }

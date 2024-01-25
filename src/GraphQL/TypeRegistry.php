@@ -5,19 +5,20 @@ declare(strict_types=1);
 /*
  * This file is part of the Forest City Labs Framework package.
  * (c) Forest City Labs <https://forestcitylabs.ca/>
- * For the full copyright and license information, please view the LICENSE
+ * For the full copyright and license information please view the LICENSE
  * file that was distributed with this source code.
  */
 
 namespace ForestCityLabs\Framework\GraphQL;
 
-use ForestCityLabs\Framework\GraphQL\Attribute\ObjectField as ObjectFieldAttribute;
-use ForestCityLabs\Framework\GraphQL\Attribute\InputField as InputFieldAttribute;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field as ObjectFieldAttribute;
+use ForestCityLabs\Framework\GraphQL\Attribute\Argument as InputArgumentAttribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType as InputTypeAttribute;
+use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType as InterfaceTypeAttribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType as ObjectTypeAttribute;
 use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 
 class TypeRegistry
@@ -61,6 +62,9 @@ class TypeRegistry
 
             // Determine if this is an input or type.
             switch ($metadata::class) {
+                case InterfaceTypeAttribute::class:
+                    $this->types[$name] = $this->buildInterfaceType($metadata);
+                    break;
                 case InputTypeAttribute::class:
                     $this->types[$name] = $this->buildInputType($metadata);
                     break;
@@ -81,8 +85,8 @@ class TypeRegistry
             'name' => $input_metadata->getName(),
             'description' => $input_metadata->getDescription(),
             'fields' => function () use ($input_metadata): iterable {
-                foreach ($input_metadata->getFields() as $field_metadata) {
-                    yield $this->buildInputField($field_metadata);
+                foreach ($input_metadata->getArguments() as $argument_metadata) {
+                    yield $this->buildInputArgument($argument_metadata);
                 }
             },
         ]);
@@ -98,6 +102,24 @@ class TypeRegistry
                     yield $this->buildObjectField($field_metadata);
                 }
             },
+            'interfaces' => function () use ($type_metadata): iterable {
+                foreach ($type_metadata->getInterfaces() as $interface) {
+                    yield $this->getType($interface);
+                }
+            }
+        ]);
+    }
+
+    private function buildInterfaceType(InterfaceTypeAttribute $metadata): Type
+    {
+        return new InterfaceType([
+            'name' => $metadata->getName(),
+            'description' => $metadata->getDescription(),
+            'fields' => function () use ($metadata): iterable {
+                foreach ($metadata->getFields() as $field) {
+                    yield $this->buildObjectField($field);
+                }
+            }
         ]);
     }
 
@@ -121,9 +143,9 @@ class TypeRegistry
             'description' => $field_metadata->getDescription(),
             'type' => $type,
             'args' => $this->parseArguments($field_metadata),
-            'resolve' => function ($value, array $args, $context, ResolveInfo $info) use ($field_metadata) {
+            'resolve' => function ($value, array $args, $context) use ($field_metadata) {
                 // Use correct field resolver.
-                switch ($field_metadata->getFieldType()) {
+                switch ($field_metadata->getAttributeType()) {
                     case ObjectFieldAttribute::TYPE_METHOD:
                         return $this->method_field_resolver->resolveField(
                             $field_metadata,
@@ -145,24 +167,24 @@ class TypeRegistry
         ];
     }
 
-    private function buildInputField(InputFieldAttribute $field_metadata): array
+    private function buildInputArgument(InputArgumentAttribute $argument_metadata): array
     {
-        // Parse this fields type.
-        $type = $this->getType($field_metadata->getType());
+        // Parse this arguments type.
+        $type = $this->getType($argument_metadata->getType());
 
         // If this is a list wrap.
-        if ($field_metadata->getList()) {
+        if ($argument_metadata->getList()) {
             $type = Type::listOf(Type::nonNull($type));
         }
 
         // If this is not null wrap.
-        if ($field_metadata->getNotNull()) {
+        if ($argument_metadata->getNotNull()) {
             $type = Type::nonNull($type);
         }
 
         return [
-            'name' => $field_metadata->getName(),
-            'description' => $field_metadata->getDescription(),
+            'name' => $argument_metadata->getName(),
+            'description' => $argument_metadata->getDescription(),
             'type' => $type,
         ];
     }

@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Command;
 
-use PDO;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

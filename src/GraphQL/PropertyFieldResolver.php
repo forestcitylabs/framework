@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL;
 
-use ForestCityLabs\Framework\GraphQL\Attribute\ObjectField;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -25,13 +25,13 @@ class PropertyFieldResolver implements FieldResolverInterface
     }
 
     public function resolveField(
-        ObjectField $field,
+        Field $field,
         ?object $object = null,
         array $args = [],
         ServerRequestInterface $request = null
     ): mixed {
         return $this->value_transformer->transformOutput(
-            $this->property_accessor->getValue($object, $field->getData())
+            $this->property_accessor->getValue($object, $field->getAttributeName())
         );
     }
 }

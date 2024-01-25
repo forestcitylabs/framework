@@ -13,6 +13,7 @@ namespace ForestCityLabs\Framework\Twig;
 
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
+
 use function json_decode;
 
 class ManifestExtension extends AbstractExtension

@@ -10,7 +10,8 @@ class PreMiddlewareHandleEvent
     public function __construct(
         private MiddlewareInterface $middleware,
         private RequestInterface $request
-    ) {}
+    ) {
+    }
 
     public function getMiddleware(): MiddlewareInterface
     {

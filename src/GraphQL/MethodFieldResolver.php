@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL;
 
-use ForestCityLabs\Framework\GraphQL\Attribute\ObjectField;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use Psr\Container\ContainerInterface;
@@ -27,16 +27,16 @@ class MethodFieldResolver implements FieldResolverInterface
     }
 
     public function resolveField(
-        ObjectField $field,
+        Field $field,
         ?object $object = null,
         array $args = [],
         ServerRequestInterface $request = null
     ): mixed {
         // If the object is passed use that, otherwise use a service.
         if (null !== $object) {
-            list(, $method) = $field->getData();
+            list(, $method) = explode('::', $field->getAttributeName());
         } else {
-            list($service, $method) = $field->getData();
+            list($service, $method) = explode('::', $field->getAttributeName());
             $object = $this->container->get($service);
         }
 

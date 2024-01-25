@@ -2,24 +2,19 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the Forest City Labs Framework package.
- * (c) Forest City Labs <https://forestcitylabs.ca/>
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace ForestCityLabs\Framework\GraphQL\Attribute;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
-class Argument extends AbstractType
+#[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_PROPERTY)]
+class Field extends AbstractType
 {
     use HasTypeTrait;
+    use HasArgumentsTrait;
+    use IsDeprecableTrait;
 
+    public const TYPE_METHOD = 'method';
     public const TYPE_PROPERTY = 'property';
-    public const TYPE_PARAMETER = 'parameter';
 
     protected string $attribute_type;
     protected string $attribute_name;
@@ -29,13 +24,15 @@ class Argument extends AbstractType
         ?string $description = null,
         ?string $type = null,
         ?bool $list = null,
-        ?bool $not_null = null
+        ?bool $not_null = null,
+        ?string $deprecation_reason = null
     ) {
         $this->name = $name;
-        $this->type = $type;
         $this->description = $description;
+        $this->type = $type;
         $this->list = $list;
         $this->not_null = $not_null;
+        $this->deprecation_reason = $deprecation_reason;
     }
 
     public function setAttributeType(string $type): static

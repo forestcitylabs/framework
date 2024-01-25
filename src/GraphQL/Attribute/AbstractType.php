@@ -10,7 +10,6 @@ abstract class AbstractType
 {
     use SerializerTrait;
 
-    protected array $fields = [];
     protected ?string $class_name = null;
 
     public function __construct(
@@ -41,30 +40,6 @@ abstract class AbstractType
         $this->description = $description;
 
         return $this;
-    }
-
-    public function addField(AbstractField $field): self
-    {
-        $this->fields[$field->getName()] = $field;
-
-        return $this;
-    }
-
-    public function removeField(AbstractField $field): self
-    {
-        unset($this->fields[$field->getName()]);
-
-        return $this;
-    }
-
-    public function getField(string $name): ?AbstractField
-    {
-        return $this->fields[$name] ?? null;
-    }
-
-    public function getFields(): array
-    {
-        return $this->fields;
     }
 
     public function getClassName(): ?string

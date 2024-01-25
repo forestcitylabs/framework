@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Inflector\Inflector;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping as ORM;
+use ForestCityLabs\Framework\Utility\CodeGenerator;
 use Nette\PhpGenerator\ClassLike;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Literal;
@@ -294,10 +295,10 @@ class GenerateEntityCommand extends Command
             $constructor->addBody('$this->' . $property->getName() . ' = new ArrayCollection();');
 
             // Add access methods.
-            $this->addGetter($class, $property);
-            $this->addAdder($class, $property, $namespace->getName() . '\\' . $target);
-            $this->addRemover($class, $property, $namespace->getName() . '\\' . $target);
-            $this->addHasser($class, $property, $namespace->getName() . '\\' . $target);
+            CodeGenerator::addGetter($class, $property);
+            CodeGenerator::addAdder($class, $property, $namespace->getName() . '\\' . $target);
+            CodeGenerator::addRemover($class, $property, $namespace->getName() . '\\' . $target);
+            CodeGenerator::addHasser($class, $property, $namespace->getName() . '\\' . $target);
         } elseif ($association === 'ManyToMany') {
             // Add namespace use statements.
             $namespace->addUse(Collection::class);
@@ -608,7 +609,9 @@ class GenerateEntityCommand extends Command
     private static function camelCase(string $string): string
     {
         $parts = explode('_', $string);
-        array_walk($parts, function(&$part) { $part = ucfirst($part); });
+        array_walk($parts, function (&$part) {
+            $part = ucfirst($part);
+        });
         return implode($parts);
     }
 

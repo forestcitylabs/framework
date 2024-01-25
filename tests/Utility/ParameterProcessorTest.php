@@ -33,7 +33,8 @@ class ParameterProcessorTest extends TestCase
         $converter->expects($this->once())
             ->method('convertParameters')
             ->willReturn($params);
-        $return = $processor->processParameters(function(int $num, string $test, \stdClass $obj) {}, $params);
+        $return = $processor->processParameters(function (int $num, string $test, \stdClass $obj) {
+        }, $params);
         $this->assertEquals($params, $return);
     }
 }

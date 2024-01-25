@@ -25,33 +25,33 @@ class InputResolver
         }
 
         // Assign passed values.
-        foreach ($input->getFields() as $field) {
-            if ($values[$field->getName()] === null) {
+        foreach ($input->getArguments() as $argument) {
+            if ($values[$argument->getName()] === null) {
                 continue;
             }
 
             // Resolve embedded inputs.
-            if ($this->metadata_provider->getTypeMetadata($field->getType()) instanceof InputType) {
-                $values[$field->getName()] = $this->resolve(
-                    $values[$field->getName()],
-                    $this->metadata_provider->getTypeMetadata($field->getType())
+            if ($this->metadata_provider->getTypeMetadata($argument->getType()) instanceof InputType) {
+                $values[$argument->getName()] = $this->resolve(
+                    $values[$argument->getName()],
+                    $this->metadata_provider->getTypeMetadata($argument->getType())
                 );
             }
 
             // Lookup objects by ID.
-            if ($field->getType() === 'ID') {
-                $property = new ReflectionProperty($input->getClassName(), $field->getData());
+            if ($argument->getType() === 'ID') {
+                $property = new ReflectionProperty($input->getClassName(), $argument->getAttributeName());
                 $repo = $this->em->getRepository($property->getType()->getName());
-                if (null === $entity = $repo->findOneBy(['id' => $values[$field->getName()]])) {
+                if (null === $entity = $repo->findOneBy(['id' => $values[$argument->getName()]])) {
                     throw new EntityNotFoundException();
                 }
 
                 // Set the value to an entity.
-                $values[$field->getName()] = $entity;
+                $values[$argument->getName()] = $entity;
             }
 
-            if (isset($values[$field->getName()])) {
-                $this->property_accessor->setValue($object, $field->getData(), $values[$field->getName()]);
+            if (isset($values[$argument->getName()])) {
+                $this->property_accessor->setValue($object, $argument->getAttributeName(), $values[$argument->getName()]);
             }
         }
 

@@ -11,13 +11,13 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL;
 
-use ForestCityLabs\Framework\GraphQL\Attribute\ObjectField;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use Psr\Http\Message\ServerRequestInterface;
 
 interface FieldResolverInterface
 {
     public function resolveField(
-        ObjectField $field,
+        Field $field,
         ?object $object = null,
         array $args = [],
         ServerRequestInterface $request = null

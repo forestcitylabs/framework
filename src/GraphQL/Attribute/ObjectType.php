@@ -16,4 +16,23 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 class ObjectType extends AbstractType
 {
+    use HasFieldsTrait;
+
+    protected array $interfaces = [];
+
+    public function addInterface(string $interface): static
+    {
+        $this->interfaces[$interface] = $interface;
+        return $this;
+    }
+
+    public function getInterface(string $name): ?string
+    {
+        return $this->interfaces[$name] ?? null;
+    }
+
+    public function getInterfaces(): array
+    {
+        return $this->interfaces;
+    }
 }
