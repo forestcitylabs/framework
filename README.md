@@ -1,4 +1,4 @@
 Forest City Labs Framework
 ==========================
 
-![coverage](https://gitlab.com/forestcitylabs/framework/framework/badges/main/coverage.svg)
+![![codecov](https://codecov.io/gh/forestcitylabs/framework/graph/badge.svg?token=V4OVI2QIHO)](https://codecov.io/gh/forestcitylabs/framework)
