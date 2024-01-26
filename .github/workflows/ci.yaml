@@ -13,9 +13,10 @@ jobs:
       with:
         php_extensions: xdebug
         coverage_cobertura: "coverage.xml"
+      env:
+        XDEBUG_MODE: coverage
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
-        XDEBUG_MODE: coverage
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
