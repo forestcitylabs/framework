@@ -11,6 +11,7 @@ jobs:
     - uses: php-actions/composer@v6 # or alternative dependency management
     - uses: php-actions/phpunit@v3
       with:
+        php_extensions: xdebug
         coverage_cobertura: "coverage.xml"
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
