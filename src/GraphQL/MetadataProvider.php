@@ -32,7 +32,7 @@ use Traversable;
 
 class MetadataProvider
 {
-    private array $metadata;
+    private array $metadata = [];
 
     public function __construct(
         private array $types,
