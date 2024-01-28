@@ -33,6 +33,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    needs: build
     steps:
     - name: Lint php files
       uses: thenabeel/action-phpcs@v8
