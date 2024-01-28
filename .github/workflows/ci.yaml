@@ -7,20 +7,12 @@ on:
   pull_request: ~
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Install composer deps
-      uses: php-actions/composer@v6
-
-  test:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-    - name: Run unit tests
-      uses: php-actions/phpunit@v3
+    - uses: actions/checkout@v3
+    - uses: php-actions/composer@v6
+    - uses: php-actions/phpunit@v3
       with:
         php_extensions: xdebug
         coverage_cobertura: "coverage.xml"
@@ -30,13 +22,7 @@ jobs:
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  lint:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-    - name: Lint php files
-      uses: thenabeel/action-phpcs@v8
+    - uses: thenabeel/action-phpcs@v8
       with:
         phpcs_path: php ./vendor/bin/phpcs
         standard: phpcs.xml
