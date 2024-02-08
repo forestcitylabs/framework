@@ -12,7 +12,7 @@ class EntityListenerResolver extends DefaultEntityListenerResolver
     ) {
     }
 
-    public function resolve($className)
+    public function resolve(string $className)
     {
         return $this->container->get($className);
     }
