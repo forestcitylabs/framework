@@ -52,9 +52,11 @@
     "require-dev": {
         "dflydev/fig-cookies": "^3.1",
         "doctrine/dbal": "^3.7",
-        "doctrine/orm": "^2.17",
+        "doctrine/orm": "^2.18",
         "kint-php/kint": "^5.0",
         "league/flysystem": "^3.21",
+        "nette/php-generator": "^4.1",
+        "nikic/fast-route": "^1.3",
         "phpunit/phpunit": "^10.4",
         "predis/predis": "^2.2",
         "ramsey/uuid": "^4.7",
