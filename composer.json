@@ -52,7 +52,7 @@
     "require-dev": {
         "dflydev/fig-cookies": "^3.1",
         "doctrine/dbal": "^3.7",
-        "doctrine/orm": "^2.18",
+        "doctrine/orm": "^3.0",
         "kint-php/kint": "^5.0",
         "league/flysystem": "^3.21",
         "nette/php-generator": "^4.1",
