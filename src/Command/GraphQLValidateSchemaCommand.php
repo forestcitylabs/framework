@@ -34,6 +34,7 @@ class GraphQLValidateSchemaCommand extends Command
             $io->success('GraphQL schema is good!');
         } catch (InvariantViolation $e) {
             $io->error($e->getMessage());
+            return Command::FAILURE;
         }
 
         return Command::SUCCESS;

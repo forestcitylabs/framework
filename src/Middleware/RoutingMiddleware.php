@@ -12,15 +12,12 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Middleware;
 
 use FastRoute\Dispatcher;
+use ForestCityLabs\Framework\Events\PreRouteDispatchEvent;
 use ForestCityLabs\Framework\Routing\MetadataProvider;
-use ForestCityLabs\Framework\Security\Exception\ForbiddenException;
-use ForestCityLabs\Framework\Security\Exception\InsufficientScopeException;
-use ForestCityLabs\Framework\Security\Exception\UnauthorizedException;
-use ForestCityLabs\Framework\Security\RequirementChecker;
 use ForestCityLabs\Framework\Utility\ParameterConverter\ParameterConversionException;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
-use LogicException;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,9 +29,9 @@ class RoutingMiddleware implements MiddlewareInterface
     public function __construct(
         private ContainerInterface $container,
         private Dispatcher $dispatcher,
+        private EventDispatcherInterface $event_dispatcher,
         private MetadataProvider $metadata_provider,
         private ResponseFactoryInterface $response_factory,
-        private RequirementChecker $requirement_checker,
         private ParameterProcessor $parameter_processor
     ) {
     }
@@ -71,31 +68,22 @@ class RoutingMiddleware implements MiddlewareInterface
                     [$controller, $method_name],
                     $arguments + [$request]
                 );
-
-                // Check the requirements for this route.
-                $this->requirement_checker->checkRequirements(
-                    [$controller, $method_name],
-                    $request
-                );
-
-                // Call the function.
-                return call_user_func([$controller, $method_name], ...$parameters);
-            } catch (UnauthorizedException) {
-                // Caught an unauthorized error.
-                return $this->response_factory->createResponse(401);
-            } catch (InsufficientScopeException) {
-                // Caught an insufficient scope error.
-                return $this->response_factory->createResponse(403, 'Insufficient scope');
-            } catch (ForbiddenException) {
-                // Caught a forbidden error.
-                return $this->response_factory->createResponse(403);
             } catch (ParameterConversionException) {
                 // Caught a parameter conversion error.
                 return $this->response_factory->createResponse(404);
             }
         }
 
-        // We should never reach this point.
-        throw new LogicException('Invalid dispatcher status.');
+        // Dispatch an event before allowing request.
+        $event = new PreRouteDispatchEvent($controller, $method_name, $request);
+        $this->event_dispatcher->dispatch($event);
+
+        // If the event has a response attached we should return that.
+        if (null !== $response = $event->getResponse()) {
+            return $response;
+        }
+
+        // Call the function.
+        return call_user_func([$controller, $method_name], ...$parameters);
     }
 }
