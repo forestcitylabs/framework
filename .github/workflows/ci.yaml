@@ -7,7 +7,27 @@ on:
   pull_request: ~
 
 jobs:
+  build-lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: php-actions/composer@v6
+    - uses: thenabeel/action-phpcs@v8
+      with:
+        phpcs_path: php ./vendor/bin/phpcs
+        standard: phpcs.xml
   build-test:
+    strategy:
+      matrix:
+        version: [8.1, 8.2, 8.3]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: php-actions/composer@v6
+    - uses: php-actions/phpunit@v3
+      with:
+        php_version: ${{matrix.version}}
+  build-coverage:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -22,7 +42,3 @@ jobs:
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    - uses: thenabeel/action-phpcs@v8
-      with:
-        phpcs_path: php ./vendor/bin/phpcs
-        standard: phpcs.xml
