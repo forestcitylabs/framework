@@ -1,4 +1,4 @@
-# Forest City Labs Framework
+# Welcome!
 
 Welcome to the Forest City Labs Framework documentation. The FCL Framework is a collection of components that adhere to [PHP Standards Recommendations](https://www.php-fig.org/psr/) wherever possible, creating implementation-agnostic tools that are commonly needed or used within frameworks. The framework specifically targets web applications that function primarily as graphql apis, however, there are many use cases beyond that.
 
