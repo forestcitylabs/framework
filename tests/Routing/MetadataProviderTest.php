@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Tests\Routing;
 
 use Cocur\Slugify\Slugify;
+use ForestCityLabs\Framework\Routing\Attribute\Route;
 use ForestCityLabs\Framework\Routing\Collection\RouteCollection;
 use ForestCityLabs\Framework\Routing\MetadataProvider;
 use ForestCityLabs\Framework\Tests\Controller\TestController;
@@ -18,6 +19,7 @@ use Psr\Log\LoggerInterface;
 
 #[CoversClass(MetadataProvider::class)]
 #[UsesClass(RouteCollection::class)]
+#[UsesClass(Route::class)]
 class MetadataProviderTest extends TestCase
 {
     #[Test]
