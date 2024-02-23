@@ -23,6 +23,7 @@ use Psr\Cache\CacheItemPoolInterface;
 #[UsesClass(Route::class)]
 #[UsesClass(Std::class)]
 #[UsesClass(GroupCountBased::class)]
+#[UsesClass(RouteCollection::class)]
 class DataLoaderTest extends TestCase
 {
     #[Test]
