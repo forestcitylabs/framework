@@ -27,6 +27,7 @@ jobs:
     - uses: php-actions/phpunit@v3
       with:
         php_version: ${{matrix.version}}
+        version: 10
   build-coverage:
     runs-on: ubuntu-latest
     steps:
@@ -36,6 +37,7 @@ jobs:
       with:
         php_extensions: xdebug
         coverage_cobertura: "coverage.xml"
+        version: 10
       env:
         XDEBUG_MODE: coverage
     - name: Upload coverage reports to Codecov
