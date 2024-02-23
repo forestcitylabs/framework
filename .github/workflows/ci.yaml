@@ -27,6 +27,7 @@ jobs:
     - uses: php-actions/phpunit@v3
       with:
         php_version: ${{matrix.version}}
+        version: 10
   build-coverage:
     runs-on: ubuntu-latest
     steps:
