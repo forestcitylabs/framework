@@ -7,6 +7,7 @@ namespace ForestCityLabs\Framework\Tests\Controller;
 use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
 use ForestCityLabs\Framework\Routing\Attribute as Route;
 
+#[Route\RoutePrefix("/beans")]
 class TestController
 {
     #[GraphQL\Query]
