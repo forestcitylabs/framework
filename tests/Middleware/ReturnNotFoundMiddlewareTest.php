@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Tests\Middleware;
 
 use ForestCityLabs\Framework\Middleware\ReturnNotFoundMiddleware;
-use GuzzleHttp\Psr7\ServerRequest;
 use Http\Factory\Guzzle\ResponseFactory;
 use Http\Factory\Guzzle\StreamFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
