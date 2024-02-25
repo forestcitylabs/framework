@@ -55,6 +55,7 @@
         "doctrine/dbal": "^3.7",
         "doctrine/orm": "^3.0",
         "guzzlehttp/psr7": "^2.6",
+        "http-interop/http-factory-guzzle": "^1.2",
         "kint-php/kint": "^5.0",
         "league/flysystem": "^3.21",
         "nette/php-generator": "^4.1",
