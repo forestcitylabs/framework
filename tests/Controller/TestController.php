@@ -23,4 +23,9 @@ class TestController
     {
         return null;
     }
+
+    public function __invoke()
+    {
+        return "test";
+    }
 }
