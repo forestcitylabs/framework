@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Cache\Pool;
 
 use DateTime;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use ForestCityLabs\Framework\Cache\CacheItem;
 use Psr\Cache\CacheItemInterface;
@@ -27,12 +28,12 @@ class DbalCachePool extends AbstractCachePool
         $qb->select('data', 'expires')
             ->from($this->table)
             ->where('key = :key')
-            ->setParameter(':key', $key)
+            ->setParameter('key', $key)
             ->andWhere($qb->expr()->or(
-                $qb->expr()->isNotNull('expires'),
+                $qb->expr()->isNull('expires'),
                 $qb->expr()->gt('expires', ':now')
             ))
-            ->setParameter(':now', new DateTime());
+            ->setParameter('now', new DateTime(), 'datetime');
 
         // If we cannot get a result return a new cache item.
         if (false === $result = $qb->executeQuery()->fetchAssociative()) {
@@ -40,7 +41,7 @@ class DbalCachePool extends AbstractCachePool
         }
 
         // Cache item is good, return.
-        return new CacheItem($key, unserialize($result['data']), $result['expires'], true);
+        return new CacheItem($key, unserialize($result['data']), $result['expires'] ? new DateTime($result['expires']) : null, true);
     }
 
     public function getItems(array $keys = []): iterable
@@ -51,21 +52,21 @@ class DbalCachePool extends AbstractCachePool
 
         // Get all cache items from the passed keys.
         $qb = $this->connection->createQueryBuilder();
-        $qb->select('data', 'expires')
+        $qb->select('key', 'data', 'expires')
             ->from($this->table)
-            ->where('key IN :keys')
-            ->setParameter(':keys', $keys)
+            ->where('key IN (:keys)')
+            ->setParameter('keys', $keys, ArrayParameterType::STRING)
             ->andWhere($qb->expr()->or(
-                $qb->expr()->isNotNull('expires'),
+                $qb->expr()->isNull('expires'),
                 $qb->expr()->gt('expires', ':now')
             ))
-            ->setParameter(':now', new DateTime());
+            ->setParameter('now', new DateTime(), 'datetime');
 
         // Pass back the results.
         $result = $qb->executeQuery()->fetchAllAssociativeIndexed();
         foreach ($keys as $key) {
             if (isset($result[$key])) {
-                $item = new CacheItem($key, unserialize($result[$key]['data']), $result[$key]['expires'], true);
+                $item = new CacheItem($key, unserialize($result[$key]['data']), $result[$key]['expires'] ? new DateTime($result[$key]['expires']) : null, true);
             } else {
                 $item = new CacheItem($key);
             }
@@ -83,12 +84,12 @@ class DbalCachePool extends AbstractCachePool
         $qb->select('key')
             ->from($this->table)
             ->where('key = :key')
-            ->setParameter(':key', $key)
+            ->setParameter('key', $key)
             ->andWhere($qb->expr()->or(
-                $qb->expr()->isNotNull('expires'),
+                $qb->expr()->isNull('expires'),
                 $qb->expr()->gt('expires', ':now')
             ))
-            ->setParameter(':now', new DateTime());
+            ->setParameter('now', new DateTime(), 'datetime');
 
         // If this is not in the database return false.
         if (false === $qb->executeQuery()->fetchOne()) {
@@ -108,7 +109,7 @@ class DbalCachePool extends AbstractCachePool
         $qb = $this->connection->createQueryBuilder();
         $qb->delete($this->table)
             ->where('key = :key')
-            ->setParameter(':key', $key)
+            ->setParameter('key', $key)
             ->executeQuery();
 
         // Always return true.
@@ -127,7 +128,7 @@ class DbalCachePool extends AbstractCachePool
         $qb->select('key')
             ->from($this->table)
             ->where('key = :key')
-            ->setParameter(':key', $item->getKey());
+            ->setParameter('key', $item->getKey());
 
         // Begin a transaction to delete and save the new item.
         $this->connection->beginTransaction();
@@ -135,19 +136,23 @@ class DbalCachePool extends AbstractCachePool
             $qb = $this->connection->createQueryBuilder();
             $qb->delete($this->table)
                 ->where('key = :key')
-                ->setParameter(':key', $item->getKey())
+                ->setParameter('key', $item->getKey())
                 ->executeQuery();
         }
 
         // Save the new item in the database.
         $qb = $this->connection->createQueryBuilder();
-        $qb->insert($this->table)
-           ->values([
-               'key' => $item->getKey(),
-               'data' => serialize($item->get()),
-               'expires' => $item->getExpires(),
-           ])
-            ->executeQuery();
+            $qb->insert($this->table)
+                ->values([
+                    'key' => ':key',
+                    'data' => ':data',
+                    'expires' => ':expires',
+                ])->setParameters([
+                    'key' => $item->getKey(),
+                    'data' => serialize($item->get()),
+                    'expires' => $item->getExpires(),
+                ], ['expires' => 'datetime'])
+                ->executeQuery();
 
         // Commit the transaction and return true.
         $this->connection->commit();

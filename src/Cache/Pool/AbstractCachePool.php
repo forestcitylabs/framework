@@ -14,7 +14,7 @@ abstract class AbstractCachePool implements CacheItemPoolInterface
 
     protected function checkKey(mixed $key)
     {
-        if (!is_string($key) || preg_match('/^[a-zA-Z0-9\-\.]$/', $key) === false || strlen($key) > 128) {
+        if (!is_string($key) || preg_match('/^[a-z0-9-._]+$/', $key) === 0 || strlen($key) > 128) {
             throw new InvalidArgumentException();
         }
     }

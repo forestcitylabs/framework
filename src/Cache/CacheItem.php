@@ -53,7 +53,7 @@ class CacheItem implements CacheItemInterface
 
         $now = new \DateTime('now');
         if (is_int($time)) {
-            $interval = new \DateInterval('PT' . $time);
+            $interval = \DateInterval::createFromDateString($time . ' seconds');
         } else {
             $interval = $time;
         }

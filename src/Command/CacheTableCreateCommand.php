@@ -28,7 +28,7 @@ class CacheTableCreateCommand extends Command
         $fromSchema = $sm->introspectSchema();
         $toSchema = clone $fromSchema;
 
-        // Create session table in the new schema.
+        // Create table in the new schema.
         $table = $toSchema->createTable($this->table);
         $table->addColumn('key', 'string')
             ->setLength(128);
