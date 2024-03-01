@@ -37,8 +37,8 @@ final class ScopeRegistry
             $scopes = $this->getAllScopes();
         }
 
-        return array_filter($scopes, function ($value) {
+        return array_values(array_filter($scopes, function ($value) {
             return !$this->scopes[$value];
-        });
+        }));
     }
 }
