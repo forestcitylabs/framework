@@ -14,7 +14,7 @@ class UnauthorizedException extends HttpException
         parent::__construct($message, $code, $previous);
     }
 
-    public function isClientSafe()
+    public function isClientSafe(): bool
     {
         return true;
     }

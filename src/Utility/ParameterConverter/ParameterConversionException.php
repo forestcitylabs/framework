@@ -16,7 +16,7 @@ use GraphQL\Error\ClientAware;
 
 class ParameterConversionException extends Exception implements ClientAware
 {
-    public function isClientSafe()
+    public function isClientSafe(): bool
     {
         return false;
     }
