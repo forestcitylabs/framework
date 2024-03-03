@@ -16,20 +16,9 @@
         </testsuite>
     </testsuites>
 
-    <coverage>
-        <report>
-            <html outputDirectory="out" />
-        </report>
-    </coverage>
-
     <source>
         <include>
             <directory>src</directory>
         </include>
     </source>
-
-    <php>
-        <ini name="xdebug.mode" value="debug,coverage" />
-        <env name="XDEBUG_TRIGGER" value="1" />
-    </php>
 </phpunit>
