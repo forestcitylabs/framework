@@ -23,6 +23,10 @@ class TestEntity
     #[GraphQL\Argument(type: 'String')]
     private DateTimeImmutable $created;
 
+    #[GraphQL\Field(type: 'TestEntity')]
+    #[GraphQL\Argument(type: 'TestEntityInput')]
+    private TestEntity $child;
+
     public function getId(): UuidInterface
     {
         return $this->id;
@@ -47,6 +51,17 @@ class TestEntity
     public function setCreated(DateTimeImmutable $created): static
     {
         $this->created = $created;
+        return $this;
+    }
+
+    public function getChild(): TestEntity
+    {
+        return $this->child;
+    }
+
+    public function setChild(TestEntity $child): static
+    {
+        $this->child = $child;
         return $this;
     }
 }

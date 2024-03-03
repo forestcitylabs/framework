@@ -42,6 +42,15 @@ class TestController
     ): void {
     }
 
+    public function serviceParameter(
+        TestController $controller,
+        int $integer,
+        $untyped,
+        int|bool $union,
+        string $test
+    ): void {
+    }
+
     public function __invoke()
     {
         return "test";
