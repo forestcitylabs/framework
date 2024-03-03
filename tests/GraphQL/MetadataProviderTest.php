@@ -6,6 +6,8 @@ namespace ForestCityLabs\Framework\Tests\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field;
+use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\Tests\Controller\TestController;
 use ForestCityLabs\Framework\Tests\Entity\AnotherTestEntity;
@@ -20,6 +22,8 @@ use Psr\Cache\CacheItemPoolInterface;
 #[CoversClass(MetadataProvider::class)]
 #[UsesClass(AbstractType::class)]
 #[UsesClass(Argument::class)]
+#[UsesClass(Field::class)]
+#[UsesClass(ObjectType::class)]
 class MetadataProviderTest extends TestCase
 {
     private MetadataProvider $metadata_provider;

@@ -34,6 +34,7 @@ class InputResolverTest extends TestCase
     #[Test]
     public function resolveValid(): void
     {
+        // Create a new uuid and entity.
         $uuid = Uuid::uuid4();
         $another_entity = new AnotherTestEntity();
 
@@ -42,13 +43,14 @@ class InputResolverTest extends TestCase
         $provider = $this->createStub(MetadataProvider::class);
         $em = $this->createStub(EntityManagerInterface::class);
         $repo = $this->createStub(EntityRepository::class);
+
+        // The entity manager will be used to resolve the entity reference.
         $em->method('getRepository')
             ->with(AnotherTestEntity::class)
             ->willReturn($repo);
         $repo->method('findOneBy')
             ->with(['id' => $uuid])
             ->willReturn($another_entity);
-
 
         // Create the input resolver.
         $resolver = new InputResolver($accessor, $provider, $em);
