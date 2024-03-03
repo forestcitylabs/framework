@@ -8,16 +8,28 @@
          beStrictAboutCoverageMetadata="true"
          beStrictAboutOutputDuringTests="true"
          failOnRisky="true"
-         failOnWarning="true">
+         failOnWarning="true"
+         testdox="true">
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
 
-    <source restrictDeprecations="true" restrictNotices="true" restrictWarnings="true">
+    <coverage>
+        <report>
+            <html outputDirectory="out" />
+        </report>
+    </coverage>
+
+    <source>
         <include>
             <directory>src</directory>
         </include>
     </source>
+
+    <php>
+        <ini name="xdebug.mode" value="debug,coverage" />
+        <env name="XDEBUG_TRIGGER" value="1" />
+    </php>
 </phpunit>
