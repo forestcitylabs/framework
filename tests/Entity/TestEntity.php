@@ -12,14 +12,41 @@ use Ramsey\Uuid\UuidInterface;
 #[GraphQL\InputType('TestEntityInput')]
 class TestEntity
 {
-    #[GraphQL\ObjectField]
+    #[GraphQL\Field]
     private UuidInterface $id;
 
-    #[GraphQL\ObjectField]
-    #[GraphQL\InputField(type: 'ID')]
+    #[GraphQL\Field]
+    #[GraphQL\Argument(type: 'ID')]
     private AnotherTestEntity $ref;
 
-    #[GraphQL\ObjectField(type: 'String')]
-    #[GraphQL\InputField(type: 'String')]
+    #[GraphQL\Field(type: 'String')]
+    #[GraphQL\Argument(type: 'String')]
     private DateTimeImmutable $created;
+
+    public function getId(): UuidInterface
+    {
+        return $this->id;
+    }
+
+    public function getRef(): AnotherTestEntity
+    {
+        return $this->ref;
+    }
+
+    public function setRef(AnotherTestEntity $ref): static
+    {
+        $this->ref = $ref;
+        return $this;
+    }
+
+    public function getCreated(): DateTimeImmutable
+    {
+        return $this->created;
+    }
+
+    public function setCreated(DateTimeImmutable $created): static
+    {
+        $this->created = $created;
+        return $this;
+    }
 }
