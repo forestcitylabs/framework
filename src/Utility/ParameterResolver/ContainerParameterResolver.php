@@ -13,6 +13,7 @@ namespace ForestCityLabs\Framework\Utility\ParameterResolver;
 
 use Exception;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ReflectionFunctionAbstract;
 use ReflectionNamedType;
 
@@ -49,7 +50,7 @@ class ContainerParameterResolver implements ParameterResolverInterface
             // Try to resolve using the container.
             try {
                 $args[$parameter->getName()] = $this->container->get($type->getName());
-            } catch (Exception $e) {
+            } catch (NotFoundExceptionInterface) {
                 // No action.
             }
         }
