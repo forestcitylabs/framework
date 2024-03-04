@@ -28,9 +28,9 @@ class TestController
 
     public function uuidParameter(
         UuidInterface $uuid,
-        string $beans,
-        $train,
-        int|bool $check
+        string $beans = 'string',
+        $train = 'beans',
+        int|bool $check = false
     ): void {
     }
 
@@ -44,10 +44,10 @@ class TestController
 
     public function serviceParameter(
         TestController $controller,
-        int $integer,
-        $untyped,
-        int|bool $union,
-        string $test
+        int $integer = 0,
+        $untyped = true,
+        int|bool $union = false,
+        string $test = "string"
     ): void {
     }
 
