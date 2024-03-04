@@ -8,10 +8,10 @@ use Doctrine\Inflector\InflectorFactory;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadataFactory as MappingClassMetadataFactory;
 use ForestCityLabs\Framework\Command\GenerateEntityCommand;
+use ForestCityLabs\Framework\Utility\CodeGenerator;
 use Nette\PhpGenerator\Printer;
 use Nette\PhpGenerator\PsrPrinter;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -22,6 +22,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 #[CoversClass(GenerateEntityCommand::class)]
 #[UsesClass(Printer::class)]
+#[UsesClass(CodeGenerator::class)]
 #[Group('development')]
 class GenerateEntityCommandTest extends TestCase
 {
@@ -133,6 +134,99 @@ class GenerateEntityCommandTest extends TestCase
             'relation',
             'Group',
             'ManyToMany',
+            'y',
+            'users',
+            '',
+            'yes',
+        ]);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'User',
+        ], ['interactive' => true]);
+
+        $this->assertMatchesFileSnapshot($this->directory . 'User.php');
+        $this->assertMatchesFileSnapshot($this->directory . 'Group.php');
+    }
+
+    #[Test]
+    public function oneToManyRelationProperty(): void
+    {
+        $tester = new CommandTester($this->command);
+        $tester->setInputs(['', 'yes']);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'Group',
+        ], ['interactive' => true]);
+
+        // Create a group entity.
+        $tester = new CommandTester($this->command);
+        $tester->setInputs([
+            'groups',
+            'relation',
+            'Group',
+            'OneToMany',
+            'y',
+            'users',
+            '',
+            'yes',
+        ]);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'User',
+        ], ['interactive' => true]);
+
+        $this->assertMatchesFileSnapshot($this->directory . 'User.php');
+        $this->assertMatchesFileSnapshot($this->directory . 'Group.php');
+    }
+
+    #[Test]
+    public function manyToOneRelationProperty(): void
+    {
+        $tester = new CommandTester($this->command);
+        $tester->setInputs(['', 'yes']);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'Group',
+        ], ['interactive' => true]);
+
+        // Create a group entity.
+        $tester = new CommandTester($this->command);
+        $tester->setInputs([
+            'groups',
+            'relation',
+            'Group',
+            'ManyToOne',
+            'y',
+            'users',
+            '',
+            'yes',
+        ]);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'User',
+        ], ['interactive' => true]);
+
+        $this->assertMatchesFileSnapshot($this->directory . 'User.php');
+        $this->assertMatchesFileSnapshot($this->directory . 'Group.php');
+    }
+
+    #[Test]
+    public function oneToOneRelationProperty(): void
+    {
+        $tester = new CommandTester($this->command);
+        $tester->setInputs(['', 'yes']);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'Group',
+        ], ['interactive' => true]);
+
+        // Create a group entity.
+        $tester = new CommandTester($this->command);
+        $tester->setInputs([
+            'groups',
+            'relation',
+            'Group',
+            'OneToOne',
             'y',
             'users',
             '',
