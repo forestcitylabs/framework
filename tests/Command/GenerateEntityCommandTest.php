@@ -22,12 +22,14 @@ class GenerateEntityCommandTest extends TestCase
     #[Test]
     public function generateEntity(): void
     {
+        $inflector = $this->createMock(Inflector::class);
+        $inflector->method('singularize')->willReturnArgument(0);
         $command = new GenerateEntityCommand(
             sys_get_temp_dir(),
             'Application\\Entity',
             $this->createMock(Printer::class),
             $this->createMock(EntityManagerInterface::class),
-            $this->createMock(Inflector::class)
+            $inflector
         );
         $command->setApplication(new Application());
         $tester = new CommandTester($command);
@@ -36,6 +38,30 @@ class GenerateEntityCommandTest extends TestCase
             'string',
             'n',
             'y',
+            'birthday',
+            'datetime',
+            'y',
+            'n',
+            'age',
+            'integer',
+            'y',
+            'n',
+            'consent',
+            'boolean',
+            'n',
+            'y',
+            'bio',
+            'text',
+            'y',
+            'n',
+            'exchange',
+            'float',
+            'y',
+            'n',
+            'roles',
+            'json_array',
+            'y',
+            'string',
             '',
         ]);
         $tester->execute([
