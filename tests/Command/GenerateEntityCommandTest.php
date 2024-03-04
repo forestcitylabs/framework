@@ -4,35 +4,58 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\Command;
 
-use Doctrine\Inflector\Inflector;
+use Doctrine\Inflector\InflectorFactory;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadataFactory as MappingClassMetadataFactory;
 use ForestCityLabs\Framework\Command\GenerateEntityCommand;
 use Nette\PhpGenerator\Printer;
+use Nette\PhpGenerator\PsrPrinter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use Spatie\Snapshots\MatchesSnapshots;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
 #[CoversClass(GenerateEntityCommand::class)]
+#[UsesClass(Printer::class)]
 #[Group('development')]
 class GenerateEntityCommandTest extends TestCase
 {
-    #[Test]
-    public function generateEntity(): void
+    use MatchesSnapshots;
+
+    private string $directory;
+    private EntityManagerInterface $em;
+    private GenerateEntityCommand $command;
+
+    protected function setUp(): void
     {
-        $inflector = $this->createMock(Inflector::class);
-        $inflector->method('singularize')->willReturnArgument(0);
-        $command = new GenerateEntityCommand(
-            sys_get_temp_dir(),
+        $this->directory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'Entity' . DIRECTORY_SEPARATOR;
+        $factory = $this->createConfiguredStub(MappingClassMetadataFactory::class, [
+            'getAllMetadata' => [],
+        ]);
+        $this->em = $this->createConfiguredStub(EntityManagerInterface::class, [
+            'getMetadataFactory' => $factory,
+        ]);
+        $this->command = new GenerateEntityCommand(
+            $this->directory,
             'Application\\Entity',
-            $this->createMock(Printer::class),
-            $this->createMock(EntityManagerInterface::class),
-            $inflector
+            new PsrPrinter(),
+            $this->em,
+            InflectorFactory::create()->build()
         );
-        $command->setApplication(new Application());
-        $tester = new CommandTester($command);
+        $this->command->setApplication(new Application());
+        mkdir($this->directory, recursive: true);
+    }
+
+    #[Test]
+    public function scalarProperties(): void
+    {
+        // Set the relevant inputs and execute.
+        $tester = new CommandTester($this->command);
         $tester->setInputs([
             'email',
             'string',
@@ -58,6 +81,26 @@ class GenerateEntityCommandTest extends TestCase
             'float',
             'y',
             'n',
+            '',
+            'yes',
+        ]);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'User'
+        ], ['interactive' => true]);
+
+        // Assert the file now exists.
+        $this->assertFileExists($this->directory . 'User.php');
+
+        // Assert that the file has the correct text in it.
+        $this->assertMatchesFileSnapshot($this->directory . 'User.php');
+    }
+
+    #[Test]
+    public function arrayProperty(): void
+    {
+        $tester = new CommandTester($this->command);
+        $tester->setInputs([
             'roles',
             'json_array',
             'y',
@@ -67,14 +110,51 @@ class GenerateEntityCommandTest extends TestCase
         $tester->execute([
             'command' => 'generate:entity',
             'class' => 'User'
-        ], [
-            'interactive' => true,
+        ], ['interactive' => true]);
+        $this->assertFileExists($this->directory . 'User.php');
+        $this->assertMatchesFileSnapshot($this->directory . 'User.php');
+    }
+
+    #[Test]
+    public function manyToManyRelationProperty(): void
+    {
+        // Create the user entity.
+        $tester = new CommandTester($this->command);
+        $tester->setInputs(['', 'yes']);
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'Group',
+        ], ['interactive' => true]);
+
+        // Create a group entity.
+        $tester = new CommandTester($this->command);
+        $tester->setInputs([
+            'groups',
+            'relation',
+            'Group',
+            'ManyToMany',
+            'y',
+            'users',
+            '',
+            'yes',
         ]);
-        $this->assertFileExists(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'User.php');
+        $tester->execute([
+            'command' => 'generate:entity',
+            'class' => 'User',
+        ], ['interactive' => true]);
+
+        $this->assertMatchesFileSnapshot($this->directory . 'User.php');
+        $this->assertMatchesFileSnapshot($this->directory . 'Group.php');
     }
 
     protected function tearDown(): void
     {
-        unlink(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'User.php');
+        if (file_exists($this->directory . 'User.php')) {
+            unlink($this->directory . 'User.php');
+        }
+        if (file_exists($this->directory . 'Group.php')) {
+            unlink($this->directory . 'Group.php');
+        }
+        rmdir($this->directory);
     }
 }
