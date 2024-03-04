@@ -9,12 +9,19 @@
          beStrictAboutOutputDuringTests="true"
          failOnRisky="true"
          failOnWarning="true"
+         colors="true"
          testdox="true">
     <testsuites>
         <testsuite name="default">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
+
+    <coverage>
+        <report>
+            <html outputDirectory="out" />
+        </report>
+    </coverage>
 
     <source>
         <include>

@@ -28,6 +28,7 @@ jobs:
       with:
         php_version: ${{matrix.version}}
         version: 10
+        args: "--no-coverage"
   build-coverage:
     runs-on: ubuntu-latest
     steps:
