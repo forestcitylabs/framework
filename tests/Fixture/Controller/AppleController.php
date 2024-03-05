@@ -23,7 +23,7 @@ class AppleController
     #[GraphQL\Query]
     #[GraphQL\Field]
     public function getApple(
-        UuidInterface $id,
+        #[GraphQL\Argument] UuidInterface $id,
         EntityManagerInterface $em
     ): ?Apple {
         return $em->getRepository(Apple::class)->findOneBy(['id' => $id]);
