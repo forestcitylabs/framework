@@ -13,7 +13,7 @@ use Ramsey\Uuid\UuidInterface;
 
 #[ORM\Entity]
 #[GraphQL\ObjectType]
-#[GraphQL\InputType]
+#[GraphQL\InputType("BasketInput")]
 class Basket
 {
     #[ORM\Id]
@@ -24,7 +24,7 @@ class Basket
     private UuidInterface $id;
 
     #[ORM\OneToMany(targetEntity: Apple::class, mappedBy: 'basket')]
-    #[GraphQL\Field]
+    #[GraphQL\Field(type: Apple::class, list: true)]
     private Collection $apples;
 
     public function __construct()

@@ -11,7 +11,7 @@ use Ramsey\Uuid\UuidInterface;
 
 #[ORM\Entity]
 #[GraphQL\ObjectType]
-#[GraphQL\InputType]
+#[GraphQL\InputType("AppleInput")]
 class Apple
 {
     #[ORM\Id]

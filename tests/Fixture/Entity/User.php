@@ -12,7 +12,7 @@ use Ramsey\Uuid\UuidInterface;
 
 #[ORM\Entity]
 #[GraphQL\ObjectType]
-#[GraphQL\InputType]
+#[GraphQL\InputType("UserInput")]
 class User
 {
     #[ORM\Id]
