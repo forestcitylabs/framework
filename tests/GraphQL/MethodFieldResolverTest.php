@@ -12,12 +12,14 @@ use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 
 #[CoversClass(MethodFieldResolver::class)]
+#[Group('graphql')]
 class MethodFieldResolverTest extends TestCase
 {
     #[Test]
