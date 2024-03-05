@@ -45,5 +45,6 @@ class MetadataProviderTest extends TestCase
         );
 
         $this->assertMatchesObjectSnapshot($metadata_provider->getRoutes());
+        $this->assertEquals("/login", $metadata_provider->getRoute("user_login")->getPath());
     }
 }
