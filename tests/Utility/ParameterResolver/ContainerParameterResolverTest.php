@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\Utility\ParameterResolver;
 
-use ForestCityLabs\Framework\Tests\Controller\TestController;
+use Doctrine\ORM\EntityManagerInterface;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Utility\ParameterResolver\ContainerParameterResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use Ramsey\Uuid\Uuid;
 use ReflectionMethod;
 
 #[CoversClass(ContainerParameterResolver::class)]
@@ -24,17 +26,19 @@ class ContainerParameterResolverTest extends TestCase
     {
         // Mock the services.
         $container = $this->createStub(ContainerInterface::class);
-        $container->method('get')->with(TestController::class)->willReturn(new TestController());
+        $container->method('get')->with(EntityManagerInterface::class)->willReturn(
+            $this->createStub(EntityManagerInterface::class)
+        );
 
         // Create the test values.
-        $reflection = new ReflectionMethod(TestController::class, 'serviceParameter');
+        $reflection = new ReflectionMethod(AppleController::class, 'getApple');
 
         // Test the resolver.
         $resolver = new ContainerParameterResolver($container);
-        $args = $resolver->resolveParameters($reflection, ['test' => 'value']);
+        $args = $resolver->resolveParameters($reflection, ['id' => Uuid::uuid4()]);
 
         // Make some assertions.
-        $this->assertInstanceOf(TestController::class, $args['controller']);
+        $this->assertInstanceOf(EntityManagerInterface::class, $args['em']);
     }
 
     #[Test]
@@ -44,13 +48,13 @@ class ContainerParameterResolverTest extends TestCase
         // Mock the services.
         $container = $this->createStub(ContainerInterface::class);
         $exception = $this->createMock(NotFoundExceptionInterface::class);
-        $container->method('get')->with(TestController::class)->willThrowException($exception);
+        $container->method('get')->with(EntityManagerInterface::class)->willThrowException($exception);
 
         // Create the test values.
-        $reflection = new ReflectionMethod(TestController::class, 'serviceParameter');
+        $reflection = new ReflectionMethod(AppleController::class, 'getApple');
 
         // Test the resolver.
         $resolver = new ContainerParameterResolver($container);
-        $resolver->resolveParameters($reflection, ['test' => 'value']);
+        $resolver->resolveParameters($reflection, ['id' => Uuid::uuid4()]);
     }
 }

@@ -9,7 +9,7 @@ use ForestCityLabs\Framework\Routing\Attribute\Route;
 use ForestCityLabs\Framework\Routing\Attribute\RoutePrefix;
 use ForestCityLabs\Framework\Routing\Collection\RouteCollection;
 use ForestCityLabs\Framework\Routing\MetadataProvider;
-use ForestCityLabs\Framework\Tests\Controller\TestController;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\UserController;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
+use Spatie\Snapshots\MatchesSnapshots;
 
 #[CoversClass(MetadataProvider::class)]
 #[UsesClass(RouteCollection::class)]
@@ -24,6 +25,8 @@ use Psr\Log\LoggerInterface;
 #[UsesClass(RoutePrefix::class)]
 class MetadataProviderTest extends TestCase
 {
+    use MatchesSnapshots;
+
     #[Test]
     public function testMetadataProvider()
     {
@@ -35,14 +38,12 @@ class MetadataProviderTest extends TestCase
             'getItem' => $item,
         ]);
         $metadata_provider = new MetadataProvider(
-            [TestController::class],
+            [UserController::class],
             $cache_pool,
             $this->createMock(LoggerInterface::class),
             new Slugify(),
         );
 
-        $this->assertEquals(1, $metadata_provider->getRoutes()->count());
-        $this->assertEquals('test_test', $metadata_provider->getRoute('test_test')->getName());
-        $this->assertEquals(null, $metadata_provider->getRoute('nothing'));
+        $this->assertMatchesObjectSnapshot($metadata_provider->getRoutes());
     }
 }

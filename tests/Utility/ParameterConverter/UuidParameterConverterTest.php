@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\Utility\ParameterConverter;
 
-use ForestCityLabs\Framework\Tests\Controller\TestController;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Utility\ParameterConverter\ParameterConversionException;
 use ForestCityLabs\Framework\Utility\ParameterConverter\UuidParameterConverter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -20,15 +20,12 @@ class UuidParameterConverterTest extends TestCase
     public function convertValidParameters(): void
     {
         $converter = new UuidParameterConverter();
-        $reflection = new ReflectionMethod(TestController::class, 'uuidParameter');
+        $reflection = new ReflectionMethod(AppleController::class, 'getApple');
         $args = [
-            'uuid' => '07E254B4-E497-4498-9CEF-FEFA51C18EC7',
-            'beans' => 'string',
-            'train' => 123,
-            'check' => true,
+            'id' => '07E254B4-E497-4498-9CEF-FEFA51C18EC7',
         ];
         $args = $converter->convertParameters($reflection, $args);
-        $this->assertInstanceOf(UuidInterface::class, $args['uuid']);
+        $this->assertInstanceOf(UuidInterface::class, $args['id']);
     }
 
     #[Test]
@@ -36,9 +33,9 @@ class UuidParameterConverterTest extends TestCase
     {
         $this->expectException(ParameterConversionException::class);
         $converter = new UuidParameterConverter();
-        $reflection = new ReflectionMethod(TestController::class, 'uuidParameter');
+        $reflection = new ReflectionMethod(AppleController::class, 'getApple');
         $args = [
-            'uuid' => 'invalid',
+            'id' => 'invalid',
         ];
         $args = $converter->convertParameters($reflection, $args);
     }
