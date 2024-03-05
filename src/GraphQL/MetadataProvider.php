@@ -336,7 +336,7 @@ class MetadataProvider
 
         // Attempt to map type by class name as a last resort.
         foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
-            if ($metadata instanceof ObjectType) {
+            if ($metadata instanceof ObjectType || $metadata instanceof EnumType) {
                 return $metadata->getName();
             }
         }
@@ -380,7 +380,7 @@ class MetadataProvider
 
         // Attempt to map type by class name as a last resort.
         foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
-            if ($metadata instanceof InputType) {
+            if ($metadata instanceof InputType || $metadata instanceof EnumType) {
                 return $metadata->getName();
             }
         }
