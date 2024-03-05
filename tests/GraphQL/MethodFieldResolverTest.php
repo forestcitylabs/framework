@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\GraphQL;
 
+use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
-use ForestCityLabs\Framework\Tests\Controller\TestController;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -30,11 +31,14 @@ class MethodFieldResolverTest extends TestCase
 
         // Create the values.
         $field = $this->createConfiguredStub(Field::class, [
-            'getAttributeName' => TestController::class .  '::uuidParameter',
+            'getAttributeName' => AppleController::class .  '::getApple',
         ]);
-        $container->method('get')->with(TestController::class)->willReturn(new TestController());
+        $container->method('get')->with(AppleController::class)->willReturn(
+            $this->createStub(AppleController::class)
+        );
         $processor->method('processParameters')->willReturn([
-            'uuid' => Uuid::uuid4(),
+            'id' => Uuid::uuid4(),
+            'em' => $this->createStub(EntityManagerInterface::class)
         ]);
 
         // Resolve a field.
