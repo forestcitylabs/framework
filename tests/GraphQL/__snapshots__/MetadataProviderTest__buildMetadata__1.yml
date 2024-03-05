@@ -1,0 +1,39 @@
+Apple:
+    interfaces: {  }
+    name: Apple
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\Apple
+    fields: { id: { attributeType: property, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true, arguments: {  }, deprecationReason: null }, type: { attributeType: property, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true, arguments: {  }, deprecationReason: null }, basket: { attributeType: property, attributeName: basket, name: basket, description: null, className: null, type: Basket, list: false, notNull: true, arguments: {  }, deprecationReason: null } }
+AppleInput:
+    name: AppleInput
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\Apple
+    arguments: { type: { attributeType: property, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true } }
+Basket:
+    interfaces: {  }
+    name: Basket
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\Basket
+    fields: { id: { attributeType: property, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true, arguments: {  }, deprecationReason: null }, apples: { attributeType: property, attributeName: apples, name: apples, description: null, className: null, type: ForestCityLabs\Framework\Tests\Fixture\Entity\Apple, list: true, notNull: true, arguments: {  }, deprecationReason: null } }
+BasketInput:
+    name: BasketInput
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\Basket
+    arguments: {  }
+AppleTypeEnum:
+    values: {  }
+    name: AppleTypeEnum
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum
+Query:
+    interfaces: {  }
+    name: Query
+    description: null
+    className: null
+    fields: { getApples: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController::getApples', name: getApples, description: null, className: null, type: ForestCityLabs\Framework\Tests\Fixture\Entity\Apple, list: true, notNull: true, arguments: {  }, deprecationReason: null }, getApple: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController::getApple', name: getApple, description: null, className: null, type: Apple, list: false, notNull: false, arguments: {  }, deprecationReason: null }, getBaskets: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController::getBaskets', name: getBaskets, description: null, className: null, type: Basket, list: true, notNull: true, arguments: {  }, deprecationReason: null }, getBasket: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController::getBasket', name: getBasket, description: null, className: null, type: Basket, list: false, notNull: false, arguments: { id: { attributeType: parameter, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true } }, deprecationReason: null } }
+Mutation:
+    interfaces: {  }
+    name: Mutation
+    description: null
+    className: null
+    fields: { addApple: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController::addApple', name: addApple, description: null, className: null, type: Basket, list: false, notNull: true, arguments: { id: { attributeType: parameter, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true }, apple: { attributeType: parameter, attributeName: apple, name: apple, description: null, className: null, type: Apple, list: false, notNull: true } }, deprecationReason: null }, updateApple: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController::updateApple', name: updateApple, description: null, className: null, type: Apple, list: false, notNull: true, arguments: { id: { attributeType: parameter, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true }, type: { attributeType: parameter, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true } }, deprecationReason: null }, removeApple: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController::removeApple', name: removeApple, description: null, className: null, type: ID, list: false, notNull: true, arguments: { id: { attributeType: parameter, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true } }, deprecationReason: null }, createBasket: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController::createBasket', name: createBasket, description: null, className: null, type: Basket, list: false, notNull: true, arguments: { basket: { attributeType: parameter, attributeName: basket, name: basket, description: null, className: null, type: Basket, list: false, notNull: true } }, deprecationReason: null }, removeBasket: { attributeType: method, attributeName: 'ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController::removeBasket', name: removeBasket, description: null, className: null, type: ID, list: false, notNull: true, arguments: { id: { attributeType: parameter, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true } }, deprecationReason: null } }
