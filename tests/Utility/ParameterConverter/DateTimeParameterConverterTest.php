@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Tests\Utility\ParameterConverter;
 
 use DateTimeInterface;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\UserController;
+use ForestCityLabs\Framework\Tests\Fixture\Miscellaneous\ParameterConverterNegatives;
 use ForestCityLabs\Framework\Utility\ParameterConverter\DateTimeParameterConverter;
 use ForestCityLabs\Framework\Utility\ParameterConverter\ParameterConversionException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -38,5 +39,15 @@ class DateTimeParameterConverterTest extends TestCase
         ];
         $converter = new DateTimeParameterConverter();
         $args = $converter->convertParameters($reflection, $args);
+    }
+
+    #[Test]
+    public function cantConvertParameters(): void
+    {
+        $converter = new DateTimeParameterConverter();
+        $reflection = new ReflectionMethod(ParameterConverterNegatives::class, 'cantConvert');
+        $args = [];
+        $args = $converter->convertParameters($reflection, $args);
+        $this->assertEmpty($args);
     }
 }

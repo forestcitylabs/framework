@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Tests\Utility\ParameterResolver;
 
 use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
+use ForestCityLabs\Framework\Tests\Fixture\Miscellaneous\ParameterConverterNegatives;
 use ForestCityLabs\Framework\Utility\ParameterResolver\ContainerParameterResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -56,5 +57,20 @@ class ContainerParameterResolverTest extends TestCase
         // Test the resolver.
         $resolver = new ContainerParameterResolver($container);
         $resolver->resolveParameters($reflection, ['id' => Uuid::uuid4()]);
+    }
+
+    #[Test]
+    #[DoesNotPerformAssertions]
+    public function cantResolveParameters(): void
+    {
+        // Mock the services.
+        $container = $this->createStub(ContainerInterface::class);
+
+        // Create the test values.
+        $reflection = new ReflectionMethod(ParameterConverterNegatives::class, 'cantConvert');
+
+        // Test the resolver.
+        $resolver = new ContainerParameterResolver($container);
+        $resolver->resolveParameters($reflection, []);
     }
 }
