@@ -27,6 +27,9 @@ abstract class AbstractCachePoolTestCase extends TestCase
         $item = $this->pool->getItem('future');
         $item->set('future')->expiresAfter(3600);
         $this->pool->saveDeferred($item);
+        $item = $this->pool->getItem('delete_me');
+        $item->set('delete_me');
+        $this->pool->saveDeferred($item);
         $this->pool->commit();
     }
 
@@ -91,7 +94,7 @@ abstract class AbstractCachePoolTestCase extends TestCase
     public function clearCache(): void
     {
         $this->pool->clear();
-        $item = $this->pool->getItem('no_expiry');
+        $item = $this->pool->getItem('delete_me');
         $this->assertEquals(false, $item->isHit());
     }
 
@@ -112,9 +115,17 @@ abstract class AbstractCachePoolTestCase extends TestCase
     #[Test]
     public function deleteItem(): void
     {
-        $this->assertEquals(true, $this->pool->hasItem('future'));
-        $this->pool->deleteItem('future');
-        $item = $this->pool->getItem('future');
+        $this->assertEquals(true, $this->pool->hasItem('delete_me'));
+        $this->pool->deleteItem('delete_me');
+        $item = $this->pool->getItem('delete_me');
         $this->assertEquals(false, $item->isHit());
+    }
+
+    #[Test]
+    public function deleteItems(): void
+    {
+        $this->assertTrue($this->pool->hasItem('delete_me'));
+        $this->pool->deleteItems(['delete_me']);
+        $this->assertFalse($this->pool->hasItem('delete_me'));
     }
 }
