@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Cache\Pool;
 
-use DateTime;
 use ForestCityLabs\Framework\Cache\CacheItem;
 use Predis\ClientInterface;
 use Psr\Cache\CacheItemInterface;
@@ -22,10 +21,7 @@ class PredisCachePool extends AbstractCachePool
         if (null === $value = $this->client->get($key)) {
             return new CacheItem($key);
         }
-        $item = new CacheItem($key, unserialize($value));
-        if (0 < $expires = $this->client->expiretime($key)) {
-            $item->expiresAt(new DateTime('@' . $expires));
-        }
+        $item = unserialize($value);
         return $item;
     }
 
@@ -50,7 +46,7 @@ class PredisCachePool extends AbstractCachePool
         }
 
         // Set the cache item in redis.
-        $this->client->set($item->getKey(), serialize($item->get()));
+        $this->client->set($item->getKey(), serialize($item));
 
         // If we have an expiry set it on the cache item.
         if (null !== $item->getExpires()) {
