@@ -6,7 +6,9 @@ namespace ForestCityLabs\Framework\Tests\Session;
 
 use DateTime;
 use ForestCityLabs\Framework\Session\Session;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
@@ -14,6 +16,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
 #[CoversClass(Session::class)]
+#[Group("session")]
 class SessionTest extends TestCase
 {
     #[Test]
@@ -37,5 +40,23 @@ class SessionTest extends TestCase
         $request = $this->createMock(ServerRequestInterface::class);
         $request->expects($this->once())->method('getAttribute')->with('_session')->willReturn($session);
         $session = Session::fromRequest($request);
+    }
+
+    #[Test]
+    public function invalidSession(): void
+    {
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->expects($this->once())->method('getAttribute')->with('_session')->willReturn('not_a_session');
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Invalid session');
+        Session::fromRequest($request);
+    }
+
+    #[Test]
+    public function noSession(): void
+    {
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->expects($this->once())->method('getAttribute')->with('_session')->willReturn(null);
+        $this->assertNull(Session::fromRequest($request));
     }
 }
