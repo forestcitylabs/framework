@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Tests\Utility\ParameterConverter;
 
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
+use ForestCityLabs\Framework\Tests\Fixture\Miscellaneous\ParameterConverterNegatives;
 use ForestCityLabs\Framework\Utility\ParameterConverter\ParameterConversionException;
 use ForestCityLabs\Framework\Utility\ParameterConverter\UuidParameterConverter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -38,5 +39,15 @@ class UuidParameterConverterTest extends TestCase
             'id' => 'invalid',
         ];
         $args = $converter->convertParameters($reflection, $args);
+    }
+
+    #[Test]
+    public function cantConvertParameters(): void
+    {
+        $converter = new UuidParameterConverter();
+        $reflection = new ReflectionMethod(ParameterConverterNegatives::class, 'cantConvert');
+        $args = [];
+        $args = $converter->convertParameters($reflection, $args);
+        $this->assertEmpty($args);
     }
 }
