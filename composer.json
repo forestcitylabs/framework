@@ -54,6 +54,7 @@
         "dflydev/fig-cookies": "^3.1",
         "doctrine/dbal": "^3.7",
         "doctrine/orm": "^3.0",
+        "filp/whoops": "^2.15",
         "guzzlehttp/psr7": "^2.6",
         "http-interop/http-factory-guzzle": "^1.2",
         "kint-php/kint": "^5.0",
