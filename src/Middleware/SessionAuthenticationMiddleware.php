@@ -44,20 +44,14 @@ class SessionAuthenticationMiddleware implements MiddlewareInterface
         RequestHandlerInterface $handler
     ): ResponseInterface {
         // Enable this if we match the path.
-        if (1 === preg_match($this->path_regex, $request->getUri()->getHost())) {
+        if (1 === preg_match($this->path_regex, $request->getUri()->getPath())) {
             // Get the session from the request.
             if (null === $session = $request->getAttribute('_session')) {
                 throw new LogicException('To use session authentication you must enable the session middleware.');
             }
 
-            // Get the cookies from the request.
-            if (null === $cookies = $request->getAttribute('_cookies')) {
-                throw new LogicException('To use session authentication you must enable the cookie middleware.');
-            }
-
             // Ensure we have what we think we have.
             assert($session instanceof Session);
-            assert($cookies instanceof Cookies);
 
             // Get the current date/time.
             $now = new DateTimeImmutable();
@@ -77,7 +71,7 @@ class SessionAuthenticationMiddleware implements MiddlewareInterface
             }
 
             // Check for a refresh token.
-            if (null !== $token = $cookies->get('_refresh_token')) {
+            if (null !== $token = Cookies::fromRequest($request)->get('_refresh_token')) {
                 // Attempt to lookup the refresh token.
                 if (null !== $refresh_token = $this->refresh_token_repo->findToken($token->getValue())) {
                     // Check that the token is not expired.
