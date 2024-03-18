@@ -6,29 +6,37 @@ namespace ForestCityLabs\Framework\Tests\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
+use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
-use ForestCityLabs\Framework\Tests\Controller\TestController;
-use ForestCityLabs\Framework\Tests\Entity\AnotherTestEntity;
-use ForestCityLabs\Framework\Tests\Entity\TestEntity;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
+use Spatie\Snapshots\MatchesSnapshots;
 
 #[CoversClass(MetadataProvider::class)]
 #[UsesClass(AbstractType::class)]
 #[UsesClass(Argument::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ObjectType::class)]
+#[UsesClass(EnumType::class)]
+#[Group('graphql')]
 class MetadataProviderTest extends TestCase
 {
-    private MetadataProvider $metadata_provider;
+    use MatchesSnapshots;
 
-    public function init()
+    #[Test]
+    public function buildMetadata(): void
     {
         $item = $this->createConfiguredStub(CacheItemInterface::class, [
             'isHit' => false,
@@ -37,47 +45,26 @@ class MetadataProviderTest extends TestCase
         $cache = $this->createConfiguredStub(CacheItemPoolInterface::class, [
             'getItem' => $item,
         ]);
-        $this->metadata_provider = new MetadataProvider([
-            TestEntity::class,
-            AnotherTestEntity::class,
+        $metadata_provider = new MetadataProvider([
+            Apple::class,
+            Basket::class,
+            AppleTypeEnum::class,
         ], [
-            TestController::class,
+            AppleController::class,
+            BasketController::class,
         ], $cache);
-    }
+        $this->assertMatchesSnapshot($metadata_provider->getAllTypeMetadata());
 
-    #[Test]
-    public function getTypeMetadata()
-    {
-        $this->init();
-
-        $valid = $this->metadata_provider->getTypeMetadata('TestEntity');
+        $valid = $metadata_provider->getTypeMetadata('Apple');
         $this->assertInstanceOf(AbstractType::class, $valid);
 
-        $invalid = $this->metadata_provider->getTypeMetadata('nope');
-        $this->assertEquals($invalid, null);
-    }
-
-    #[Test]
-    public function getObjectTypeMetadataByClassName()
-    {
-        $this->init();
-
-        $valid = $this->metadata_provider->getObjectTypeMetadataByClassName(TestEntity::class);
+        $valid = $metadata_provider->getObjectTypeMetadataByClassName(Apple::class);
         $this->assertInstanceOf(AbstractType::class, $valid);
 
-        $invalid = $this->metadata_provider->getObjectTypeMetadataByClassName('nope');
-        $this->assertEquals(null, $invalid);
-    }
-
-    #[Test]
-    public function getInputTypeMetadataByClassName()
-    {
-        $this->init();
-
-        $valid = $this->metadata_provider->getInputTypeMetadataByClassName(TestEntity::class);
+        $valid = $metadata_provider->getInputTypeMetadataByClassName(Apple::class);
         $this->assertInstanceOf(AbstractType::class, $valid);
 
-        $invalid = $this->metadata_provider->getInputTypeMetadataByClassName('nope');
+        $invalid = $metadata_provider->getInputTypeMetadataByClassName('nope');
         $this->assertEquals(null, $invalid);
     }
 }
