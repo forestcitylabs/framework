@@ -75,7 +75,7 @@ class RoutingMiddleware implements MiddlewareInterface
         }
 
         // Dispatch an event before allowing request.
-        $event = new PreRouteDispatchEvent($controller, $method_name, $request);
+        $event = new PreRouteDispatchEvent($controller::class, $method_name, $request);
         $this->event_dispatcher->dispatch($event);
 
         // If the event has a response attached we should return that.
