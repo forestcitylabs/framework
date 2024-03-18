@@ -17,6 +17,7 @@ use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,6 +36,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 #[UsesClass(Field::class)]
 #[UsesClass(MetadataProvider::class)]
 #[UsesClass(ObjectType::class)]
+#[UsesClass(ManualDiscovery::class)]
 #[Group("graphql")]
 class InputResolverTest extends TestCase
 {
@@ -47,14 +49,14 @@ class InputResolverTest extends TestCase
         $item = $this->createStub(CacheItemInterface::class);
         $item->method('set')->willReturnSelf();
         $cache->method('getItem')->willReturn($item);
-        $provider = new MetadataProvider([
+        $provider = new MetadataProvider(new ManualDiscovery([
             Apple::class,
             Basket::class,
             AppleTypeEnum::class,
-        ], [
+        ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class
-        ], $cache);
+        ]), $cache);
         $em = $this->createStub(EntityManagerInterface::class);
 
         // Create the input resolver.

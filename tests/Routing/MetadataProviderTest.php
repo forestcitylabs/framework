@@ -10,6 +10,7 @@ use ForestCityLabs\Framework\Routing\Attribute\RoutePrefix;
 use ForestCityLabs\Framework\Routing\Collection\RouteCollection;
 use ForestCityLabs\Framework\Routing\MetadataProvider;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\UserController;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -23,6 +24,7 @@ use Spatie\Snapshots\MatchesSnapshots;
 #[UsesClass(RouteCollection::class)]
 #[UsesClass(Route::class)]
 #[UsesClass(RoutePrefix::class)]
+#[UsesClass(ManualDiscovery::class)]
 class MetadataProviderTest extends TestCase
 {
     use MatchesSnapshots;
@@ -38,7 +40,7 @@ class MetadataProviderTest extends TestCase
             'getItem' => $item,
         ]);
         $metadata_provider = new MetadataProvider(
-            [UserController::class],
+            new ManualDiscovery([UserController::class]),
             $cache_pool,
             $this->createMock(LoggerInterface::class),
             new Slugify(),

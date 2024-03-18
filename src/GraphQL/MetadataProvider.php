@@ -20,6 +20,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use LogicException;
 use Psr\Cache\CacheItemPoolInterface;
 use Ramsey\Uuid\UuidInterface;
@@ -35,14 +36,14 @@ class MetadataProvider
     private array $metadata = [];
 
     public function __construct(
-        private array $types,
-        private array $controllers,
+        private ClassDiscoveryInterface $type_discovery,
+        private ClassDiscoveryInterface $controller_discovery,
         private CacheItemPoolInterface $cache
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
             // Parse types.
-            $this->parseTypes($types);
+            $this->parseTypes($type_discovery->discoverClasses());
 
             // Parse fields.
             $this->parseFields();
@@ -51,7 +52,7 @@ class MetadataProvider
             $this->mapInterfaces();
 
             // Parse controllers.
-            $this->parseControllers($controllers);
+            $this->parseControllers($controller_discovery->discoverClasses());
 
             // Cache the metadata.
             $cache->save($item->set($this->metadata));

@@ -18,6 +18,7 @@ use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -35,6 +36,7 @@ use Psr\Cache\CacheItemPoolInterface;
 #[UsesClass(ObjectType::class)]
 #[UsesClass(AbstractType::class)]
 #[UsesClass(EnumType::class)]
+#[UsesClass(ManualDiscovery::class)]
 #[Group("graphql")]
 class TypeRegistryTest extends TestCase
 {
@@ -49,14 +51,14 @@ class TypeRegistryTest extends TestCase
             'getItem' => $item,
         ]);
 
-        $provider = new MetadataProvider([
+        $provider = new MetadataProvider(new ManualDiscovery([
             Apple::class,
             Basket::class,
             AppleTypeEnum::class,
-        ], [
+        ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class,
-        ], $cache);
+        ]), $cache);
 
         $registry = new TypeRegistry($provider, $this->createStub(PropertyFieldResolver::class), $this->createStub(MethodFieldResolver::class));
 
