@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Tests\Event;
 
 use ForestCityLabs\Framework\Event\Attribute\EventListener;
 use ForestCityLabs\Framework\Event\ListenerProvider;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,6 +19,7 @@ use Psr\Container\ContainerInterface;
 #[CoversClass(ListenerProvider::class)]
 #[Group("event")]
 #[UsesClass(EventListener::class)]
+#[UsesClass(ManualDiscovery::class)]
 class ListenerProviderTest extends TestCase
 {
     #[Test]
@@ -33,7 +35,7 @@ class ListenerProviderTest extends TestCase
         $pool->expects($this->once())->method('save');
 
         // Create the listener provider.
-        new ListenerProvider([TestEventListener::class], $pool, $container);
+        new ListenerProvider(new ManualDiscovery([TestEventListener::class]), $pool, $container);
     }
 
     #[Test]
@@ -49,7 +51,7 @@ class ListenerProviderTest extends TestCase
         $pool->expects($this->never())->method('save');
 
         // Create the listener provider.
-        new ListenerProvider([TestEventListener::class], $pool, $container);
+        new ListenerProvider(new ManualDiscovery([TestEventListener::class]), $pool, $container);
     }
 
     #[Test]
@@ -62,7 +64,7 @@ class ListenerProviderTest extends TestCase
         $container->method('get')->with(TestEventListener::class)->willReturn(new TestEventListener());
 
         // Create the listener provider.
-        $provider = new ListenerProvider([TestEventListener::class], $pool, $container);
+        $provider = new ListenerProvider(new ManualDiscovery([TestEventListener::class]), $pool, $container);
         $listeners = $provider->getListenersForEvent(new TestEvent());
 
         // Assert that listeners are correct.

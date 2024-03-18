@@ -15,6 +15,7 @@ use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,6 +31,7 @@ use Spatie\Snapshots\MatchesSnapshots;
 #[UsesClass(Field::class)]
 #[UsesClass(ObjectType::class)]
 #[UsesClass(EnumType::class)]
+#[UsesClass(ManualDiscovery::class)]
 #[Group('graphql')]
 class MetadataProviderTest extends TestCase
 {
@@ -45,14 +47,14 @@ class MetadataProviderTest extends TestCase
         $cache = $this->createConfiguredStub(CacheItemPoolInterface::class, [
             'getItem' => $item,
         ]);
-        $metadata_provider = new MetadataProvider([
+        $metadata_provider = new MetadataProvider(new ManualDiscovery([
             Apple::class,
             Basket::class,
             AppleTypeEnum::class,
-        ], [
+        ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class,
-        ], $cache);
+        ]), $cache);
         $this->assertMatchesSnapshot($metadata_provider->getAllTypeMetadata());
 
         $valid = $metadata_provider->getTypeMetadata('Apple');

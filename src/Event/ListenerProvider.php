@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Event;
 
 use ForestCityLabs\Framework\Event\Attribute\EventListener;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
@@ -28,14 +29,14 @@ class ListenerProvider implements ListenerProviderInterface
     private array $data = [];
 
     public function __construct(
-        private array $listeners,
+        private ClassDiscoveryInterface $discovery,
         private CacheItemPoolInterface $cache,
         private ContainerInterface $container
     ) {
         $item = $cache->getItem('core.event.listeners');
         if (!$item->isHit()) {
             // Create registry of event listeners.
-            foreach ($listeners as $listener_class) {
+            foreach ($discovery->discoverClasses() as $listener_class) {
                 $reflection = new ReflectionClass($listener_class);
                 foreach ($reflection->getAttributes(EventListener::class) as $attribute) {
                     $listener = $attribute->newInstance();
