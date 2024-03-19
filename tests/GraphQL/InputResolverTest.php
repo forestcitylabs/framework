@@ -7,9 +7,11 @@ namespace ForestCityLabs\Framework\Tests\GraphQL;
 use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
+use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\InputResolver;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
@@ -37,6 +39,8 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 #[UsesClass(MetadataProvider::class)]
 #[UsesClass(ObjectType::class)]
 #[UsesClass(ManualDiscovery::class)]
+#[UsesClass(EnumType::class)]
+#[UsesClass(Value::class)]
 #[Group("graphql")]
 class InputResolverTest extends TestCase
 {
@@ -63,12 +67,14 @@ class InputResolverTest extends TestCase
         $resolver = new InputResolver($accessor, $provider, $em);
 
         // Mock the values to resolve.
-        $values = [];
+        $values = [
+            'type' => 'macintosh',
+        ];
 
         // Activate the resolver.
-        $object = $resolver->resolve($values, $provider->getTypeMetadata('BasketInput'));
+        $object = $resolver->resolve($values, $provider->getTypeMetadata('AppleInput'));
 
         // Make assertions.
-        $this->assertInstanceOf(Basket::class, $object);
+        $this->assertInstanceOf(Apple::class, $object);
     }
 }

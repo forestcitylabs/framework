@@ -21,7 +21,7 @@ BasketInput:
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\Basket
     arguments: {  }
 AppleTypeEnum:
-    values: {  }
+    values: { Macintosh: { value: macintosh, case: { name: Macintosh, value: macintosh }, name: Macintosh, description: null, className: null, deprecationReason: null }, Green_delicious: { value: green_delicious, case: { name: Green_delicious, value: green_delicious }, name: Green_delicious, description: null, className: null, deprecationReason: null } }
     name: AppleTypeEnum
     description: null
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum

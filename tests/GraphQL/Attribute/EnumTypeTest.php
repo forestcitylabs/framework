@@ -7,6 +7,7 @@ namespace ForestCityLabs\Framework\Tests\GraphQL\Attribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -33,9 +34,13 @@ class EnumTypeTest extends TestCase
         $this->assertEquals("other_description", $enum->getDescription());
 
         $value = new Value("test");
+        $value->setValue("beans");
+        $value->setCase(AppleTypeEnum::Macintosh);
         $enum->addValue($value);
         $this->assertEquals($value, $enum->getValue("test"));
         $enum->addValue(new Value());
         $this->assertEquals(2, count($enum->getValues()));
+        $this->assertEquals(AppleTypeEnum::Macintosh, $enum->getCaseFromValue("beans"));
+        $this->assertNull($enum->getCaseFromValue("nope"));
     }
 }
