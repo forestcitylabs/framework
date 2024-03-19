@@ -9,6 +9,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
 use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
@@ -32,6 +33,7 @@ use Spatie\Snapshots\MatchesSnapshots;
 #[UsesClass(ObjectType::class)]
 #[UsesClass(EnumType::class)]
 #[UsesClass(ManualDiscovery::class)]
+#[UsesClass(Value::class)]
 #[Group('graphql')]
 class MetadataProviderTest extends TestCase
 {

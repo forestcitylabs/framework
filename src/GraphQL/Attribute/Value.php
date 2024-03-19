@@ -10,6 +10,7 @@ class Value extends AbstractType
     use IsDeprecableTrait;
 
     protected string|int|float|bool|null $value;
+    protected mixed $case;
 
     public function __construct(
         ?string $name = null,
@@ -32,5 +33,16 @@ class Value extends AbstractType
     {
         $this->value = $value;
         return $this;
+    }
+
+    public function setCase(mixed $case): static
+    {
+        $this->case = $case;
+        return $this;
+    }
+
+    public function getCase(): mixed
+    {
+        return $this->case;
     }
 }

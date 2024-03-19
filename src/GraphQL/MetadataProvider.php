@@ -20,12 +20,15 @@ use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
+use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use LogicException;
 use Psr\Cache\CacheItemPoolInterface;
 use Ramsey\Uuid\UuidInterface;
 use ReflectionAttribute;
 use ReflectionClass;
+use ReflectionEnum;
+use ReflectionEnumBackedCase;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionType;
@@ -162,6 +165,9 @@ class MetadataProvider
                         }
                         break;
                     case EnumType::class:
+                        foreach ($this->parseValues(new ReflectionEnum($reflection->getName())) as $value) {
+                            $type->addValue($value);
+                        }
                 }
             }
         }
@@ -297,6 +303,27 @@ class MetadataProvider
 
                 // Yield the argument attribute.
                 yield $argument;
+            }
+        }
+    }
+
+    private function parseValues(ReflectionEnum $enum): iterable
+    {
+        foreach ($enum->getCases() as $case) {
+            foreach ($case->getAttributes(Value::class) as $attribute) {
+                $value = $attribute->newInstance();
+                $value->setCase($case->getValue());
+
+                // Reasonable defaults.
+                $value->setName($value->getName() ?? $case->getName());
+                if ($case instanceof ReflectionEnumBackedCase) {
+                    $value->setValue($value->getValue() ?? $case->getBackingValue());
+                } else {
+                    $value->setValue($value->getValue() ?? $case->getName());
+                }
+
+                // Yield the value attribute.
+                yield $value;
             }
         }
     }

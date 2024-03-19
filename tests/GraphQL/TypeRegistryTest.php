@@ -9,6 +9,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
 use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
 use ForestCityLabs\Framework\GraphQL\PropertyFieldResolver;
@@ -20,7 +21,6 @@ use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -37,6 +37,7 @@ use Psr\Cache\CacheItemPoolInterface;
 #[UsesClass(AbstractType::class)]
 #[UsesClass(EnumType::class)]
 #[UsesClass(ManualDiscovery::class)]
+#[UsesClass(Value::class)]
 #[Group("graphql")]
 class TypeRegistryTest extends TestCase
 {
