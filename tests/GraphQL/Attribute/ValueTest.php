@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Tests\GraphQL\Attribute;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -39,5 +40,8 @@ class ValueTest extends TestCase
 
         $value->setClassName(Value::class);
         $this->assertEquals(Value::class, $value->getClassName());
+
+        $value->setCase(AppleTypeEnum::Macintosh);
+        $this->assertEquals(AppleTypeEnum::Macintosh, $value->getCase());
     }
 }
