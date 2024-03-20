@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Tests\Utility\ParameterConverter;
 
 use DateTimeInterface;
-use ForestCityLabs\Framework\Tests\Controller\TestController;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\UserController;
+use ForestCityLabs\Framework\Tests\Fixture\Miscellaneous\ParameterConverterNegatives;
 use ForestCityLabs\Framework\Utility\ParameterConverter\DateTimeParameterConverter;
 use ForestCityLabs\Framework\Utility\ParameterConverter\ParameterConversionException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,30 +20,34 @@ class DateTimeParameterConverterTest extends TestCase
     #[Test]
     public function convertValidParameters(): void
     {
-        $reflection = new ReflectionMethod(TestController::class, 'dateTimeParameter');
+        $reflection = new ReflectionMethod(UserController::class, 'createdSince');
         $args = [
-            'date_time' => '2018-12-21',
-            'beans' => 'test',
-            'train' => 123,
-            'check' => true,
+            'since' => '2018-12-21',
         ];
         $converter = new DateTimeParameterConverter();
         $args = $converter->convertParameters($reflection, $args);
-        $this->assertInstanceOf(DateTimeInterface::class, $args['date_time']);
+        $this->assertInstanceOf(DateTimeInterface::class, $args['since']);
     }
 
     #[Test]
     public function convertInvalidParameters(): void
     {
         $this->expectException(ParameterConversionException::class);
-        $reflection = new ReflectionMethod(TestController::class, 'dateTimeParameter');
+        $reflection = new ReflectionMethod(UserController::class, 'createdSince');
         $args = [
-            'date_time' => 'asfdfs',
-            'beans' => 'test',
-            'train' => 123,
-            'check' => true,
+            'since' => 'asfdfs',
         ];
         $converter = new DateTimeParameterConverter();
         $args = $converter->convertParameters($reflection, $args);
+    }
+
+    #[Test]
+    public function cantConvertParameters(): void
+    {
+        $converter = new DateTimeParameterConverter();
+        $reflection = new ReflectionMethod(ParameterConverterNegatives::class, 'cantConvert');
+        $args = [];
+        $args = $converter->convertParameters($reflection, $args);
+        $this->assertEmpty($args);
     }
 }

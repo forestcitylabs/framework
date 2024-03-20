@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Session\Driver;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use ForestCityLabs\Framework\Session\Session;
 use ForestCityLabs\Framework\Session\SessionDriverInterface;
 use Ramsey\Uuid\UuidInterface;
@@ -23,7 +24,7 @@ class DbalSessionDriver implements SessionDriverInterface
         $qb->select('data')
             ->from($this->table)
             ->where('id = :id')
-            ->setParameter(':id', $uuid);
+            ->setParameter('id', $uuid->getBytes(), ParameterType::BINARY);
         if (false === $result = $qb->executeQuery()->fetchOne()) {
             return null;
         }
@@ -47,18 +48,23 @@ class DbalSessionDriver implements SessionDriverInterface
         $qb->select('id')
             ->from($this->table)
             ->where('id = :id')
-            ->setParameter(':id', $session->getId());
+            ->setParameter('id', $session->getId()->getBytes(), ParameterType::BINARY);
         $this->connection->beginTransaction();
         if (false !== $qb->executeQuery()->fetchOne()) {
             $qb = $this->connection->createQueryBuilder();
             $qb->delete($this->table)
                 ->where('id = :id')
-                ->setParameter(':id', $session->getId())
+                ->setParameter('id', $session->getId()->getBytes(), ParameterType::BINARY)
                 ->executeQuery();
         }
         $qb = $this->connection->createQueryBuilder();
         $qb->insert($this->table)
-            ->values(['id' => $session->getId(), 'data' => serialize($session)])
+            ->values([
+                'id' => ':id',
+                'data' => ':data',
+            ])
+            ->setParameter('id', $session->getId()->getBytes(), ParameterType::BINARY)
+            ->setParameter('data', serialize($session))
             ->executeQuery();
         $this->connection->commit();
     }
@@ -68,7 +74,7 @@ class DbalSessionDriver implements SessionDriverInterface
         $qb = $this->connection->createQueryBuilder();
         $qb->delete($this->table)
             ->where('id = :id')
-            ->setParameter(':id', $session->getId())
+            ->setParameter('id', $session->getId()->getBytes(), ParameterType::BINARY)
             ->executeQuery();
     }
 

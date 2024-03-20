@@ -4,23 +4,32 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\GraphQL;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
 use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
+use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
+use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\InputResolver;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
-use ForestCityLabs\Framework\Tests\Entity\AnotherTestEntity;
-use ForestCityLabs\Framework\Tests\Entity\TestEntity;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
+use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Fruit;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\RegionEnum;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Predis\Command\Argument\Search\SchemaFields\AbstractField;
-use Ramsey\Uuid\Uuid;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 
 #[CoversClass(InputResolver::class)]
@@ -28,51 +37,48 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 #[UsesClass(Argument::class)]
 #[UsesClass(AbstractType::class)]
 #[UsesClass(InputType::class)]
+#[UsesClass(Field::class)]
+#[UsesClass(MetadataProvider::class)]
+#[UsesClass(ObjectType::class)]
+#[UsesClass(ManualDiscovery::class)]
+#[UsesClass(EnumType::class)]
+#[UsesClass(Value::class)]
 #[Group("graphql")]
 class InputResolverTest extends TestCase
 {
     #[Test]
     public function resolveValid(): void
     {
-        // Create a new uuid and entity.
-        $uuid = Uuid::uuid4();
-        $another_entity = new AnotherTestEntity();
-
         // Mock the services.
         $accessor = new PropertyAccessor();
-        $provider = $this->createStub(MetadataProvider::class);
+        $cache = $this->createStub(CacheItemPoolInterface::class);
+        $item = $this->createStub(CacheItemInterface::class);
+        $item->method('set')->willReturnSelf();
+        $cache->method('getItem')->willReturn($item);
+        $provider = new MetadataProvider(new ManualDiscovery([
+            Apple::class,
+            Basket::class,
+            AppleTypeEnum::class,
+            Fruit::class,
+            RegionEnum::class,
+        ]), new ManualDiscovery([
+            AppleController::class,
+            BasketController::class
+        ]), $cache);
         $em = $this->createStub(EntityManagerInterface::class);
-        $repo = $this->createStub(EntityRepository::class);
-
-        // The entity manager will be used to resolve the entity reference.
-        $em->method('getRepository')
-            ->with(AnotherTestEntity::class)
-            ->willReturn($repo);
-        $repo->method('findOneBy')
-            ->with(['id' => $uuid])
-            ->willReturn($another_entity);
 
         // Create the input resolver.
         $resolver = new InputResolver($accessor, $provider, $em);
 
         // Mock the values to resolve.
-        $created = new DateTimeImmutable();
         $values = [
-            'ref' => $uuid,
-            'created' => $created,
+            'type' => 'macintosh',
         ];
 
-        // Create an input type that is mapped to the entity correctly.
-        $input = (new InputType('TestEntityInput'))
-            ->setClassName(TestEntity::class)
-            ->addArgument((new Argument('ref', type: 'ID'))->setAttributeType('property')->setAttributeName('ref'))
-            ->addArgument((new Argument('created', type: 'String'))->setAttributeType('property')->setAttributeName('created'));
-
         // Activate the resolver.
-        $object = $resolver->resolve($values, $input);
+        $object = $resolver->resolve($values, $provider->getTypeMetadata('AppleInput'));
 
         // Make assertions.
-        $this->assertEquals($created, $object->getCreated());
-        $this->assertEquals($another_entity, $object->getRef());
+        $this->assertInstanceOf(Apple::class, $object);
     }
 }

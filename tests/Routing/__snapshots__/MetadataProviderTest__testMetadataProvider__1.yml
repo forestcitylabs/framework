@@ -1,0 +1,28 @@
+user_login:
+    path: /login
+    methods: [GET]
+    name: user_login
+    className: ForestCityLabs\Framework\Tests\Fixture\Controller\UserController
+    methodName: login
+    prefix: { path: /user }
+user_logout:
+    path: /logout
+    methods: [GET]
+    name: user_logout
+    className: ForestCityLabs\Framework\Tests\Fixture\Controller\UserController
+    methodName: logout
+    prefix: { path: /user }
+user_createdsince:
+    path: '/created/{since}'
+    methods: [GET]
+    name: user_createdsince
+    className: ForestCityLabs\Framework\Tests\Fixture\Controller\UserController
+    methodName: createdSince
+    prefix: { path: /user }
+user_getactive:
+    path: /active
+    methods: [GET]
+    name: user_getactive
+    className: ForestCityLabs\Framework\Tests\Fixture\Controller\UserController
+    methodName: getActive
+    prefix: { path: /user }

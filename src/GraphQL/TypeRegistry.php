@@ -13,9 +13,11 @@ namespace ForestCityLabs\Framework\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\Field as ObjectFieldAttribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\Argument as InputArgumentAttribute;
+use ForestCityLabs\Framework\GraphQL\Attribute\EnumType as EnumTypeAttribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType as InputTypeAttribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType as InterfaceTypeAttribute;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType as ObjectTypeAttribute;
+use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\ObjectType;
@@ -67,6 +69,9 @@ class TypeRegistry
                     break;
                 case InputTypeAttribute::class:
                     $this->types[$name] = $this->buildInputType($metadata);
+                    break;
+                case EnumTypeAttribute::class:
+                    $this->types[$name] = $this->buildEnumType($metadata);
                     break;
                 case ObjectTypeAttribute::class:
                 default:
@@ -120,6 +125,24 @@ class TypeRegistry
                     yield $this->buildObjectField($field);
                 }
             }
+        ]);
+    }
+
+    public function buildEnumType(EnumTypeAttribute $metadata): Type
+    {
+        $values = [];
+        foreach ($metadata->getValues() as $value) {
+            $values[] = [
+                'name' => $value->getName(),
+                'value' => $value->getValue(),
+                'description' => $value->getDescription(),
+                'deprecationReason' => $value->getDeprecationReason(),
+            ];
+        }
+        return new EnumType([
+            'name' => $metadata->getName(),
+            'description' => $metadata->getDescription(),
+            'values' => $values,
         ]);
     }
 

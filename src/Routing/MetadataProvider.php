@@ -15,6 +15,7 @@ use Cocur\Slugify\Slugify;
 use ForestCityLabs\Framework\Routing\Attribute\Route;
 use ForestCityLabs\Framework\Routing\Attribute\RoutePrefix;
 use ForestCityLabs\Framework\Routing\Collection\RouteCollection;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
@@ -24,7 +25,7 @@ class MetadataProvider
     private RouteCollection $routes;
 
     public function __construct(
-        private array $controllers,
+        private ClassDiscoveryInterface $discovery,
         private CacheItemPoolInterface $cache_pool,
         private LoggerInterface $logger,
         private Slugify $slugify
@@ -34,7 +35,7 @@ class MetadataProvider
             $this->routes = new RouteCollection();
 
             // Parse the controllers into metadata.
-            $this->parseControllers($controllers);
+            $this->parseControllers($discovery->discoverClasses());
 
             // Cache the metadata.
             $this->cache_pool->save($cache->set($this->routes));

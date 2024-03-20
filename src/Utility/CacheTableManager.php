@@ -10,7 +10,7 @@ class CacheTableManager
 {
     public static function createCacheTable(
         Connection $connection,
-        string $table
+        string $table = 'cache'
     ): void {
         $sm = $connection->createSchemaManager();
 
