@@ -27,7 +27,7 @@ class InputResolver
 
         // Assign passed values.
         foreach ($input->getArguments() as $argument) {
-            if ($values[$argument->getName()] === null) {
+            if (!isset($values[$argument->getName()]) || $values[$argument->getName()] === null) {
                 continue;
             }
 

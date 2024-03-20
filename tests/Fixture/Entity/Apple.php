@@ -12,7 +12,7 @@ use Ramsey\Uuid\UuidInterface;
 #[ORM\Entity]
 #[GraphQL\ObjectType]
 #[GraphQL\InputType("AppleInput")]
-class Apple
+class Apple extends Fruit
 {
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]

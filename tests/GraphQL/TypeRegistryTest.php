@@ -19,6 +19,8 @@ use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Fruit;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\RegionEnum;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use GraphQL\Type\Definition\Type;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -56,6 +58,8 @@ class TypeRegistryTest extends TestCase
             Apple::class,
             Basket::class,
             AppleTypeEnum::class,
+            Fruit::class,
+            RegionEnum::class,
         ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class,
@@ -78,5 +82,6 @@ class TypeRegistryTest extends TestCase
         $registry->getType('BasketInput');
         $registry->getType('Mutation');
         $registry->getType('Object');
+        $registry->getType('Fruit');
     }
 }

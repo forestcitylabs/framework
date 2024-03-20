@@ -16,6 +16,8 @@ use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Basket;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\Fruit;
+use ForestCityLabs\Framework\Tests\Fixture\Entity\RegionEnum;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -53,6 +55,8 @@ class MetadataProviderTest extends TestCase
             Apple::class,
             Basket::class,
             AppleTypeEnum::class,
+            RegionEnum::class,
+            Fruit::class,
         ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class,

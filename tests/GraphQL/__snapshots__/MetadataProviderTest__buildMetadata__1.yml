@@ -3,12 +3,12 @@ Apple:
     name: Apple
     description: null
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\Apple
-    fields: { id: { attributeType: property, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true, arguments: {  }, deprecationReason: null }, type: { attributeType: property, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true, arguments: {  }, deprecationReason: null }, basket: { attributeType: property, attributeName: basket, name: basket, description: null, className: null, type: Basket, list: false, notNull: true, arguments: {  }, deprecationReason: null } }
+    fields: { id: { attributeType: property, attributeName: id, name: id, description: null, className: null, type: ID, list: false, notNull: true, arguments: {  }, deprecationReason: null }, type: { attributeType: property, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true, arguments: {  }, deprecationReason: null }, basket: { attributeType: property, attributeName: basket, name: basket, description: null, className: null, type: Basket, list: false, notNull: true, arguments: {  }, deprecationReason: null }, region: { attributeType: property, attributeName: region, name: region, description: null, className: null, type: RegionEnum, list: false, notNull: true, arguments: {  }, deprecationReason: null } }
 AppleInput:
     name: AppleInput
     description: null
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\Apple
-    arguments: { type: { attributeType: property, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true } }
+    arguments: { type: { attributeType: property, attributeName: type, name: type, description: null, className: null, type: AppleTypeEnum, list: false, notNull: true }, region: { attributeType: property, attributeName: region, name: region, description: null, className: null, type: RegionEnum, list: false, notNull: true } }
 Basket:
     interfaces: {  }
     name: Basket
@@ -25,6 +25,16 @@ AppleTypeEnum:
     name: AppleTypeEnum
     description: null
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum
+RegionEnum:
+    values: { NORTH: { value: NORTH, case: { name: NORTH }, name: NORTH, description: null, className: null, deprecationReason: null }, EQUATOR: { value: EQUATOR, case: { name: EQUATOR }, name: EQUATOR, description: null, className: null, deprecationReason: null }, SOUTH: { value: SOUTH, case: { name: SOUTH }, name: SOUTH, description: null, className: null, deprecationReason: null } }
+    name: RegionEnum
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\RegionEnum
+Fruit:
+    name: Fruit
+    description: null
+    className: ForestCityLabs\Framework\Tests\Fixture\Entity\Fruit
+    fields: { region: { attributeType: property, attributeName: region, name: region, description: null, className: null, type: RegionEnum, list: false, notNull: true, arguments: {  }, deprecationReason: null } }
 Query:
     interfaces: {  }
     name: Query
