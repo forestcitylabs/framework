@@ -52,4 +52,13 @@ class RouteTest extends TestCase
         $this->assertEquals(["POST"], $route->getMethods());
         $this->assertEquals("named", $route->getName());
     }
+
+    #[Test]
+    public function serialize(): void
+    {
+        $route = new Route("/route", ['POST'], 'namer');
+        $data = serialize($route);
+        $route = unserialize($data);
+        $this->assertEquals("/route", $route->getPath());
+    }
 }

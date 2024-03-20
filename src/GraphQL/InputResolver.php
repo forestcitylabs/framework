@@ -4,6 +4,7 @@ namespace ForestCityLabs\Framework\GraphQL;
 
 use Application\Exception\GraphQL\EntityNotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
+use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
 use ReflectionProperty;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -26,7 +27,7 @@ class InputResolver
 
         // Assign passed values.
         foreach ($input->getArguments() as $argument) {
-            if ($values[$argument->getName()] === null) {
+            if (!isset($values[$argument->getName()]) || $values[$argument->getName()] === null) {
                 continue;
             }
 
@@ -36,6 +37,12 @@ class InputResolver
                     $values[$argument->getName()],
                     $this->metadata_provider->getTypeMetadata($argument->getType())
                 );
+            }
+
+            // Resolve enums.
+            if ($this->metadata_provider->getTypeMetadata($argument->getType()) instanceof EnumType) {
+                $enum = $this->metadata_provider->getTypeMetadata($argument->getType());
+                $values[$argument->getName()] = $enum->getCaseFromValue($values[$argument->getName()]);
             }
 
             // Lookup objects by ID.
