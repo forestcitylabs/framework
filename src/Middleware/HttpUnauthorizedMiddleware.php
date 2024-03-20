@@ -24,7 +24,8 @@ class HttpUnauthorizedMiddleware implements MiddlewareInterface
     public function __construct(
         private ResponseFactoryInterface $response_factory,
         private StreamFactoryInterface $stream_factory,
-        private Environment $twig
+        private Environment $twig,
+        private string $redirect = '/login'
     ) {
     }
 
@@ -33,7 +34,7 @@ class HttpUnauthorizedMiddleware implements MiddlewareInterface
         // Delegate to next handler, catch unauthorized exceptions.
         $response = $handler->handle($request);
         if (401 === $response->getStatusCode()) {
-            $response = $response->withHeader('Location', '/login')->withStatus(302);
+            $response = $response->withHeader('Location', $this->redirect)->withStatus(302);
         }
 
         // Return the response.
