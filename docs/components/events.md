@@ -75,4 +75,4 @@ $dispatcher->dispatch(new PreRouteDispatchEvent());
 
 !!! tip
 
-    To learn more about the `ScanDirectoryDiscovery` class and class discovery in general take a look at the [class discovery](/components/class_discovery.md) documentation.
+    To learn more about the `ScanDirectoryDiscovery` class and class discovery in general take a look at the [class discovery](class_discovery.md) documentation.
