@@ -16,6 +16,7 @@ class ScanDirectoryDiscovery implements ClassDiscoveryInterface
 
     public function discoverClasses(): array
     {
+        $classes = [];
         foreach ($this->paths as $path) {
             foreach (new DirectoryIterator($path) as $file) {
                 // Skip dot files.
@@ -35,17 +36,16 @@ class ScanDirectoryDiscovery implements ClassDiscoveryInterface
                 $declared = get_declared_classes();
 
                 // Iterate and filter classes.
-                $classes = [];
                 foreach ($declared as $class) {
                     $reflection = new ReflectionClass($class);
                     if ($reflection->getFileName() !== false && stristr($reflection->getFileName(), $path)) {
                         $classes[] = $class;
                     }
                 }
-
-                // Return found classes.
-                return $classes;
             }
         }
+
+        // Return found classes.
+        return $classes;
     }
 }
