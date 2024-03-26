@@ -119,12 +119,13 @@ The middleware requires the metadata provider to be able to match a path to the 
 
 ```php title="Middleware usage example"
 use ForestCityLabs\Framework\Routing\MetadataProvider;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ManualClassDiscovery;
 use Psr\Log\LoggerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Cocur\Slugify\Slugify;
 
 $metadata_provider = new MetadataProvider(
-    [\Application\Controller\MyController::class], # (1)
+    new ManualDiscovery([\Application\Controller\MyController::class]), # (1)
     new CacheItemPoolInterface(), # (2)
     new LoggerInterface(), # (3)
     new Slugify()
