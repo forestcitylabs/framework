@@ -18,6 +18,9 @@ class ScanDirectoryDiscovery implements ClassDiscoveryInterface
     {
         $classes = [];
         foreach ($this->paths as $path) {
+            if (!is_dir($path)) {
+                continue;
+            }
             foreach (new DirectoryIterator($path) as $file) {
                 // Skip dot files.
                 if ($file->isDot()) {
