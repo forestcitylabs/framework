@@ -5,210 +5,315 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
 use GraphQL\Type\Definition\Argument;
+use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\EnumValueDefinition;
 use GraphQL\Type\Definition\FieldDefinition;
-use GraphQL\Type\Definition\HasFieldsType;
-use GraphQL\Type\Definition\ListOfType;
-use GraphQL\Type\Definition\NonNull;
+use GraphQL\Type\Definition\InputObjectField;
+use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\InterfaceType;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
-use LogicException;
 
 class SchemaComparator
 {
-    public static function compareSchemas(?Schema $from, ?Schema $to): SchemaDiff
+    public static function compareSchemas(Schema $old, Schema $new): SchemaDiff
     {
-        // If both are null throw an error.
-        if ($from === null && $to === null) {
-            throw new LogicException('Cannot compare two null schemas!');
-        }
+        $args = [
+            'old_schema' => $old,
+            'new_schema' => $new,
+            'new_types' => [],
+            'altered_types' => [],
+            'dropped_types' => [],
+            'new_inputs' => [],
+            'altered_inputs' => [],
+            'dropped_inputs' => [],
+            'new_interfaces' => [],
+            'altered_interfaces' => [],
+            'dropped_interfaces' => [],
+            'new_enums' => [],
+            'altered_enums' => [],
+            'dropped_enums' => [],
+        ];
 
-        // Start a new schema diff.
-        $diff = new SchemaDiff();
+        // Iterate over the new type map collection new and altered types.
+        foreach ($new->getTypeMap() as $new_type) {
+            // This is a new type.
+            if (null === $old_type = $old->getType($new_type->name)) {
+                $args['new_' . self::detectType($new_type)][] = $new_type;
 
-        // Iterate over the new schema and compare types.
-        if ($to instanceof Schema) {
-            foreach ($to->getTypeMap() as $to_type) {
-                // Skip built-in types.
-                if ($to_type->isBuiltInType()) {
-                    continue;
-                }
-                if ($from instanceof Schema && $from->hasType($to_type->name())) {
-                    $from_type = $from->getType($to_type->name());
-                } else {
-                    $from_type = null;
-                }
+            // If there is a type mismatch these are not equal.
+            } elseif ($old_type::class !== $new_type::class) {
+                $args['dropped_' . self::detectType($old_type)][] = $old_type;
+                $args['new_' . self::detectType($new_type)][] = $new_type;
 
-                // Compare the types.
-                $diff->addTypeDiff(self::compareTypes($from_type, $to_type));
+            // This is an altered type.
+            } elseif (null !== $altered_type = self::compareTypes($old_type, $new_type)) {
+                $args['altered_' . self::detectType($new_type)][] = $altered_type;
             }
         }
 
-        // Iterate over the old schema as well.
-        if ($from instanceof Schema) {
-            foreach ($from->getTypeMap() as $from_type) {
-                if ($from_type->isBuiltInType()) {
-                    continue;
-                }
-
-                // We have already compared this type.
-                if ($to instanceof Schema && $to->hasType($from_type->name())) {
-                    continue;
-                }
-
-                $diff->addTypeDiff(self::compareTypes($from_type, null));
+        // Iterate over the old type map and extract dropped types.
+        foreach ($old->getTypeMap() as $old_type) {
+            if (null === $new_type = $new->getType($old_type->name)) {
+                $args['dropped_' . self::detectType($old_type)][] = $old_type;
             }
         }
 
-        return $diff;
+        // Return the schema diff.
+        return new SchemaDiff(...$args);
     }
 
-    public static function compareTypes(?Type $from, ?Type $to): TypeDiff
+    public static function detectType(object $type): ?string
     {
-        // If both are null throw an error.
-        if ($from === null && $to === null) {
-            throw new LogicException('Cannot compare two null types!');
+        switch ($type::class) {
+            case ObjectType::class:
+            case ObjectTypeDiff::class:
+                return 'types';
+            case InputObjectType::class:
+            case InputObjectTypeDiff::class:
+                return 'inputs';
+            case EnumType::class:
+            case EnumTypeDiff::class:
+                return 'enums';
+            case InterfaceType::class:
+            case InterfaceTypeDiff::class:
+                return 'interfaces';
+            default:
+                return null;
         }
-
-        // Begin a new diff.
-        $diff = new TypeDiff();
-        $to_non_null = false;
-        $from_non_null = false;
-        $to_list = false;
-        $from_list = false;
-
-        // Unwrap the to type.
-        while ($to instanceof WrappingType) {
-            if ($to instanceof ListOfType) {
-                $to_list = true;
-            }
-            if ($to instanceof NonNull) {
-                $to_non_null = true;
-            }
-            $to = $to->getWrappedType();
-        }
-
-        // Unwrap the from type.
-        while ($from instanceof WrappingType) {
-            if ($from instanceof ListOfType) {
-                $from_list = true;
-            }
-            if ($from instanceof NonNull) {
-                $from_non_null = true;
-            }
-            $from = $from->getWrappedType();
-        }
-
-        $diff->setNameDiff(
-            ($from === null) ? null : $from->name(),
-            ($to === null) ? null : $to->name()
-        );
-        $diff->setNonNullDiff(
-            ($from === null) ? null : $from_non_null,
-            ($to === null) ? null : $to_non_null
-        );
-        $diff->setListDiff(
-            ($from === null) ? null : $from_list,
-            ($to === null) ? null : $to_list
-        );
-        $diff->setHasFieldsDiff(
-            ($from === null) ? null : ($from instanceof HasFieldsType),
-            ($to === null) ? null : ($to instanceof HasFieldsType)
-        );
-
-        // Iterate over fields if this type has them.
-        if ($to instanceof HasFieldsType) {
-            // Compare all fields to one another.
-            foreach ($to->getFields() as $to_field) {
-                if ($from instanceof HasFieldsType && $from->hasField($to_field->getName())) {
-                    $from_field = $from->getField($to_field->getName());
-                } else {
-                    $from_field = null;
-                }
-
-                // Compare the fields.
-                $diff->addFieldDiff(self::compareFields($from_field, $to_field));
-            }
-        }
-
-        // Iterate over the old fields as well.
-        if ($from instanceof HasFieldsType) {
-            foreach ($from->getFields() as $from_field) {
-                if ($to instanceof HasFieldsType && $to->hasField($from_field->getName())) {
-                    continue;
-                }
-                $diff->addFieldDiff(self::compareFields($from_field, null));
-            }
-        }
-
-        // Return the diff for this type.
-        return $diff;
     }
 
-    public static function compareFields(?FieldDefinition $from, ?FieldDefinition $to): FieldDiff
+    public static function compareObjectTypes(ObjectType $old, ObjectType $new): ?ObjectTypeDiff
     {
-        // If both are null throw an error.
-        if ($from === null && $to === null) {
-            throw new LogicException('Cannot compare two null fields!');
-        }
+        $args = [
+            'old_type' => $old,
+            'new_type' => $new,
+            'new_fields' => [],
+            'altered_fields' => [],
+            'dropped_fields' => [],
+        ];
 
-        // Begin a new diff.
-        $diff = new FieldDiff();
-        $diff->setNameDiff(
-            ($from === null) ? null : $from->getName(),
-            ($to === null) ? null : $to->getName()
-        );
-        $diff->setTypeDiff(self::compareTypes(
-            ($from === null) ? null : $from->getType(),
-            ($to === null) ? null : $to->getType()
-        ));
+        // Extract new and altered fields.
+        foreach ($new->getFields() as $new_field) {
+            // This is a new field.
+            if (null === $old_field = $old->getField($new_field->getName())) {
+                $args['new_fields'][] = $new_field;
 
-        // Compare arguments for this field.
-        if ($to instanceof FieldDefinition) {
-            foreach ($to->args as $to_arg) {
-                if ($from instanceof FieldDefinition) {
-                    $from_arg = $from->getArg($to_arg->name);
-                } else {
-                    $from_arg = null;
-                }
+            // There is a type mismatch, the fields are different.
+            } elseif ($new_field->getType() !== $old_field->getType()) {
+                $args['dropped_fields'][] = $old_field;
+                $args['new_fields'][] = $new_field;
 
-                // Compare the arguments.
-                $diff->addArgumentDiff(self::compareArguments($from_arg, $to_arg));
+            // Compare the fields.
+            } elseif (null !== $altered_field = self::compareFields($old_field, $new_field)) {
+                $args['altered_fields'][] = $altered_field;
             }
         }
 
-        // Compare old arguments as well.
-        if ($from instanceof FieldDefinition) {
-            foreach ($from->args as $from_arg) {
-                if ($to instanceof FieldDefinition && null !== $to->getArg($from_arg->name)) {
-                    continue;
-                }
-                $diff->addArgumentDiff(self::compareArguments($from_arg, null));
-            }
-        }
+        // Create the object diff.
+        $diff = new ObjectTypeDiff(...$args);
 
-        return $diff;
+        // If this is different return it, otherwise return null.
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
     }
 
-    public static function compareArguments(?Argument $from, ?Argument $to): ArgumentDiff
+    public static function compareInputTypes(InputObjectType $old, InputObjectType $new): ?InputObjectTypeDiff
     {
-        // If both are null throw an error.
-        if ($from === null && $to === null) {
-            throw new LogicException('Cannot compare two null arguments!');
+        $args = [
+            'old_input' => $old,
+            'new_input' => $new,
+            'new_fields' => [],
+            'altered_fields' => [],
+            'dropped_fields' => [],
+        ];
+
+        // Extract new and altered fields.
+        foreach ($new->getFields() as $new_field) {
+            // This is a new field.
+            if (null === $old_field = $old->getField($new_field->name)) {
+                $args['new_fields'][] = $new_field;
+
+            // There is a type mismatch, the fields are different.
+            } elseif ($new_field->getType() !== $old_field->getType()) {
+                $args['dropped_fields'][] = $old_field;
+                $args['new_fields'][] = $new_field;
+
+            // Compare the fields.
+            } elseif (null !== $altered_field = self::compareInputFields($old_field, $new_field)) {
+                $args['altered_fields'][] = $altered_field;
+            }
         }
 
-        // Start the diff.
-        $diff = new ArgumentDiff();
-        $diff->setNameDiff(
-            ($from === null) ? null : $from->name,
-            ($to === null) ? null : $to->name
-        );
-        $diff->setTypeDiff(self::compareTypes(
-            ($from === null) ? null : $from->getType(),
-            ($to === null) ? null : $to->getType()
-        ));
+        // Determine dropped fields.
+        foreach ($old->getFields() as $old_field) {
+            if (null === $new->getField($old_field->name)) {
+                $args['dropped_fields'][] = $old_field;
+            }
+        }
 
-        // Return the diff.
-        return $diff;
+        // Create the input diff.
+        $diff = new InputObjectTypeDiff(...$args);
+
+        // If this is different return it, otherwise return null.
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
+    }
+
+    public static function compareEnumTypes(EnumType $old, EnumType $new): ?EnumTypeDiff
+    {
+        $args = [
+            'old_enum' => $old,
+            'new_enum' => $new,
+            'new_values' => [],
+            'altered_values' => [],
+            'dropped_values' => [],
+        ];
+
+        // Extract new and altered values.
+        foreach ($new->getValues() as $new_value) {
+            if (null === $old_value = $old->getValue($new_value->name)) {
+                $args['new_values'][] = $new_value;
+            } elseif (null !== $altered_value = self::compareEnumValues($old_value, $new_value)) {
+                $args['altered_values'][] = $altered_value;
+            }
+        }
+
+        // Determine dropped values.
+        foreach ($old->getValues() as $old_value) {
+            if (null === $new->getValue($old_value->name)) {
+                $args['dropped_values'][] = $old_value;
+            }
+        }
+
+        // Create the enum diff.
+        $diff = new EnumTypeDiff(...$args);
+
+        // If this is different return it, otherwise return null.
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
+    }
+
+    public static function compareInterfaceTypes(InterfaceType $old, InterfaceType $new): ?InterfaceTypeDiff
+    {
+        $args = [
+            'old_interface' => $old,
+            'new_interface' => $new,
+            'new_fields' => [],
+            'altered_fields' => [],
+            'dropped_fields' => [],
+        ];
+
+        // Extract new and altered fields.
+        foreach ($new->getFields() as $new_field) {
+            // This is a new field.
+            if (null === $old_field = $old->getField($new_field->getName())) {
+                $args['new_fields'][] = $new_field;
+
+            // There is a type mismatch, the fields are different.
+            } elseif ($new_field->getType() !== $old_field->getType()) {
+                $args['dropped_fields'][] = $old_field;
+                $args['new_fields'][] = $new_field;
+
+            // Compare the fields.
+            } elseif (null !== $altered_field = self::compareFields($old_field, $new_field)) {
+                $args['altered_fields'][] = $altered_field;
+            }
+        }
+
+        // Create the object diff.
+        $diff = new InterfaceTypeDiff(...$args);
+
+        // If this is different return it, otherwise return null.
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
+    }
+
+    public static function compareTypes(Type $old, Type $new): InputObjectTypeDiff|ObjectTypeDiff|EnumTypeDiff|InterfaceTypeDiff|null
+    {
+        switch ($old::class) {
+            case ObjectType::class:
+                return self::compareObjectTypes($old, $new);
+            case InputObjectType::class:
+                return self::compareInputTypes($old, $new);
+            case InterfaceType::class:
+                return self::compareInterfaceTypes($old, $new);
+            case EnumType::class:
+                return self::compareEnumTypes($old, $new);
+            default:
+                return null;
+        }
+    }
+
+    public static function compareInputFields(InputObjectField $old, InputObjectField $new): ?InputFieldDiff
+    {
+        $diff = new InputFieldDiff($old, $new);
+
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
+    }
+
+    public static function compareEnumValues(EnumValueDefinition $old, EnumValueDefinition $new): ?ValueDiff
+    {
+        $diff = new ValueDiff($old, $new);
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
+    }
+
+    public static function compareFields(FieldDefinition $old, FieldDefinition $new): ?FieldDiff
+    {
+        $args = [
+            'old_field' => $old,
+            'new_field' => $new,
+            'new_arguments' => [],
+            'altered_arguments' => [],
+            'dropped_arguments' => [],
+        ];
+
+        foreach ($new->args as $new_argument) {
+            if (null === $old_argument = $old->getArg($new_argument->name)) {
+                $args['new_arguments'][] = $new_argument;
+            } elseif ($new_argument->getType() !== $old_argument->getType()) {
+                $args['dropped_arguments'][] = $old_argument;
+                $args['new_arguments'][] = $new_argument;
+            } elseif (null !== $altered_argument = self::compareArguments($old_argument, $new_argument)) {
+                $args['altered_arguments'][] = $altered_argument;
+            }
+        }
+
+        foreach ($old->args as $old_argument) {
+            if (null === $new->getArg($old_argument->name)) {
+                $args['dropped_arguments'][] = $old_argument;
+            }
+        }
+
+        $diff = new FieldDiff(...$args);
+
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
+    }
+
+    public static function compareArguments(Argument $old, Argument $new): ?ArgumentDiff
+    {
+        $diff = new ArgumentDiff($old, $new);
+        if ($diff->isDifferent()) {
+            return $diff;
+        }
+        return null;
     }
 }

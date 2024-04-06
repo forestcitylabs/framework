@@ -4,71 +4,121 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
+use GraphQL\Type\Definition\FieldDefinition;
+use GraphQL\Type\Definition\ListOfType;
+use GraphQL\Type\Definition\NonNull;
+use GraphQL\Type\Definition\WrappingType;
+
 class FieldDiff
 {
-    private ?string $from_name = null;
-    private ?string $to_name = null;
-    private array $argument_diffs = [];
-    private ?TypeDiff $type_diff = null;
-    private bool $is_different = false;
+    public function __construct(
+        private readonly FieldDefinition $old_field,
+        private readonly FieldDefinition $new_field,
+        private readonly array $new_arguments,
+        private readonly array $altered_arguments,
+        private readonly array $dropped_arguments
+    ) {
+    }
 
-    public function setNameDiff(?string $from, ?string $to): static
+    public function getOldField(): FieldDefinition
     {
-        if ($from !== $to) {
-            $this->is_different = true;
+        return $this->old_field;
+    }
+
+    public function getNewField(): FieldDefinition
+    {
+        return $this->new_field;
+    }
+
+    public function getNewArguments(): array
+    {
+        return $this->new_arguments;
+    }
+
+    public function getAlteredArguments(): array
+    {
+        return $this->altered_arguments;
+    }
+
+    public function getDroppedArguments(): array
+    {
+        return $this->dropped_arguments;
+    }
+
+    public function isNameDifferent(): bool
+    {
+        return $this->old_field->getName() !== $this->new_field->getName();
+    }
+
+    public function isDescriptionDifferent(): bool
+    {
+        return $this->old_field->description !== $this->new_field->description;
+    }
+
+    public function isTypeDifferent(): bool
+    {
+        $old_type = $this->old_field->getType();
+        $new_type = $this->new_field->getType();
+        while ($old_type instanceof WrappingType) {
+            $old_type = $old_type->getWrappedType();
         }
-        $this->from_name = $from;
-        $this->to_name = $to;
-        return $this;
+        while ($new_type instanceof WrappingType) {
+            $new_type = $new_type->getWrappedType();
+        }
+        return $old_type !== $new_type;
     }
 
-    public function getFromName(): ?string
+    public function isListDifferent(): bool
     {
-        return $this->from_name;
+        $old_list = false;
+        $new_list = false;
+        $old_type = $this->old_field->getType();
+        $new_type = $this->new_field->getType();
+        while ($old_type instanceof WrappingType) {
+            if ($old_type instanceof ListOfType) {
+                $old_list = true;
+            }
+            $old_type = $old_type->getWrappedType();
+        }
+        while ($new_type instanceof WrappingType) {
+            if ($new_type instanceof ListOfType) {
+                $new_list = true;
+            }
+            $new_type = $new_type->getWrappedType();
+        }
+        return $new_list === $old_list;
     }
 
-    public function getToName(): ?string
+    public function isNonNullDifferent(): bool
     {
-        return $this->to_name;
+        $old_non_null = false;
+        $new_non_null = false;
+        $old_type = $this->old_field->getType();
+        $new_type = $this->new_field->getType();
+        if ($old_type instanceof NonNull) {
+            $old_non_null = true;
+        }
+        if ($new_type instanceof NonNull) {
+            $new_non_null = true;
+        }
+        return $new_non_null === $old_non_null;
     }
 
-    public function setTypeDiff(TypeDiff $diff): static
+    public function isDeprecationReasonDifferent(): bool
     {
-        $this->type_diff = $diff;
-        return $this;
-    }
-
-    public function getTypeDiff(): TypeDiff
-    {
-        return $this->type_diff;
-    }
-
-    public function addArgumentDiff(ArgumentDiff $diff): static
-    {
-        $this->argument_diffs[] = $diff;
-        return $this;
-    }
-
-    public function getArgumentDiffs(): array
-    {
-        return $this->argument_diffs;
+        return $this->old_field->deprecationReason !== $this->new_field->deprecationReason;
     }
 
     public function isDifferent(): bool
     {
-        if ($this->is_different) {
-            return true;
-        }
-
-        if ($this->type_diff->isDifferent()) {
-            return true;
-        }
-
-        foreach ($this->argument_diffs as $diff) {
-            if ($diff->isDifferent()) {
-                return true;
-            }
-        }
-        return false;
+        return ($this->isNameDifferent()
+            || $this->isDescriptionDifferent()
+            || $this->isDeprecationReasonDifferent()
+            || $this->isTypeDifferent()
+            || $this->isListDifferent()
+            || $this->isNonNullDifferent()
+            || count($this->new_arguments) > 0
+            || count($this->altered_arguments) > 0
+            || count($this->dropped_arguments) > 0);
     }
 }

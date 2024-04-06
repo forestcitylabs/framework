@@ -4,32 +4,44 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Command;
 
-use ForestCityLabs\Framework\GraphQL\Diff\FieldDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\SchemaComparator;
 use ForestCityLabs\Framework\GraphQL\Diff\SchemaDiff;
-use ForestCityLabs\Framework\GraphQL\Diff\TypeDiff;
-use ForestCityLabs\Framework\Utility\ServicesPrinter;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
 use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
+use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
+use ForestCityLabs\Framework\Utility\CodeGenerator;
+use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLCodeManager;
+use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLFile;
 use GraphQL\Language\Parser;
+use GraphQL\Type\Definition\Argument;
+use GraphQL\Type\Definition\BooleanType;
+use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\FieldDefinition;
+use GraphQL\Type\Definition\FloatType;
+use GraphQL\Type\Definition\IDType;
+use GraphQL\Type\Definition\InputObjectField;
+use GraphQL\Type\Definition\InputType;
+use GraphQL\Type\Definition\InterfaceType;
+use GraphQL\Type\Definition\IntType;
+use GraphQL\Type\Definition\ListOfType;
+use GraphQL\Type\Definition\NonNull;
+use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\ScalarType;
+use GraphQL\Type\Definition\StringType;
+use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildSchema;
-use LogicException;
 use Nette\PhpGenerator\ClassType;
+use Nette\PhpGenerator\EnumType as PhpGeneratorEnumType;
 use Nette\PhpGenerator\Method;
+use Nette\PhpGenerator\Parameter;
 use Nette\PhpGenerator\PhpFile;
+use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\Printer;
-use PhpParser\Node;
-use PhpParser\Node\Expr\ArrayItem;
-use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Scalar\String_;
-use PhpParser\NodeTraverser;
-use PhpParser\NodeVisitor\FirstFindingVisitor;
-use PhpParser\ParserFactory;
+use Nette\PhpGenerator\Property;
 use Psr\Cache\CacheItemPoolInterface;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -39,29 +51,22 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class GraphQLGenerateFromSchema extends Command
 {
-    private array $type_map = [];
-    private array $files = [];
-    private array $new_controllers = [];
-    private array $new_entities = [];
+    private GraphQLCodeManager $manager;
 
     public function __construct(
         private string $schema_file,
         private string $services_file,
         private string $entity_dir,
         private string $entity_namespace,
-        private array $entities,
+        private ClassDiscoveryInterface $entity_discovery,
         private string $controller_dir,
         private string $controller_namespace,
-        private array $controllers,
+        private ClassDiscoveryInterface $controller_discovery,
         private Printer $printer,
         private MetadataProvider $metadata_provider,
         private Schema $schema,
         private CacheItemPoolInterface $cache
     ) {
-        // Create a type map.
-        foreach ($metadata_provider->getAllTypeMetadata() as $metadata) {
-            $this->type_map[$metadata->getName()] = $metadata->getClassName();
-        }
         parent::__construct('graphql:generate');
     }
 
@@ -107,15 +112,15 @@ class GraphQLGenerateFromSchema extends Command
         $io->title('GraphQL Code Generator');
 
         // The desired schema is loaded from a graphql file.
-        $to_schema = BuildSchema::build(
+        $new = BuildSchema::build(
             Parser::parse(file_get_contents($this->schema_file))
         );
 
         // The current schema is found in code.
-        $from_schema = $this->schema;
+        $old = $this->schema;
 
         // Diff the schemas.
-        $diff = SchemaComparator::compareSchemas($from_schema, $to_schema);
+        $diff = SchemaComparator::compareSchemas($old, $new);
 
         // If the schemas are identical report as such.
         if (!$diff->isDifferent()) {
@@ -123,358 +128,421 @@ class GraphQLGenerateFromSchema extends Command
             return Command::SUCCESS;
         }
 
-        // Start asking how to modify things.
-        $this->syncSchema($diff, $io);
+        // Initialize the code manager.
+        $this->manager = new GraphQLCodeManager($this->entity_discovery, $this->controller_discovery);
+        $this->manager->initialize();
+
+        // Create new types.
+        $this->createNewTypes($diff, $io);
+
+        // Create new controller methods.
+        $this->createNewControllerMethods($diff, $io);
 
         // Save the changes made to the code.
         $this->saveFiles();
-
-        // Modify the services file, adding new files.
-        $this->modifyServices($io);
 
         // Return a successful output.
         $io->success('GraphQL sync complete!');
         return Command::SUCCESS;
     }
 
-    private function syncSchema(SchemaDiff $diff, StyleInterface $io)
+    private function createNewTypes(SchemaDiff $diff, StyleInterface $io): void
     {
-        foreach ($diff->getTypeDiffs() as $type_diff) {
-            // Don't worry about types with no difference.
-            if (!$type_diff->isDifferent()) {
-                continue;
-            }
-
-            // Type is missing from the schema.
-            if ($type_diff->getToName() === null) {
-                $io->warning(sprintf('"%s" type is present in code, but not in the schema!', $type_diff->getFromName()));
-                continue;
-            }
-
-            // Report a difference found.
-            $io->section(sprintf('"%s" Type', $type_diff->getToName()));
-
-            // Determine if this is a controller or an entity.
-            if (in_array($type_diff->getToName(), ['Query', 'Mutation', 'Subscription'])) {
-                $this->syncControllerType($type_diff, $io);
-            } else {
-                $this->syncEntityType($type_diff, $io);
-            }
+        // Create all the new interface types.
+        foreach ($diff->getNewInterfaces() as $interface) {
+            $this->createInterfaceType($interface);
         }
-    }
 
-    private function syncControllerType(TypeDiff $diff, StyleInterface $io): void
-    {
-        foreach ($diff->getFieldDiffs() as $field_diff) {
-            // Skip fields that are the same.
-            if (!$field_diff->isDifferent()) {
+        // Create all the new object types.
+        foreach ($diff->getNewTypes() as $type) {
+            // Skip controller types.
+            if (in_array($type->name(), ['Query', 'Mutation', 'Subscription'])) {
                 continue;
             }
 
-            // Report difference found.
-            $io->text(sprintf('"%s" field', $field_diff->getToName()));
+            // Create the new object.
+            $this->createObjectType($type);
+        }
 
-            // The field does not exist in code.
-            if (null === $field_diff->getFromName()) {
-                // Determine which controller to add to.
-                $controller_name = $io->choice('Which controller should we add this field to?', array_merge(['new'], $this->controllers));
+        // Create all new enum types.
+        foreach ($diff->getNewEnums() as $enum) {
+            $this->createEnumType($enum);
+        }
 
-                // Generate a new controller for this field.
-                if ($controller_name === 'new') {
-                    $file = $this->generateController($field_diff, $io);
+        // Create all new inputs.
+        foreach ($diff->getNewInputs() as $input) {
+            $choices = ['Create new'];
+            foreach ($this->manager->getTypes() as $file) {
+                $choices[] = $file->getClassLike()->getName();
+            }
+
+            // Determine how to proceed.
+            $choice = $io->choice(sprintf('Create new input for "%s" or map to existing class?', $input->name()), $choices);
+
+            // Create a new file.
+            $args = [];
+            if ($choice === 'Create new') {
+                $class = $this->createInputType($input);
+            } else {
+                $file = $this->manager->getType($choice);
+                $class = $file->getClassLike();
+                $args['name'] = $class->getName() . 'Input';
+                $this->manager->addType($args['name'], $file);
+            }
+
+            $class->addAttribute(GraphQL\InputType::class, $args);
+        }
+
+        // Now that types are created we can create the fields to go with them.
+        foreach ($diff->getNewInterfaces() as $interface) {
+            $class = $this->type_map[$interface->name]['class'];
+            foreach ($interface->getFields() as $field) {
+                assert($field instanceof FieldDefinition);
+                if (count($field->args) > 0) {
+                    $this->addMethodField($class, $field);
                 } else {
-                    $file = $this->loadFile($controller_name);
+                    $this->addPropertyField($class, $field);
                 }
-
-                // Generate the method on the controller.
-                $method = $this->generateControllerField($file, $field_diff, $diff, $io);
-            } else {
-                $file = $this->loadFile($this->controllers[$diff->getFromName()]);
-                $classes = $file->getClasses();
-                $class = array_pop($classes);
-                assert($class instanceof ClassType);
-                $method = $class->getMethod($field_diff->getFromName());
             }
-
-            // Sync arguments for this method.
-            $this->syncArguments($field_diff, $method, $io);
         }
-    }
-
-    private function syncEntityType(TypeDiff $diff, StyleInterface $io): void
-    {
-        // This type does not exist in the system at all.
-        if ($diff->getFromName() === null) {
-            if ($io->confirm(sprintf('The "%s" type is missing, generate an entity?', $diff->getToName()))) {
-                $file = $this->generateEntity($diff, $io);
+        foreach ($diff->getNewTypes() as $type) {
+            if (in_array($type->name, ['Query', 'Mutation', 'Subscription'])) {
+                continue;
             }
-        } else {
-            $metadata = $this->metadata_provider->getTypeMetadata($diff->getToName());
-            $file = $this->loadFile($metadata->getClassName());
+            $info = $this->manager->getType($type->name);
+            foreach ($type->getFields() as $field) {
+                assert($field instanceof FieldDefinition);
+                if (count($field->args) > 0) {
+                    $this->addMethodField($info, $field);
+                } else {
+                    $this->addPropertyField($info, $field);
+                }
+            }
         }
-
-        // Sync the fields for this entity.
-        foreach ($diff->getFieldDiffs() as $field_diff) {
-            $this->syncEntityField($field_diff, $file);
+        foreach ($diff->getNewInputs() as $input) {
+            foreach ($input->getFields() as $field) {
+                $this->addPropertyArgument($input, $field);
+            }
         }
     }
 
-    private function generateEntity(TypeDiff $diff, StyleInterface $io): PhpFile
+    private function createObjectType(ObjectType $type): ClassType
     {
-        $class_name = $io->ask('What should the class name be?', default: $diff->getToName());
+        // Create the new file.
+        $file = new PhpFile();
 
-        // Build the file, namespace and class.
-        $file = $this->loadFile($this->entity_namespace . '\\' . $class_name);
-        $namespace = $file->addNamespace($this->entity_namespace);
-        $class = $namespace->addClass($class_name);
-
-        // Declare strict types.
-        $file->setStrictTypes();
-
-        // Add the correct use statements to the class.
-        $namespace->addUse(GraphQL::class, 'GraphQL');
-        $namespace->addUse(ORM::class, 'ORM');
-
-        // Add the attributes to the class.
-        $class->addAttribute(GraphQL\ObjectType::class, ['name' => $diff->getToName()]);
-        $class->addAttribute(ORM\Entity::class);
-
-        // Store the type map locally.
-        $this->type_map[$diff->getToName()] = $namespace->getName() . '\\' . $class->getName();
-        $this->new_entities[] = $namespace->getName() . '\\' . $class->getName();
-
-        // Return the entity file.
-        return $file;
-    }
-
-    private function generateController(FieldDiff $diff, StyleInterface $io): PhpFile
-    {
-        // Generate the class.
-        $class_name = $io->ask('What is the class for this controller?', default: ucfirst($diff->getToName()) . 'Controller');
-        $file = $this->loadFile($this->controller_namespace . '\\' . $class_name);
-        $namespace = $file->addNamespace($this->controller_namespace);
-        $class = $namespace->addClass($class_name);
-
-        // Set strict types.
-        $file->setStrictTypes();
-
-        // Store the controller locally.
-        $this->controllers[] = $namespace->getName() . '\\' . $class->getName();
-        $this->new_controllers[] = $namespace->getName() . '\\' . $class->getName();
-
-        return $file;
-    }
-
-    private function generateControllerField(
-        PhpFile $file,
-        FieldDiff $diff,
-        TypeDiff $type_diff,
-        StyleInterface $io
-    ): Method {
-        // Get the namespace and class.
-        $namespace = $file->getNamespaces()[$this->controller_namespace];
-        $classes = $file->getClasses();
-        $class = array_pop($classes);
-
-        // Get some user input.
-        $io->text(sprintf('Generating controller method for "%s".', $diff->getToName()));
-        $method = $class->addMethod($io->ask('What should the method be called?', default: $diff->getToName()));
-
-        // Add the correct use to the namespace.
+        // Add namespace and use statements.
+        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
         $namespace->addUse(GraphQL::class, 'GraphQL');
 
-        // Build the return type.
-        $return_type = $diff->getTypeDiff()->getToNonNull() ? '' : '?';
-        if ($diff->getTypeDiff()->getToList()) {
-            $return_type .= 'array';
-        } elseif (array_key_exists($diff->getTypeDiff()->getToName(), $this->type_map)) {
-            $return_type .= $this->type_map[$diff->getTypeDiff()->getToName()];
-            $namespace->addUse($this->type_map[$diff->getTypeDiff()->getToName()]);
-        } else {
-            $return_type .= $this->metadata_provider->getTypeMetadata($diff->getTypeDiff()->getToName())->getClassName();
+        // Create the class in that file.
+        $class = $namespace->addClass($type->name());
+        $class->addAttribute(GraphQL\ObjectType::class);
+
+        // Add the file to the file collection.
+        $this->manager->addType($type->name, new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class));
+        return $class;
+    }
+
+    private function createInterfaceType(InterfaceType $interface): ClassType
+    {
+        $file = new PhpFile();
+
+        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        $class = $namespace->addClass($interface->name());
+        $class->setAbstract(true);
+        $class->addAttribute(GraphQL\InterfaceType::class);
+
+        $this->manager->addType($interface->name, new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class));
+        return $class;
+    }
+
+    private function createEnumType(EnumType $enum): PhpGeneratorEnumType
+    {
+        $file = new PhpFile();
+
+        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        $php_enum = $namespace->addEnum($enum->name());
+        $php_enum->addAttribute(GraphQL\EnumType::class);
+
+        // Add enum values based on passed in values.
+        foreach ($enum->getValues() as $value) {
+            $case = $php_enum->addCase($value->name, $value->value);
+            $case->addAttribute(GraphQL\Value::class);
         }
-        $method->setReturnType($return_type);
-        $method->setBody('// TODO: Controller logic goes here.');
 
-        // Annotate the method appropriately.
-        $method->addAttribute(GraphQL\ObjectField::class);
-        $method->addAttribute("GraphQL\\{$type_diff->getToName()}");
+        // Add the file to the collection.
+        $this->manager->addType($enum->name, new GraphQLFile($this->entity_dir . $php_enum->getName() . '.php', $file, $namespace, $php_enum));
+        return $php_enum;
+    }
 
-        // Return the method.
+    private function createInputType(InputType $input): ClassType
+    {
+        // Create the new file.
+        $file = new PhpFile();
+
+        // Add namespace and use statements.
+        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        // Create the class in that file.
+        $class = $namespace->addClass($input->name);
+        $class->addAttribute(GraphQL\InputType::class);
+
+        $this->manager->addType($input->name, new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class));
+        return $class;
+    }
+
+    private function addPropertyField(GraphQLFile $info, FieldDefinition $field): Property
+    {
+        $class = $info->getClass();
+        $args = [];
+
+        // Create the property if needed.
+        if (!$class->hasProperty($field->name)) {
+            $property = $class->addProperty($field->name);
+        } else {
+            $property = $class->getProperty($field->name);
+        }
+
+        $property->setVisibility('protected');
+
+        // Is the property not null?
+        $not_null = $field->getType() instanceof NonNull;
+        $list_of = false;
+
+        // Unwrap the type.
+        $field_type = $field->getType();
+        while ($field_type instanceof WrappingType) {
+            if ($field_type instanceof ListOfType) {
+                $list_of = true;
+            }
+            $field_type = $field_type->getWrappedType();
+        }
+
+        // If the type is a list, the type of the property is an array.
+        if ($list_of) {
+            $property->setType('array');
+            $args['type'] = $field_type->name;
+        } else {
+            $property->setType($this->mapType($field_type));
+        }
+
+        // If this is an ID property we should add the use to the namespace.
+        if ($property->getType() === UuidInterface::class) {
+            $info->getNamespace()->addUse(UuidInterface::class);
+        }
+
+        // If this is not null annotate it as such.
+        $property->setNullable(!$not_null);
+
+        // Create attribute.
+        $property->addAttribute(GraphQL\Field::class, $args);
+
+        // Add appropriate getters and setters.
+        CodeGenerator::addGetter($class, $property);
+        if ($list_of) {
+            CodeGenerator::addHasser($class, $property);
+        }
+
+        return $property;
+    }
+
+    private function addMethodField(GraphQLFile $info, FieldDefinition $field): Method
+    {
+        $class = $info->getClass();
+        $info->getNamespace()->addUse(GraphQL::class, 'GraphQL');
+        $method = $class->addMethod($field->getName());
+
+        $args = [];
+
+        // Is the property not null?
+        $not_null = $field->getType() instanceof NonNull;
+        $list_of = false;
+
+        // Unwrap the type.
+        $field_type = $field->getType();
+        while ($field_type instanceof WrappingType) {
+            if ($field_type instanceof ListOfType) {
+                $list_of = true;
+            }
+            $field_type = $field_type->getWrappedType();
+        }
+
+        // If the type is a list, the type of the property is an array.
+        if ($list_of) {
+            $method->setReturnType('array');
+            $args['type'] = $field_type->name;
+        } else {
+            $type = $this->mapType($field_type);
+            if (str_contains($type, '\\')) {
+                $info->getNamespace()->addUse($type);
+            }
+            $method->setReturnType($this->mapType($field_type));
+        }
+        $method->setReturnNullable(!$not_null);
+        $method->addAttribute(GraphQL\Field::class, $args);
+
+        foreach ($field->args as $arg) {
+            $this->addParameterArgument($info, $method, $arg);
+        }
+
         return $method;
     }
 
-    private function syncEntityField(FieldDiff $diff, PhpFile $file): void
+    private function addPropertyArgument(InputType $input, InputObjectField $field): Property
     {
-        $classes = $file->getClasses();
-        $class = array_pop($classes);
-        $namespace = $file->getNamespaces()[$this->entity_namespace];
-        assert($class instanceof ClassType);
+        $class = $this->manager->getType($input->name)->getClass();
+        $args = [];
 
-        // Create the property.
-        if ($diff->getFromName() === null) {
-            $property = $class->addProperty($diff->getToName())->setPrivate();
+        // Create the property if needed.
+        if (!$class->hasProperty($field->name)) {
+            $property = $class->addProperty($field->name);
         } else {
-            $property = $class->getProperty($diff->getFromName());
+            $property = $class->getProperty($field->name);
         }
 
-        // Set the property type appropriately.
-        $type_diff = $diff->getTypeDiff();
-        if ($type_diff->getToList()) {
-            $namespace->addUse(Collection::class);
-            $property->setType(Collection::class);
+        $property->setVisibility('protected');
+
+        // Is the property not null?
+        $not_null = $field->getType() instanceof NonNull;
+        $list_of = false;
+
+        // Unwrap the type.
+        $field_type = $field->getType();
+        while ($field_type instanceof WrappingType) {
+            if ($field_type instanceof ListOfType) {
+                $list_of = true;
+            }
+            $field_type = $field_type->getWrappedType();
         }
+
+        // If the type is a list, the type of the property is an array.
+        if ($list_of) {
+            $property->setType('array');
+            $args['type'] = $field_type->name;
+        } else {
+            $property->setType($this->mapType($field_type));
+        }
+
+        // If this is an ID property we should add the use to the namespace.
+        if ($property->getType() === UuidInterface::class) {
+            $namespace = $this->type_map[$input->name]['file']->getNamespaces()[$this->entity_namespace];
+            $namespace->addUse(UuidInterface::class);
+        }
+
+        // If this is not null annotate it as such.
+        $property->setNullable(!$not_null);
+
+        // Create attribute.
+        $property->addAttribute(GraphQL\Argument::class, $args);
+
+        // Add appropriate getters and setters.
+        CodeGenerator::addSetter($class, $property);
+        if ($list_of) {
+            CodeGenerator::addAdder($class, $property);
+            CodeGenerator::addRemover($class, $property);
+        }
+
+        return $property;
     }
 
-    private function syncArguments(FieldDiff $diff, Method $method, StyleInterface $io): void
+    private function addParameterArgument(GraphQLFile $info, Method $method, Argument $argument): Parameter
     {
-        foreach ($diff->getArgumentDiffs() as $arg_diff) {
-            if (!$arg_diff->isDifferent()) {
+        $args = [];
+        $parameter = $method->addParameter($argument->name);
+        $info->getNamespace()->addUse(GraphQL::class, 'GraphQL');
+
+        // Is the property not null?
+        $not_null = $argument->getType() instanceof NonNull;
+        $list_of = false;
+
+        // Unwrap the type.
+        $argument_type = $argument->getType();
+        while ($argument_type instanceof WrappingType) {
+            if ($argument_type instanceof ListOfType) {
+                $list_of = true;
+            }
+            $argument_type = $argument_type->getWrappedType();
+        }
+        $argument_type = Type::getNamedType($argument_type);
+
+        if ($list_of) {
+            $parameter->setType('array');
+            $args['type'] = $argument_type->name;
+        } else {
+            $parameter->setType($this->mapType($argument_type));
+        }
+
+        $parameter->setNullable(!$not_null);
+
+        $parameter->addAttribute(GraphQL\Argument::class, $args);
+        return $parameter;
+    }
+
+    private function createNewControllerMethods(SchemaDiff $diff, StyleInterface $io): void
+    {
+        // Check for new query and mutation types.
+        foreach ($diff->getNewTypes() as $type) {
+            if (!in_array($type->name, ['Query', 'Mutation'])) {
                 continue;
             }
+            foreach ($type->getFields() as $field) {
+                $choices = ['Create new'];
+                foreach ($this->manager->getControllers() as $info) {
+                    $choices[] = $info->getClass()->getName();
+                }
+                $choice = $io->choice(sprintf('The "%s" field "%s" is new, create a new controller or add to an existing controller?', $type->name, $field->name), $choices);
 
-            $io->text(sprintf('Syncing argument "%".', $arg_diff->getToName()));
+                if ($choice === 'Create new') {
+                    $name = $io->ask('What is the name of the class (without the namespace)?');
+                    $file = new PhpFile();
+                    $namespace = $file->addNamespace($this->controller_namespace);
+                    $class = $namespace->addClass($name);
+                    $filename = $this->controller_dir . $class->getName() . '.php';
+                    $this->manager->addController($class->getName(), new GraphQLFile($filename, $file, $namespace, $class));
+                } else {
+                    $class = $this->manager->getController($choice)->getClass();
+                }
 
-            // Create the argument.
-            if (null === $arg_diff->getFromName()) {
-                $io->text('Argument is missing from schema.');
-                $arg = $method->addParameter(
-                    $io->ask('What should the argument be called?', default: $arg_diff->getFromName())
-                );
-                $arg->addAttribute(GraphQL\Argument::class, ['name' => $arg->getName()]);
-            } else {
-                $arg = $method->getParameter($arg_diff->getFromName());
+                $this->addMethodField($this->manager->getController($class->getName()), $field);
             }
-
-            // Modify the argument according to the differences.
-            $arg->setType($this->type_map[$arg_diff->getToName()]);
         }
     }
 
-    private function loadFile(string $class_name): PhpFile
+    private function mapType(Type $type): string
     {
-        // Determine directory to look for the file in.
-        if (stristr($class_name, $this->entity_namespace)) {
-            $dir = $this->entity_dir;
-        } elseif (stristr($class_name, $this->controller_namespace)) {
-            $dir = $this->controller_dir;
-        } else {
-            throw new LogicException('Can\'t determine where to load the file from.');
+        if ($type instanceof ScalarType) {
+            switch ($type::class) {
+                case IDType::class:
+                    return UuidInterface::class;
+                case StringType::class:
+                    return 'string';
+                case IntType::class:
+                    return 'int';
+                case BooleanType::class:
+                    return 'bool';
+                case FloatType::class:
+                    return 'float';
+            }
         }
 
-        // Construct the filename.
-        $filename = $dir . DIRECTORY_SEPARATOR . substr($class_name, strrpos($class_name, '\\') + 1) . '.php';
-
-        // Check for the file in our cache.
-        if (array_key_exists($filename, $this->files)) {
-            return $this->files[$filename];
-        }
-
-        // Load the php file from disk.
-        if (file_exists($filename)) {
-            $this->files[$filename] = PhpFile::fromCode(file_get_contents($filename));
-        } else {
-            $this->files[$filename] = new PhpFile();
-        }
-
-        return $this->files[$filename];
+        $file = $this->manager->getType(Type::getNamedType($type)->name);
+        return $file->getNamespace()->getName() . '\\' . $file->getClassLike()->getName();
     }
 
     private function saveFiles(): void
     {
-        foreach ($this->files as $filename => $file) {
-            file_put_contents($filename, $this->printer->printFile($file));
-        }
-    }
-
-    private function modifyServices(StyleInterface $io): void
-    {
-        if (count($this->new_controllers) == 0 && count($this->new_entities) == 0) {
-            return;
+        foreach ($this->manager->getTypes() as $type) {
+            file_put_contents($type->getFilename(), $this->printer->printFile($type->getFile()));
         }
 
-        if (!$io->confirm('Should the new entities and controllers be added to your services file?')) {
-            return;
+        foreach ($this->manager->getControllers() as $controller) {
+            file_put_contents($controller->getFilename(), $this->printer->printFile($controller->getFile()));
         }
-
-        // Create reusable components.
-        $parser = (new ParserFactory())->createForHostVersion();
-        $printer = new ServicesPrinter();
-        $code = file_get_contents($this->services_file);
-
-        // Handle new controllers.
-        if (count($this->new_controllers) > 0) {
-            // Build the finder and traverser.
-            $finder = new FirstFindingVisitor(function (Node $node) {
-                if ($node instanceof ArrayItem) {
-                    if ($node->key instanceof String_ && $node->key->value === 'graphql.controllers') {
-                        return true;
-                    }
-                }
-            });
-            $traverser = new NodeTraverser();
-            $traverser->addVisitor($finder);
-
-            // Parse the code and extract the node to modify.
-            $stmts = $parser->parse($code);
-            $traverser->traverse($stmts);
-            $node = $finder->getFoundNode();
-
-            // Add the new controllers to the node.
-            foreach ($this->new_controllers as $controller) {
-                $node->value->args[0]->value->items[] = new ArrayItem(
-                    new ClassConstFetch(
-                        new FullyQualified($controller),
-                        'class'
-                    )
-                );
-            }
-
-            // Modify the code.
-            $code = substr($code, 0, $node->getAttribute('startFilePos'))
-                . $printer->prettyPrintExpr($node)
-                . substr($code, $node->getAttribute('endFilePos') + 1);
-        }
-
-        // Handle new entities.
-        if (count($this->new_entities) > 0) {
-            // Build the finder and traverser.
-            $finder = new FirstFindingVisitor(function (Node $node) {
-                if ($node instanceof ArrayItem) {
-                    if ($node->key instanceof String_ && $node->key->value === 'graphql.types') {
-                        return true;
-                    }
-                }
-            });
-            $traverser = new NodeTraverser();
-            $traverser->addVisitor($finder);
-
-            // Parse the code and extract the node to modify.
-            $stmts = $parser->parse($code);
-            $traverser->traverse($stmts);
-            $node = $finder->getFoundNode();
-
-            // Add the new entities to the node.
-            foreach ($this->new_entities as $entity) {
-                $node->value->args[0]->value->items[] = new ArrayItem(
-                    new ClassConstFetch(
-                        new FullyQualified($entity),
-                        'class'
-                    )
-                );
-            }
-
-            // Modify the code.
-            $code = substr($code, 0, $node->getAttribute('startFilePos'))
-                . $printer->prettyPrintExpr($node)
-                . substr($code, $node->getAttribute('endFilePos') + 1);
-        }
-
-        // Write out the services file.
-        file_put_contents($this->services_file, $code);
-
-        // Flush the caches.
-        $io->caution('Changes made, flushing caches!');
-        $this->cache->clear();
     }
 }

@@ -6,8 +6,10 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Inflector\InflectorFactory;
 use Doctrine\Inflector\Language;
 use Doctrine\ORM\Mapping as ORM;
+use Nette\PhpGenerator\ClassLike;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Literal;
+use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\Property;
 use Ramsey\Uuid\Doctrine\UuidOrderedTimeGenerator;
@@ -150,6 +152,14 @@ class CodeGenerator
         // Add the parameter to the method.
         $method->addParameter($sub_name)
             ->setType($type);
+    }
+
+    public static function generateFileForClass(string $class_name, ?string $namespace = null): PhpFile
+    {
+        $file = new PhpFile();
+        $file->addNamespace($namespace);
+        $file->addClass($class_name);
+        return $file;
     }
 
     public static function camelCase(string $string): string

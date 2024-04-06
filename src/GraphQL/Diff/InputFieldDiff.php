@@ -4,42 +4,43 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
-use GraphQL\Type\Definition\Argument;
+use GraphQL\Type\Definition\InputObjectField;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\WrappingType;
 
-class ArgumentDiff
+class InputFieldDiff
 {
     public function __construct(
-        private readonly Argument $old_argument,
-        private readonly Argument $new_argument
+        private readonly InputObjectField $old_field,
+        private readonly InputObjectField $new_field
     ) {
     }
 
-    public function getOldArgument(): Argument
+    public function getOldField(): InputObjectField
     {
-        return $this->old_argument;
+        return $this->old_field;
     }
 
-    public function getNewArgument(): Argument
+    public function getNewField(): InputObjectField
     {
-        return $this->new_argument;
+        return $this->new_field;
     }
 
     public function isNameDifferent(): bool
     {
-        return $this->old_argument->name !== $this->new_argument->name;
+        return $this->old_field->name !== $this->new_field->name;
     }
 
     public function isDescriptionDifferent(): bool
     {
-        return $this->old_argument->description !== $this->new_argument->description;
+        return $this->old_field->description !== $this->new_field->description;
     }
+
     public function isTypeDifferent(): bool
     {
-        $old_type = $this->old_argument->getType();
-        $new_type = $this->new_argument->getType();
+        $old_type = $this->old_field->getType();
+        $new_type = $this->new_field->getType();
         while ($old_type instanceof WrappingType) {
             $old_type = $old_type->getWrappedType();
         }
@@ -53,8 +54,8 @@ class ArgumentDiff
     {
         $old_list = false;
         $new_list = false;
-        $old_type = $this->old_argument->getType();
-        $new_type = $this->new_argument->getType();
+        $old_type = $this->old_field->getType();
+        $new_type = $this->new_field->getType();
         while ($old_type instanceof WrappingType) {
             if ($old_type instanceof ListOfType) {
                 $old_list = true;
@@ -74,8 +75,8 @@ class ArgumentDiff
     {
         $old_non_null = false;
         $new_non_null = false;
-        $old_type = $this->old_argument->getType();
-        $new_type = $this->new_argument->getType();
+        $old_type = $this->old_field->getType();
+        $new_type = $this->new_field->getType();
         if ($old_type instanceof NonNull) {
             $old_non_null = true;
         }
@@ -85,10 +86,16 @@ class ArgumentDiff
         return $new_non_null === $old_non_null;
     }
 
+    public function isDeprecationReasonDifferent(): bool
+    {
+        return $this->old_field->deprecationReason !== $this->new_field->deprecationReason;
+    }
+
     public function isDifferent(): bool
     {
         return ($this->isNameDifferent()
             || $this->isDescriptionDifferent()
+            || $this->isDeprecationReasonDifferent()
             || $this->isTypeDifferent()
             || $this->isListDifferent()
             || $this->isNonNullDifferent());
