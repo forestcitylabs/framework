@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
+use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Schema;
 
 class SchemaDiff
@@ -36,17 +37,41 @@ class SchemaDiff
         return $this->new_schema;
     }
 
+    /**
+     * @return array<NamedType>
+     */
     public function getNewTypes(): array
+    {
+        return array_merge($this->new_interfaces, $this->new_types, $this->new_enums, $this->new_inputs);
+    }
+
+    /**
+     * @return array<TypeDiff>
+     */
+    public function getAlteredTypes(): array
+    {
+        return array_merge($this->altered_interfaces, $this->altered_types, $this->altered_enums, $this->altered_inputs);
+    }
+
+    /**
+     * @return array<NamedType>
+     */
+    public function getDroppedTypes(): array
+    {
+        return array_merge($this->dropped_interfaces, $this->dropped_types, $this->dropped_enums, $this->dropped_inputs);
+    }
+
+    public function getNewObjectTypes(): array
     {
         return $this->new_types;
     }
 
-    public function getAlteredTypes(): array
+    public function getAlteredObjectTypes(): array
     {
         return $this->altered_types;
     }
 
-    public function getDroppedTypes(): array
+    public function getDroppedObjectTypes(): array
     {
         return $this->dropped_types;
     }

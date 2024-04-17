@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
 use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\NamedType;
 
-class EnumTypeDiff
+class EnumTypeDiff implements TypeDiff
 {
     public function __construct(
         private readonly EnumType $old_enum,
@@ -27,12 +28,12 @@ class EnumTypeDiff
         return $this->old_enum->description() !== $this->new_enum->description();
     }
 
-    public function getOldEnum(): EnumType
+    public function getOldType(): NamedType
     {
         return $this->old_enum;
     }
 
-    public function getNewEnum(): EnumType
+    public function getNewType(): NamedType
     {
         return $this->new_enum;
     }

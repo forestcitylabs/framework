@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Utility\CodeGenerator;
 
-use ForestCityLabs\Framework\GraphQL\Attribute\AbstractType;
+use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
-use GraphQL\GraphQL;
 use Nette\PhpGenerator\PhpFile;
-use ReflectionAttribute;
 use ReflectionClass;
 
 class GraphQLCodeManager
@@ -41,12 +39,9 @@ class GraphQLCodeManager
             $reflection = new ReflectionClass($class_name);
             list($file, $namespace, $class) = $this->extractInfo($reflection);
 
-            // Iterate over available types and add them to the map.
-            foreach ($reflection->getAttributes(AbstractType::class, ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
-                $type = $attribute->newInstance();
-                $type->setName($type->getName() ?? $reflection->getName());
-                $this->types[$type->getName()] = new GraphQLFile($reflection->getFileName(), $file, $namespace, $class);
-            }
+            // Add to types.
+            $this->types[$namespace->getName() . '\\' . $class->getName()]
+                = new GraphQLFile($reflection->getFileName(), $file, $namespace, $class);
         }
 
         // Iterate over classes and discover controllers.
@@ -56,7 +51,8 @@ class GraphQLCodeManager
             list($file, $namespace, $class) = $this->extractInfo($reflection);
 
             // Add to controllers.
-            $this->controllers[$class->getName()] = new GraphQL($reflection->getFileName(), $file, $namespace, $class);
+            $this->controllers[$namespace->getName() . '\\' . $class->getName()]
+                = new GraphQLFile($reflection->getFileName(), $file, $namespace, $class);
         }
     }
 
@@ -70,9 +66,27 @@ class GraphQLCodeManager
         return $this->controllers;
     }
 
-    public function getType(string $name): ?GraphQLFile
+    public function getType(string $type_name): ?GraphQLFile
     {
-        return $this->types[$name] ?? null;
+        foreach ($this->types as $type) {
+            foreach ($type->getClassLike()->getAttributes() as $attribute) {
+                if (
+                    in_array($attribute->getName(), [
+                    GraphQL\ObjectType::class,
+                    GraphQL\InterfaceType::class,
+                    GraphQL\EnumType::class,
+                    GraphQL\InputType::class,
+                    ])
+                ) {
+                    $args = $attribute->getArguments();
+                    $name = $args['name'] ?? $type->getClassLike()->getName();
+                    if ($name === $type_name) {
+                        return $type;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public function getController(string $name): ?GraphQLFile
@@ -80,25 +94,43 @@ class GraphQLCodeManager
         return $this->controllers[$name] ?? null;
     }
 
-    public function getTypeByClass(string $class): ?GraphQLFile
+    public function getControllerForField(string $type_name, string $field_name): ?array
     {
-        foreach ($this->types as $file) {
-            if ($file->getClassLike()->getName() === $class) {
-                return $file;
+        foreach ($this->controllers as $controller) {
+            foreach ($controller->getClass()->getMethods() as $method) {
+                $type_match = false;
+                foreach ($method->getAttributes() as $attribute) {
+                    // This is the correct type.
+                    if ($attribute->getName() === $type_name) {
+                        $type_match = true;
+                    }
+                    if ($attribute->getName() === GraphQL\Field::class) {
+                        $match = $attribute->getArguments()['name'] ?: $method->getName();
+                        if ($type_match && $match === $field_name) {
+                            return [$controller, $method];
+                        }
+                    }
+                }
             }
         }
+
         return null;
     }
 
-    public function addController(string $name, GraphQLFile $controller): static
+    public function getTypeByClass(string $class): ?GraphQLFile
     {
-        $this->controllers[$name] = $controller;
+        return $this->types[$class] ?? null;
+    }
+
+    public function addController(GraphQLFile $controller): static
+    {
+        $this->controllers[$controller->getNamespace()->getName() . '\\' . $controller->getClassLike()->getName()] = $controller;
         return $this;
     }
 
-    public function addType(string $name, GraphQLFile $type): static
+    public function addType(GraphQLFile $type): static
     {
-        $this->types[$name] = $type;
+        $this->types[$type->getNamespace()->getName() . '\\' . $type->getClassLike()->getName()] = $type;
         return $this;
     }
 

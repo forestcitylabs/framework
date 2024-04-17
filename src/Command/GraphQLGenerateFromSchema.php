@@ -5,39 +5,43 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Command;
 
 use ForestCityLabs\Framework\GraphQL\Diff\SchemaComparator;
-use ForestCityLabs\Framework\GraphQL\Diff\SchemaDiff;
 use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
+use ForestCityLabs\Framework\GraphQL\Diff\EnumTypeDiff;
+use ForestCityLabs\Framework\GraphQL\Diff\FieldDiff;
+use ForestCityLabs\Framework\GraphQL\Diff\InputObjectTypeDiff;
+use ForestCityLabs\Framework\GraphQL\Diff\InterfaceTypeDiff;
+use ForestCityLabs\Framework\GraphQL\Diff\ObjectTypeDiff;
+use ForestCityLabs\Framework\GraphQL\Diff\TypeDiff;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use ForestCityLabs\Framework\Utility\CodeGenerator;
+use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLCodeHelper;
 use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLCodeManager;
 use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLFile;
 use GraphQL\Language\Parser;
 use GraphQL\Type\Definition\Argument;
 use GraphQL\Type\Definition\BooleanType;
 use GraphQL\Type\Definition\EnumType;
+use GraphQL\Type\Definition\EnumValueDefinition;
 use GraphQL\Type\Definition\FieldDefinition;
 use GraphQL\Type\Definition\FloatType;
+use GraphQL\Type\Definition\HasFieldsType;
 use GraphQL\Type\Definition\IDType;
 use GraphQL\Type\Definition\InputObjectField;
-use GraphQL\Type\Definition\InputType;
+use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\InterfaceType;
 use GraphQL\Type\Definition\IntType;
-use GraphQL\Type\Definition\ListOfType;
-use GraphQL\Type\Definition\NonNull;
+use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\StringType;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildSchema;
+use LogicException;
 use Nette\PhpGenerator\ClassType;
-use Nette\PhpGenerator\EnumType as PhpGeneratorEnumType;
 use Nette\PhpGenerator\Method;
-use Nette\PhpGenerator\Parameter;
 use Nette\PhpGenerator\PhpFile;
-use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\Printer;
 use Nette\PhpGenerator\Property;
 use Psr\Cache\CacheItemPoolInterface;
@@ -132,11 +136,32 @@ class GraphQLGenerateFromSchema extends Command
         $this->manager = new GraphQLCodeManager($this->entity_discovery, $this->controller_discovery);
         $this->manager->initialize();
 
-        // Create new types.
-        $this->createNewTypes($diff, $io);
+        // Remove dropped types.
+        foreach ($diff->getDroppedTypes() as $type) {
+            if (in_array($type->name, ['Query', 'Mutation', 'Subscription'])) {
+                $this->removeDroppedControllerType($type, $io);
+            } else {
+                $this->removeDroppedType($type, $io);
+            }
+        }
 
-        // Create new controller methods.
-        $this->createNewControllerMethods($diff, $io);
+        // Create new types.
+        foreach ($diff->getNewTypes() as $type) {
+            if (in_array($type->name, ['Query', 'Mutation', 'Subscription'])) {
+                $this->createNewControllerType($type, $io);
+            } else {
+                $this->ensureType($type, $io);
+            }
+        }
+
+        // Update altered types.
+        foreach ($diff->getAlteredTypes() as $type_diff) {
+            if (in_array($type_diff->getOldType()->name, ['Query', 'Mutation', 'Subscription'])) {
+                $this->updateAlteredControllerType($type_diff, $io);
+            } else {
+                $this->updateAlteredType($type, $io);
+            }
+        }
 
         // Save the changes made to the code.
         $this->saveFiles();
@@ -146,376 +171,452 @@ class GraphQLGenerateFromSchema extends Command
         return Command::SUCCESS;
     }
 
-    private function createNewTypes(SchemaDiff $diff, StyleInterface $io): void
+    public function createNewType(NamedType $type, StyleInterface $io): void
     {
-        // Create all the new interface types.
-        foreach ($diff->getNewInterfaces() as $interface) {
-            $this->createInterfaceType($interface);
+        // Determine the annotation and type name.
+        switch ($type::class) {
+            case InterfaceType::class:
+                $type_name = "interface";
+                $attribute = GraphQL\InterfaceType::class;
+                break;
+            case ObjectType::class:
+                $type_name = "object";
+                $attribute = GraphQL\ObjectType::class;
+                break;
+            case InputObjectType::class:
+                $type_name = "input";
+                $attribute = GraphQL\InputType::class;
+                break;
+            case EnumType::class:
+                $type_name = "enum";
+                $attribute = GraphQL\EnumType::class;
+                break;
+            default:
+                throw new LogicException(sprintf('Cannot map type "%s"!', $type::class));
         }
 
-        // Create all the new object types.
-        foreach ($diff->getNewTypes() as $type) {
-            // Skip controller types.
-            if (in_array($type->name(), ['Query', 'Mutation', 'Subscription'])) {
-                continue;
-            }
+        // Ask whether to map to existing class.
+        if (
+            count($this->manager->getTypes()) > 0
+            && 'Create new' !== $class_name = $io->choice(
+                sprintf('Create class for %s "%s" or map to existing class?', $type_name, $type->name),
+                array_values(['Create new'] + array_map(fn(GraphQLFile $info): string => $info->getFullName(), $this->manager->getTypes())),
+                'Create new',
+            )
+        ) {
+            // Get the existing class.
+            $io->note(sprintf('Mapping %s "%s" to class "%s".', $type_name, $type->name, $class_name));
+            $info = $this->manager->getTypeByClass($class_name);
+            $class = $info->getClassLike();
+        } else {
+            // Ask what to name the class.
+            $io->note(sprintf('Creating new class for %s "%s".', $type_name, $type->name));
+            $class_name = $io->ask('What should the class name be (without the namespace)?', $type->name);
 
-            // Create the new object.
-            $this->createObjectType($type);
-        }
+            // Create the file and the namespace.
+            $file = new PhpFile();
+            $namespace = $file->addNamespace($this->entity_namespace);
 
-        // Create all new enum types.
-        foreach ($diff->getNewEnums() as $enum) {
-            $this->createEnumType($enum);
-        }
-
-        // Create all new inputs.
-        foreach ($diff->getNewInputs() as $input) {
-            $choices = ['Create new'];
-            foreach ($this->manager->getTypes() as $file) {
-                $choices[] = $file->getClassLike()->getName();
-            }
-
-            // Determine how to proceed.
-            $choice = $io->choice(sprintf('Create new input for "%s" or map to existing class?', $input->name()), $choices);
-
-            // Create a new file.
-            $args = [];
-            if ($choice === 'Create new') {
-                $class = $this->createInputType($input);
+            // Create the class (or enum).
+            if ($type_name === 'enum') {
+                $class = $namespace->addEnum($class_name);
             } else {
-                $file = $this->manager->getType($choice);
-                $class = $file->getClassLike();
-                $args['name'] = $class->getName() . 'Input';
-                $this->manager->addType($args['name'], $file);
+                $class = $namespace->addClass($class_name);
             }
 
-            $class->addAttribute(GraphQL\InputType::class, $args);
+            // Add the graphql file.
+            $info = new GraphQLFile($this->entity_namespace . $class->getName() . '.php', $file, $namespace, $class);
+            $this->manager->addType($info);
         }
 
-        // Now that types are created we can create the fields to go with them.
-        foreach ($diff->getNewInterfaces() as $interface) {
-            $class = $this->type_map[$interface->name]['class'];
-            foreach ($interface->getFields() as $field) {
-                assert($field instanceof FieldDefinition);
-                if (count($field->args) > 0) {
-                    $this->addMethodField($class, $field);
-                } else {
-                    $this->addPropertyField($class, $field);
-                }
-            }
-        }
-        foreach ($diff->getNewTypes() as $type) {
-            if (in_array($type->name, ['Query', 'Mutation', 'Subscription'])) {
-                continue;
-            }
-            $info = $this->manager->getType($type->name);
-            foreach ($type->getFields() as $field) {
-                assert($field instanceof FieldDefinition);
-                if (count($field->args) > 0) {
-                    $this->addMethodField($info, $field);
-                } else {
-                    $this->addPropertyField($info, $field);
-                }
-            }
-        }
-        foreach ($diff->getNewInputs() as $input) {
-            foreach ($input->getFields() as $field) {
-                $this->addPropertyArgument($input, $field);
-            }
-        }
-    }
-
-    private function createObjectType(ObjectType $type): ClassType
-    {
-        // Create the new file.
-        $file = new PhpFile();
-
-        // Add namespace and use statements.
-        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
-        $namespace->addUse(GraphQL::class, 'GraphQL');
-
-        // Create the class in that file.
-        $class = $namespace->addClass($type->name());
-        $class->addAttribute(GraphQL\ObjectType::class);
-
-        // Add the file to the file collection.
-        $this->manager->addType($type->name, new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class));
-        return $class;
-    }
-
-    private function createInterfaceType(InterfaceType $interface): ClassType
-    {
-        $file = new PhpFile();
-
-        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
-        $namespace->addUse(GraphQL::class, 'GraphQL');
-
-        $class = $namespace->addClass($interface->name());
-        $class->setAbstract(true);
-        $class->addAttribute(GraphQL\InterfaceType::class);
-
-        $this->manager->addType($interface->name, new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class));
-        return $class;
-    }
-
-    private function createEnumType(EnumType $enum): PhpGeneratorEnumType
-    {
-        $file = new PhpFile();
-
-        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
-        $namespace->addUse(GraphQL::class, 'GraphQL');
-
-        $php_enum = $namespace->addEnum($enum->name());
-        $php_enum->addAttribute(GraphQL\EnumType::class);
-
-        // Add enum values based on passed in values.
-        foreach ($enum->getValues() as $value) {
-            $case = $php_enum->addCase($value->name, $value->value);
-            $case->addAttribute(GraphQL\Value::class);
+        // If this is an interface mark it as abstract.
+        if ($type_name == 'interface') {
+            assert($class instanceof ClassType);
+            $class->setAbstract();
         }
 
-        // Add the file to the collection.
-        $this->manager->addType($enum->name, new GraphQLFile($this->entity_dir . $php_enum->getName() . '.php', $file, $namespace, $php_enum));
-        return $php_enum;
-    }
-
-    private function createInputType(InputType $input): ClassType
-    {
-        // Create the new file.
-        $file = new PhpFile();
-
-        // Add namespace and use statements.
-        $namespace = $file->addNamespace(new PhpNamespace($this->entity_namespace));
-        $namespace->addUse(GraphQL::class, 'GraphQL');
-
-        // Create the class in that file.
-        $class = $namespace->addClass($input->name);
-        $class->addAttribute(GraphQL\InputType::class);
-
-        $this->manager->addType($input->name, new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class));
-        return $class;
-    }
-
-    private function addPropertyField(GraphQLFile $info, FieldDefinition $field): Property
-    {
-        $class = $info->getClass();
+        // Generate attribute arguments.
         $args = [];
-
-        // Create the property if needed.
-        if (!$class->hasProperty($field->name)) {
-            $property = $class->addProperty($field->name);
-        } else {
-            $property = $class->getProperty($field->name);
+        if ($type->name !== $class->getName()) {
+            $args['name'] = $type->name;
+        }
+        if (!empty($type->description)) {
+            $args['description'] = $type->description;
         }
 
-        $property->setVisibility('protected');
+        // Annotate the class.
+        $class->addAttribute($attribute, $args);
 
-        // Is the property not null?
-        $not_null = $field->getType() instanceof NonNull;
-        $list_of = false;
-
-        // Unwrap the type.
-        $field_type = $field->getType();
-        while ($field_type instanceof WrappingType) {
-            if ($field_type instanceof ListOfType) {
-                $list_of = true;
-            }
-            $field_type = $field_type->getWrappedType();
+        // Add sub-types.
+        switch ($type::class) {
+            case InterfaceType::class:
+            case ObjectType::class:
+                assert($type instanceof HasFieldsType);
+                foreach ($type->getFields() as $field) {
+                    $this->createNewField($field, $info, $io);
+                }
+                break;
+            case EnumType::class:
+                assert($type instanceof EnumType);
+                foreach ($type->getValues() as $value) {
+                    $this->createNewValue($value, $info, $io);
+                }
+                break;
+            case InputObjectType::class:
+                assert($type instanceof InputObjectType);
+                foreach ($type->getFields() as $field) {
+                    $this->createNewInputField($field, $info, $io);
+                }
+                break;
         }
-
-        // If the type is a list, the type of the property is an array.
-        if ($list_of) {
-            $property->setType('array');
-            $args['type'] = $field_type->name;
-        } else {
-            $property->setType($this->mapType($field_type));
-        }
-
-        // If this is an ID property we should add the use to the namespace.
-        if ($property->getType() === UuidInterface::class) {
-            $info->getNamespace()->addUse(UuidInterface::class);
-        }
-
-        // If this is not null annotate it as such.
-        $property->setNullable(!$not_null);
-
-        // Create attribute.
-        $property->addAttribute(GraphQL\Field::class, $args);
-
-        // Add appropriate getters and setters.
-        CodeGenerator::addGetter($class, $property);
-        if ($list_of) {
-            CodeGenerator::addHasser($class, $property);
-        }
-
-        return $property;
     }
 
-    private function addMethodField(GraphQLFile $info, FieldDefinition $field): Method
+    private function updateAlteredType(TypeDiff $diff, StyleInterface $io): void
     {
-        $class = $info->getClass();
-        $info->getNamespace()->addUse(GraphQL::class, 'GraphQL');
-        $method = $class->addMethod($field->getName());
+        // Get the info for the type.
+        $info = $this->manager->getType($diff->getOldType()->name);
 
-        $args = [];
+        // Alter the type attribute.
+        GraphQLCodeHelper::updateType($info->getClassLike(), $diff->getNewType());
 
-        // Is the property not null?
-        $not_null = $field->getType() instanceof NonNull;
-        $list_of = false;
+        // Update sub-types.
+        switch ($diff::class) {
+            case ObjectTypeDiff::class:
+            case InterfaceTypeDiff::class:
+                // Remove dropped fields.
+                foreach ($diff->getDroppedFields() as $field) {
+                    $this->removeDroppedField($field, $info, $io);
+                }
 
-        // Unwrap the type.
-        $field_type = $field->getType();
-        while ($field_type instanceof WrappingType) {
-            if ($field_type instanceof ListOfType) {
-                $list_of = true;
-            }
-            $field_type = $field_type->getWrappedType();
+                // Create new fields.
+                foreach ($diff->getNewFields() as $field) {
+                    $this->createNewField($field, $info, $io);
+                }
+
+                // Update altered fields.
+                foreach ($diff->getAlteredFields() as $diff) {
+                    $this->updatedAlteredField($diff, $info, $io);
+                }
+                break;
+            case InputObjectTypeDiff::class:
+                // Remove dropped fields.
+                foreach ($diff->getDroppedFields() as $field) {
+                    $this->removeDroppedInputField($field, $info, $io);
+                }
+
+                // Create new fields.
+                foreach ($diff->getNewFields() as $field) {
+                    $this->createNewInputField($field, $info, $io);
+                }
+
+                // Update altered fields.
+                foreach ($diff->getAlteredFields() as $diff) {
+                    $this->updatedAlteredInputField($diff, $info, $io);
+                }
+                break;
+            case EnumTypeDiff::class:
+                // Remove dropped values.
+                foreach ($diff->getDroppedValues() as $value) {
+                    $this->removeDroppedValues($value, $info, $io);
+                }
+
+                // Create new values.
+                foreach ($diff->getNewValues() as $value) {
+                    $this->createNewValue($value, $info, $io);
+                }
+
+                // Update altered values.
+                foreach ($diff->getAlteredValues() as $diff) {
+                    $this->updatedAlteredValue($diff, $info, $io);
+                }
+                break;
+        }
+    }
+
+    private function removeDroppedType(NamedType $type, StyleInterface $io): void
+    {
+        // Get the info for this type.
+        $info = $this->manager->getType($type->name);
+
+        if ($io->confirm(sprintf('The type "%s" is no longer in your schema, would you like to remove the class "%s" from the filesystem?', $type->name, $info->getClassLike()->getName()))) {
+            unlink($info->getFilename());
+            $io->text(sprintf('Class "%s" removed from the filesystem.', $info->getClassLike()->getName()));
         }
 
-        // If the type is a list, the type of the property is an array.
-        if ($list_of) {
-            $method->setReturnType('array');
-            $args['type'] = $field_type->name;
+        // Remove the type from the manager regardless.
+        $this->manager->removeType($type->name);
+    }
+
+    private function createNewControllerType(ObjectType $type, StyleInterface $io): void
+    {
+        // Iterate over fields, creating new controller methods.
+        foreach ($type->getFields() as $field_definition) {
+            $this->createNewControllerField($field_definition, $type, $io);
+        }
+    }
+
+    private function updateAlteredControllerType(TypeDiff $diff, StyleInterface $io): void
+    {
+        // TODO: Update the attribute.
+    }
+
+    private function removeDroppedControllerType(NamedType $type, StyleInterface $io): void
+    {
+        // Warn the user about removing controller types.
+        $io->warning(sprintf('The controller type "%s" has been removed from your schema!', $type->name));
+
+        // Ask whether to remove all methods for this type.
+        if (!$io->confirm(sprintf('Would you like to remove all methods for controller type "%s"?', $type->name))) {
+            return;
+        }
+
+        // Remove all methods for this type.
+        assert($type instanceof HasFieldsType);
+        foreach ($type->getFields() as $field) {
+            list($info, $method) = $this->manager->getControllerForField($type->name, $field->name);
+            assert($info instanceof GraphQLFile);
+            $io->text(sprintf('Removing method "%s" from class "%s".', $info->getClass()->getName(), $method->getName()));
+            $info->getClass()->removeMethod($method->getName());
+        }
+    }
+
+    private function createNewField(FieldDefinition $field, GraphQLFile $info, StyleInterface $io): void
+    {
+        // Ensure the return type exists before making the field.
+        $this->ensureType($field->getType(), $io);
+
+        // If the field has arguments add it as a method field.
+        if (count($field->args) > 0) {
+            $io->note(sprintf('Adding method to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
+            $method = GraphQLCodeHelper::addMethodField(
+                $info->getNamespace(),
+                $info->getClass(),
+                $field,
+                $io->ask('What should the method be called?', $field->name),
+                $this->mapType($field->getType())
+            );
+
+            // Add arguments to method.
+            foreach ($field->args as $arg) {
+                $this->createNewArgument($arg, $method, $info, $io);
+            }
         } else {
-            $type = $this->mapType($field_type);
-            if (str_contains($type, '\\')) {
-                $info->getNamespace()->addUse($type);
-            }
-            $method->setReturnType($this->mapType($field_type));
-        }
-        $method->setReturnNullable(!$not_null);
-        $method->addAttribute(GraphQL\Field::class, $args);
+            $io->note(sprintf('Adding property to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
+            $property = GraphQLCodeHelper::addPropertyField(
+                $info->getNamespace(),
+                $info->getClass(),
+                $field,
+                $io->ask('What should the property be called?', $field->name),
+                $this->mapType($field->getType())
+            );
 
+            // Add getters and setters.
+            CodeGenerator::addGetter($info->getClass(), $property);
+            if ($property->getType() == 'array') {
+                CodeGenerator::addHasser($info->getClass(), $property);
+                CodeGenerator::addAdder($info->getClass(), $property);
+                CodeGenerator::addRemover($info->getClass(), $property);
+            } else {
+                CodeGenerator::addSetter($info->getClass(), $property);
+            }
+        }
+    }
+
+    public function updateAlteredField(FieldDiff $diff, GraphQLFile $info, StyleInterface $io): void
+    {
+        // Determine whether this is a method of property field.
+        if (count($diff->getNewField()->args) > 0) {
+            // TODO: Update the annotation.
+
+            // Remove unused arguments.
+            foreach ($diff->getDroppedArguments() as $arg) {
+                $this->removeDroppedArgument();
+            }
+
+            // Create new arguments.
+            foreach ($diff->getNewArguments() as $arg) {
+                $this->createNewArgument();
+            }
+
+            // Update altered arguments.
+            foreach ($diff->getAlteredArguments() as $arg) {
+                $this->updateAlteredArgument();
+            }
+        } else {
+            // TODO: Update the annotation.
+        }
+    }
+
+    public function removeDroppedField(): void
+    {
+        // TODO: Remove the dropped field.
+    }
+
+    private function createNewControllerField(FieldDefinition $field, ObjectType $type, StyleInterface $io): void
+    {
+        // Ensure the field type exists.
+        $this->ensureType($field->getType(), $io);
+
+        // Determine whether to create a new controller or map to existing controller.
+        if (
+            count($this->manager->getControllers()) > 0
+            && 'Create new' !== $class_name = $io->choice(
+                sprintf('Create a new controller for "%s" field "%s" or map to existing controller?', $type->name, $field->name),
+                array_values(['Create new'] + array_map(fn(GraphQLFile $info): string => $info->getFullName(), $this->manager->getControllers())),
+                'Create new'
+            )
+        ) {
+            $info = $this->manager->getController($class_name);
+        } else {
+            // Create the new controller.
+            $file = new PhpFile();
+            $namespace = $file->addNamespace($this->controller_namespace);
+            $class = $namespace->addClass($io->ask('What should the new controller be called?'));
+
+            // Add to the manager controllers.
+            $info = new GraphQLFile($this->controller_dir . $class->getName() . '.php', $file, $namespace, $class);
+            $this->manager->addController($info);
+        }
+
+        // Add a method to the controller.
+        $method = GraphQLCodeHelper::addMethodField(
+            $info->getNamespace(),
+            $info->getClass(),
+            $field,
+            $io->ask('What should the method be called?', $field->name),
+            $this->mapType($field->getType())
+        );
+
+        // Add controller annotation.
+        switch ($type->name) {
+            case 'Query':
+                $method->addAttribute(GraphQL\Query::class);
+                break;
+            case 'Mutation':
+                $method->addAttribute(GraphQL\Mutation::class);
+                break;
+        }
+
+        // Add arguments.
         foreach ($field->args as $arg) {
-            $this->addParameterArgument($info, $method, $arg);
+            $this->createNewArgument($arg, $method, $info, $io);
         }
-
-        return $method;
     }
 
-    private function addPropertyArgument(InputType $input, InputObjectField $field): Property
+    private function createNewArgument(Argument $arg, Method $method, GraphQLFile $info, StyleInterface $io): void
     {
-        $class = $this->manager->getType($input->name)->getClass();
-        $args = [];
-
-        // Create the property if needed.
-        if (!$class->hasProperty($field->name)) {
-            $property = $class->addProperty($field->name);
-        } else {
-            $property = $class->getProperty($field->name);
-        }
-
-        $property->setVisibility('protected');
-
-        // Is the property not null?
-        $not_null = $field->getType() instanceof NonNull;
-        $list_of = false;
-
-        // Unwrap the type.
-        $field_type = $field->getType();
-        while ($field_type instanceof WrappingType) {
-            if ($field_type instanceof ListOfType) {
-                $list_of = true;
-            }
-            $field_type = $field_type->getWrappedType();
-        }
-
-        // If the type is a list, the type of the property is an array.
-        if ($list_of) {
-            $property->setType('array');
-            $args['type'] = $field_type->name;
-        } else {
-            $property->setType($this->mapType($field_type));
-        }
-
-        // If this is an ID property we should add the use to the namespace.
-        if ($property->getType() === UuidInterface::class) {
-            $namespace = $this->type_map[$input->name]['file']->getNamespaces()[$this->entity_namespace];
-            $namespace->addUse(UuidInterface::class);
-        }
-
-        // If this is not null annotate it as such.
-        $property->setNullable(!$not_null);
-
-        // Create attribute.
-        $property->addAttribute(GraphQL\Argument::class, $args);
-
-        // Add appropriate getters and setters.
-        CodeGenerator::addSetter($class, $property);
-        if ($list_of) {
-            CodeGenerator::addAdder($class, $property);
-            CodeGenerator::addRemover($class, $property);
-        }
-
-        return $property;
+        // Ensure the argument type exists.
+        $this->ensureType($arg->getType(), $io);
+        $io->note(sprintf('Adding parameter to method "%s" for argument "%s".', $method->getName(), $arg->name));
+        GraphQLCodeHelper::addParameterArgument(
+            $info->getNamespace(),
+            $method,
+            $arg,
+            $io->ask('What should the parameter be called?', $arg->name),
+            $this->mapType($arg->getType())
+        );
     }
 
-    private function addParameterArgument(GraphQLFile $info, Method $method, Argument $argument): Parameter
+    private function updateAlteredArgument(): void
     {
-        $args = [];
-        $parameter = $method->addParameter($argument->name);
-        $info->getNamespace()->addUse(GraphQL::class, 'GraphQL');
-
-        // Is the property not null?
-        $not_null = $argument->getType() instanceof NonNull;
-        $list_of = false;
-
-        // Unwrap the type.
-        $argument_type = $argument->getType();
-        while ($argument_type instanceof WrappingType) {
-            if ($argument_type instanceof ListOfType) {
-                $list_of = true;
-            }
-            $argument_type = $argument_type->getWrappedType();
-        }
-        $argument_type = Type::getNamedType($argument_type);
-
-        if ($list_of) {
-            $parameter->setType('array');
-            $args['type'] = $argument_type->name;
-        } else {
-            $parameter->setType($this->mapType($argument_type));
-        }
-
-        $parameter->setNullable(!$not_null);
-
-        $parameter->addAttribute(GraphQL\Argument::class, $args);
-        return $parameter;
+        // TODO: Update the annotation.
     }
 
-    private function createNewControllerMethods(SchemaDiff $diff, StyleInterface $io): void
+    private function removeDroppedArgument(): void
     {
-        // Check for new query and mutation types.
-        foreach ($diff->getNewTypes() as $type) {
-            if (!in_array($type->name, ['Query', 'Mutation'])) {
-                continue;
-            }
-            foreach ($type->getFields() as $field) {
-                $choices = ['Create new'];
-                foreach ($this->manager->getControllers() as $info) {
-                    $choices[] = $info->getClass()->getName();
+        // TODO: Remove the dropped argument.
+    }
+
+    private function createNewInputField(InputObjectField $field, GraphQLFile $info, StyleInterface $io): void
+    {
+        // Ensure the type exists.
+        $this->ensureType($field->getType(), $io);
+        $options = array_map(fn (Property $property): string => $property->getName(), array_filter($info->getClass()->getProperties(), function (Property $property) {
+            foreach ($property->getAttributes() as $attribute) {
+                if ($attribute->getName() === GraphQL\Argument::class) {
+                    return false;
                 }
-                $choice = $io->choice(sprintf('The "%s" field "%s" is new, create a new controller or add to an existing controller?', $type->name, $field->name), $choices);
-
-                if ($choice === 'Create new') {
-                    $name = $io->ask('What is the name of the class (without the namespace)?');
-                    $file = new PhpFile();
-                    $namespace = $file->addNamespace($this->controller_namespace);
-                    $class = $namespace->addClass($name);
-                    $filename = $this->controller_dir . $class->getName() . '.php';
-                    $this->manager->addController($class->getName(), new GraphQLFile($filename, $file, $namespace, $class));
-                } else {
-                    $class = $this->manager->getController($choice)->getClass();
-                }
-
-                $this->addMethodField($this->manager->getController($class->getName()), $field);
             }
+            return true;
+        }));
+        if (count($options) > 0) {
+            $choice = $io->choice(sprintf('Add property to class "%s" for field "%s" or map to existing property?', $info->getClass()->getName(), $field->name), array_values(['Create new'] + $options));
+            if ($choice !== 'Create new') {
+                $property = $info->getClass()->getProperty($choice);
+                $property->addAttribute(GraphQL\Argument::class);
+                return;
+            }
+        }
+        $io->note(sprintf('Adding property to class "%s" for field "%s".', $info->getClass()->getName(), $field->name));
+        $property = GraphQLCodeHelper::addPropertyArgument(
+            $info->getNamespace(),
+            $info->getClass(),
+            $field,
+            $io->ask('What should the parameter be called?', $field->name),
+            $this->mapType($field->getType())
+        );
+
+        // Add getters and setters.
+        CodeGenerator::addGetter($info->getClass(), $property);
+        if ($property->getType() == 'array') {
+            CodeGenerator::addHasser($info->getClass(), $property);
+            CodeGenerator::addAdder($info->getClass(), $property);
+            CodeGenerator::addRemover($info->getClass(), $property);
+        } else {
+            CodeGenerator::addSetter($info->getClass(), $property);
+        }
+    }
+
+    private function updateAlteredInputField(): void
+    {
+        // TODO: Update the attribute.
+    }
+
+    private function removeDroppedInputField(): void
+    {
+        // TODO: Remove the dropped input field.
+    }
+
+    private function createNewValue(EnumValueDefinition $value, GraphQLFile $info, StyleInterface $io): void
+    {
+        // Get the info from the code manager.
+        $enum = $info->getEnum();
+
+        // Create a new case.
+        $io->note(sprintf('Adding case to enum "%s" for value "%s".', $enum->getName(), $value->name));
+        GraphQLCodeHelper::addCaseValue(
+            $info->getNamespace(),
+            $info->getEnum(),
+            $value,
+            $io->ask('What should the case be called?', $value->name)
+        );
+    }
+
+    private function updateAlteredValue(): void
+    {
+        // TODO: Update the annotation.
+    }
+
+    private function removeDroppedValue(): void
+    {
+        // TODO: Remove the dropped value.
+    }
+
+    private function ensureType(Type $type, StyleInterface $io): void
+    {
+        $type = Type::getNamedType($type);
+        if (
+            !$type instanceof ScalarType
+            && !in_array($type->name, ['Query', 'Mutation', 'Subscription'])
+            && null === $this->manager->getType($type->name)
+        ) {
+            $this->createNewType($type, $io);
         }
     }
 
     private function mapType(Type $type): string
     {
+        $type = Type::getNamedType($type);
         if ($type instanceof ScalarType) {
             switch ($type::class) {
                 case IDType::class:
@@ -531,8 +632,8 @@ class GraphQLGenerateFromSchema extends Command
             }
         }
 
-        $file = $this->manager->getType(Type::getNamedType($type)->name);
-        return $file->getNamespace()->getName() . '\\' . $file->getClassLike()->getName();
+        $info = $this->manager->getType(Type::getNamedType($type)->name);
+        return $info->getNamespace()->getName() . '\\' . $info->getClassLike()->getName();
     }
 
     private function saveFiles(): void

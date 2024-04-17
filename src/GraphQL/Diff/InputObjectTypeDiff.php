@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
 use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\NamedType;
 
-class InputObjectTypeDiff
+class InputObjectTypeDiff implements TypeDiff
 {
     public function __construct(
         private readonly InputObjectType $old_input,
@@ -27,12 +28,12 @@ class InputObjectTypeDiff
         return $this->old_input->description() !== $this->new_input->description();
     }
 
-    public function getOldInput(): InputObjectType
+    public function getOldType(): NamedType
     {
         return $this->old_input;
     }
 
-    public function getNewInput(): InputObjectType
+    public function getNewType(): NamedType
     {
         return $this->new_input;
     }

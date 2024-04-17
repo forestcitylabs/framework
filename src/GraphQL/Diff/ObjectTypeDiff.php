@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
+use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\ObjectType;
 
-class ObjectTypeDiff
+class ObjectTypeDiff implements TypeDiff
 {
     public function __construct(
         private readonly ObjectType $old_type,
@@ -27,12 +28,12 @@ class ObjectTypeDiff
         return $this->old_type->description() !== $this->new_type->description();
     }
 
-    public function getOldType(): ObjectType
+    public function getOldType(): NamedType
     {
         return $this->old_type;
     }
 
-    public function getNewType(): ObjectType
+    public function getNewType(): NamedType
     {
         return $this->new_type;
     }

@@ -64,4 +64,9 @@ class GraphQLFile
         }
         return null;
     }
+
+    public function getFullName(): string
+    {
+        return $this->namespace->getName() . '\\' . $this->class->getName();
+    }
 }

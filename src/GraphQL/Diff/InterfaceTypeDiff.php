@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
 use GraphQL\Type\Definition\InterfaceType;
+use GraphQL\Type\Definition\NamedType;
 
-class InterfaceTypeDiff
+class InterfaceTypeDiff implements TypeDiff
 {
     public function __construct(
         private readonly InterfaceType $old_interface,
@@ -27,12 +28,12 @@ class InterfaceTypeDiff
         return $this->old_interface->description() !== $this->new_interface->description();
     }
 
-    public function getOldInterface(): InterfaceType
+    public function getOldType(): NamedType
     {
         return $this->old_interface;
     }
 
-    public function getNewInterface(): InterfaceType
+    public function getNewType(): NamedType
     {
         return $this->new_interface;
     }
