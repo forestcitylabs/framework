@@ -38,7 +38,7 @@ class SchemaDiff
     }
 
     /**
-     * @return array<NamedType>
+     * @return array<>
      */
     public function getNewTypes(): array
     {

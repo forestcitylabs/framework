@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Command;
 
 use ForestCityLabs\Framework\GraphQL\Diff\SchemaComparator;
 use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
+use ForestCityLabs\Framework\GraphQL\Diff\ArgumentDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\EnumTypeDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\FieldDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\InputObjectTypeDiff;
@@ -155,11 +156,11 @@ class GraphQLGenerateFromSchema extends Command
         }
 
         // Update altered types.
-        foreach ($diff->getAlteredTypes() as $type_diff) {
-            if (in_array($type_diff->getOldType()->name, ['Query', 'Mutation', 'Subscription'])) {
-                $this->updateAlteredControllerType($type_diff, $io);
+        foreach ($diff->getAlteredTypes() as $diff) {
+            if (in_array($diff->getOldType()->name, ['Query', 'Mutation', 'Subscription'])) {
+                $this->updateAlteredControllerType($diff, $io);
             } else {
-                $this->updateAlteredType($type, $io);
+                $this->updateAlteredType($diff, $io);
             }
         }
 
@@ -283,6 +284,8 @@ class GraphQLGenerateFromSchema extends Command
         switch ($diff::class) {
             case ObjectTypeDiff::class:
             case InterfaceTypeDiff::class:
+                assert($diff instanceof ObjectTypeDiff || $diff instanceof InterfaceTypeDiff);
+
                 // Remove dropped fields.
                 foreach ($diff->getDroppedFields() as $field) {
                     $this->removeDroppedField($field, $info, $io);
@@ -295,10 +298,12 @@ class GraphQLGenerateFromSchema extends Command
 
                 // Update altered fields.
                 foreach ($diff->getAlteredFields() as $diff) {
-                    $this->updatedAlteredField($diff, $info, $io);
+                    $this->updateAlteredField($diff, $info, $io);
                 }
                 break;
             case InputObjectTypeDiff::class:
+                assert($diff instanceof InputObjectTypeDiff);
+
                 // Remove dropped fields.
                 foreach ($diff->getDroppedFields() as $field) {
                     $this->removeDroppedInputField($field, $info, $io);
@@ -311,13 +316,15 @@ class GraphQLGenerateFromSchema extends Command
 
                 // Update altered fields.
                 foreach ($diff->getAlteredFields() as $diff) {
-                    $this->updatedAlteredInputField($diff, $info, $io);
+                    $this->updateAlteredInputField($diff, $info, $io);
                 }
                 break;
             case EnumTypeDiff::class:
+                assert($diff instanceof EnumTypeDiff);
+
                 // Remove dropped values.
                 foreach ($diff->getDroppedValues() as $value) {
-                    $this->removeDroppedValues($value, $info, $io);
+                    $this->removeDroppedValue($value, $info, $io);
                 }
 
                 // Create new values.
@@ -327,7 +334,7 @@ class GraphQLGenerateFromSchema extends Command
 
                 // Update altered values.
                 foreach ($diff->getAlteredValues() as $diff) {
-                    $this->updatedAlteredValue($diff, $info, $io);
+                    $this->updateAlteredValue($diff, $info, $io);
                 }
                 break;
         }
@@ -355,9 +362,24 @@ class GraphQLGenerateFromSchema extends Command
         }
     }
 
-    private function updateAlteredControllerType(TypeDiff $diff, StyleInterface $io): void
+    private function updateAlteredControllerType(ObjectTypeDiff $diff, StyleInterface $io): void
     {
         // TODO: Update the attribute.
+
+        // Remove dropped fields.
+        foreach ($diff->getDroppedFields() as $field) {
+            $this->removeDroppedField($field, $info);
+        }
+
+        // Create new fields.
+        foreach ($diff->getNewFields() as $field) {
+            $this->createNewControllerField($field, $diff->getNewType(), $io);
+        }
+
+        // Update altered fields.
+        foreach ($diff->getAlteredFields() as $field_diff) {
+            $this->updateAlteredField($field_diff, $info, $io);
+        }
     }
 
     private function removeDroppedControllerType(NamedType $type, StyleInterface $io): void
@@ -422,34 +444,55 @@ class GraphQLGenerateFromSchema extends Command
         }
     }
 
-    public function updateAlteredField(FieldDiff $diff, GraphQLFile $info, StyleInterface $io): void
+    private function updateAlteredField(FieldDiff $diff, GraphQLFile $info, StyleInterface $io): void
     {
         // Determine whether this is a method of property field.
         if (count($diff->getNewField()->args) > 0) {
-            // TODO: Update the annotation.
+            // Update the method.
+            $method = GraphQLCodeHelper::updateMethodField(
+                $info->getNamespace(),
+                $info->getClass(),
+                $diff->getNewField(),
+                $this->mapType($diff->getNewField()->getType())
+            );
 
             // Remove unused arguments.
             foreach ($diff->getDroppedArguments() as $arg) {
-                $this->removeDroppedArgument();
+                $this->removeDroppedArgument($arg, $method, $io);
             }
 
             // Create new arguments.
             foreach ($diff->getNewArguments() as $arg) {
-                $this->createNewArgument();
+                $this->createNewArgument($arg, $method, $info, $io);
             }
 
             // Update altered arguments.
-            foreach ($diff->getAlteredArguments() as $arg) {
-                $this->updateAlteredArgument();
+            foreach ($diff->getAlteredArguments() as $diff) {
+                $this->updateAlteredArgument($diff, $method, $info, $io);
             }
         } else {
-            // TODO: Update the annotation.
+            // Update the property.
+            GraphQLCodeHelper::updatePropertyField(
+                $info->getNamespace(),
+                $info->getClass(),
+                $diff->getNewField(),
+                $this->mapType($diff->getNewField()->getType())
+            );
         }
     }
 
-    public function removeDroppedField(): void
+    private function removeDroppedField(FieldDefinition $field, GraphQLFile $info, StyleInterface $io): void
     {
-        // TODO: Remove the dropped field.
+        $io->warning(sprintf('Removing dropped field "%s".', $field->name));
+
+        // Determine field type.
+        if (count($field->args) > 0) {
+            $method = GraphQLCodeHelper::extractFieldMethod($info->getClass(), $field);
+            $info->getClass()->removeMethod($method->getName());
+        } else {
+            $property = GraphQLCodeHelper::extractFieldProperty($info->getClass(), $field);
+            $info->getClass()->removeProperty($property->getName());
+        }
     }
 
     private function createNewControllerField(FieldDefinition $field, ObjectType $type, StyleInterface $io): void
@@ -517,14 +560,21 @@ class GraphQLGenerateFromSchema extends Command
         );
     }
 
-    private function updateAlteredArgument(): void
+    private function updateAlteredArgument(ArgumentDiff $diff, Method $method, GraphQLFile $info, StyleInterface $io): void
     {
-        // TODO: Update the annotation.
+        // Update the annotation.
+        GraphQLCodeHelper::updateParameterArgument(
+            $info->getNamespace(),
+            $method,
+            $diff->getNewArgument(),
+            $this->mapType($diff->getNewArgument()->getType())
+        );
     }
 
-    private function removeDroppedArgument(): void
+    private function removeDroppedArgument(Argument $arg, Method $method, StyleInterface $io): void
     {
-        // TODO: Remove the dropped argument.
+        $parameter = GraphQLCodeHelper::extractArgumentParameter($method, $arg);
+        $method->removeParameter($parameter->getName());
     }
 
     private function createNewInputField(InputObjectField $field, GraphQLFile $info, StyleInterface $io): void

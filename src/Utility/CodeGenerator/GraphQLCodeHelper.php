@@ -87,6 +87,39 @@ class GraphQLCodeHelper
         $property = $class->addProperty($property_name);
         $property->setVisibility('protected');
 
+        // Return the property.
+        return self::buildPropertyField($namespace, $property, $field, $property_type);
+    }
+
+    public static function updatePropertyField(
+        PhpNamespace $namespace,
+        ClassType $class,
+        FieldDefinition $field,
+        string $property_type
+    ): Property {
+        // Extract the property.
+        $property = self::extractFieldProperty($class, $field);
+
+        // Remove the existing attribute.
+        $attributes = $property->getAttributes();
+        foreach ($attributes as $k => $attr) {
+            $name = $attr->getArguments()['name'] ?? $property->getName();
+            if ($attr->getName() === GraphQL\Field::class && $name === $field->name) {
+                unset($attributes[$k]);
+            }
+        }
+        $property->setAttributes($attributes);
+
+        // Rebuild the property.
+        return self::buildPropertyField($namespace, $property, $field, $property_type);
+    }
+
+    public static function buildPropertyField(
+        PhpNamespace $namespace,
+        Property $property,
+        FieldDefinition $field,
+        string $property_type
+    ): Property {
         // Determine the type.
         list($type, $list_of, $not_null) = self::unwrapType($field->getType());
 
@@ -134,6 +167,39 @@ class GraphQLCodeHelper
         // Create the method.
         $method = $class->addMethod($method_name);
 
+        // Build and return the method field.
+        return self::buildMethodField($namespace, $method, $field, $method_type);
+    }
+
+    public static function updateMethodField(
+        PhpNamespace $namespace,
+        ClassType $class,
+        FieldDefinition $field,
+        string $method_type
+    ): Method {
+        // Extract the method.
+        $method = self::extractFieldMethod($class, $field);
+
+        // Remove the existing attribute.
+        $attributes = $method->getAttributes();
+        foreach ($attributes as $k => $attr) {
+            $name = $attr->getArguments()['name'] ?? $method->getName();
+            if ($attr->getName() === GraphQL\Field::class && $name === $field->name) {
+                unset($attributes[$k]);
+            }
+        }
+        $method->setAttributes($attributes);
+
+        // Rebuild the method.
+        return self::buildMethodField($namespace, $method, $field, $method_type);
+    }
+
+    public static function buildMethodField(
+        PhpNamespace $namespace,
+        Method $method,
+        FieldDefinition $field,
+        string $method_type
+    ): Method {
         // Determine the type.
         list($type, $list_of, $not_null) = self::unwrapType($field->getType());
 
@@ -181,6 +247,39 @@ class GraphQLCodeHelper
         // Create the parameter.
         $parameter = $method->addParameter($parameter_name);
 
+        // Build and return the parameter.
+        return self::buildParameterArgument($namespace, $parameter, $arg, $parameter_type);
+    }
+
+    public static function updateParameterArgument(
+        PhpNamespace $namespace,
+        Method $method,
+        Argument $arg,
+        string $parameter_type
+    ): Parameter {
+        // Find the correct parameter.
+        $parameter = self::extractArgumentParameter($method, $arg);
+
+        // Remove the existing attribute.
+        $attributes = $parameter->getAttributes();
+        foreach ($attributes as $k => $attr) {
+            $name = $attr->getArguments()['name'] ?? $parameter->getName();
+            if ($attr->getName() === GraphQL\Argument::class && $name === $arg->name) {
+                unset($attributes[$k]);
+            }
+        }
+        $parameter->setAttributes($attributes);
+
+        // Build and return new parameter.
+        return self::buildParameterArgument($namespace, $parameter, $arg, $parameter_type);
+    }
+
+    public static function buildParameterArgument(
+        PhpNamespace $namespace,
+        Parameter $parameter,
+        Argument $arg,
+        string $parameter_type
+    ): Parameter {
         // Determine the type.
         list($type, $list_of, $not_null) = self::unwrapType($arg->getType());
 
@@ -300,6 +399,24 @@ class GraphQLCodeHelper
         return $case;
     }
 
+    public static function buildMethodFieldAttributeArgs(Method $method, FieldDefinition $field): array
+    {
+        list($type, $list_of, ) = self::unwrapType($field->getType());
+        $args = [];
+        if ($method->getName() !== $field->name) {
+            $args['name'] = $field->name;
+        }
+        if (!empty($field->description)) {
+            $args['description'] = $field->description;
+        }
+        if (!empty($field->deprecationReason)) {
+            $args['deprecation_reason'] = $field->deprecationReason;
+        }
+        if ($list_of) {
+            $args['type'] = $type->name;
+        }
+    }
+
     public static function unwrapType(Type $type): array
     {
         // Is the property not null?
@@ -315,6 +432,55 @@ class GraphQLCodeHelper
         }
 
         return [$type, $list_of, $not_null];
+    }
+
+    public static function extractFieldMethod(ClassType $class, FieldDefinition $field): ?Method
+    {
+        foreach ($class->getMethods() as $method) {
+            foreach ($method->getAttributes() as $attribute) {
+                // Ensure this is the correct attribute.
+                if ($attribute->getName() === GraphQL\Field::class) {
+                    $name = $attribute->getArguments()['name'] ?? $method->getName();
+                    if ($name === $field->name) {
+                        return $method;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static function extractFieldProperty(ClassType $class, FieldDefinition $field): ?Property
+    {
+        foreach ($class->getProperties() as $property) {
+            foreach ($property->getAttributes() as $attribute) {
+                // Ensure this is the correct attribute.
+                if ($attribute->getName() === GraphQL\Field::class) {
+                    $name = $attribute->getArguments()['name'] ?? $property->getName();
+                    if ($name === $field->name) {
+                        return $property;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static function extractArgumentParameter(Method $method, Argument $arg): ?Parameter
+    {
+        foreach ($method->getParameters() as $parameter) {
+            foreach ($parameter->getAttributes() as $attr) {
+                // Ensure this is the correct attribute.
+                $name = $attr->getArguments()['name'] ?? $parameter->getName();
+                if ($attr->getName() === GraphQL\Argument::class && $name === $arg->name) {
+                    return $parameter;
+                }
+            }
+        }
+
+        return null;
     }
 
     public static function isScalar(string $type): bool
