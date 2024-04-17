@@ -328,6 +328,38 @@ class GraphQLCodeHelper
         $property = $class->addProperty($property_name);
         $property->setVisibility('protected');
 
+        return self::buildPropertyArgument($namespace, $property, $field, $property_type);
+    }
+
+    public static function updatePropertyArgument(
+        PhpNamespace $namespace,
+        ClassType $class,
+        InputObjectField $field,
+        string $property_type
+    ): Property {
+        // Extract the property.
+        $property = self::extractArgumentProperty($class, $field);
+
+        // Remove the existing attribute.
+        $attributes = $property->getAttributes();
+        foreach ($attributes as $k => $attr) {
+            $name = $attr->getArguments()['name'] ?? $property->getName();
+            if ($attr->getName() === GraphQL\Argument::class && $name === $field->name) {
+                unset($attributes[$k]);
+            }
+        }
+        $property->setAttributes($attributes);
+
+        // Build and return the new property.
+        return self::buildPropertyArgument($namespace, $property, $field, $property_type);
+    }
+
+    public static function buildPropertyArgument(
+        PhpNamespace $namespace,
+        Property $property,
+        InputObjectField $field,
+        string $property_type
+    ): Property {
         // Determine the type.
         list($type, $list_of, $not_null) = self::unwrapType($field->getType());
 
@@ -374,6 +406,34 @@ class GraphQLCodeHelper
         // Create the case.
         $case = $enum->addCase($case_name);
 
+        // Build and return the case.
+        return self::buildCaseValue($case, $value);
+    }
+
+    public static function updateCaseValue(
+        EnumType $enum,
+        EnumValueDefinition $value
+    ): EnumCase {
+        $case = self::extractValueCase($enum, $value);
+
+        // Remove the attribute.
+        $attributes = $case->getAttributes();
+        foreach ($attributes as $k => $attr) {
+            $name = $attr->getArguments()['name'] ?? $case->getName();
+            if ($attr->getName() === GraphQL\Value::class && $name === $value->name) {
+                unset($attributes[$k]);
+            }
+        }
+        $case->setAttributes($attributes);
+
+        // Build and return the case.
+        return self::buildCaseValue($case, $value);
+    }
+
+    public static function buildCaseValue(
+        EnumCase $case,
+        EnumValueDefinition $value
+    ): EnumCase {
         // Build attribute args.
         $args = [];
         if ($case->getName() !== $value->name) {
@@ -480,6 +540,32 @@ class GraphQLCodeHelper
             }
         }
 
+        return null;
+    }
+
+    public static function extractArgumentProperty(ClassType $class, InputObjectField $field): ?Property
+    {
+        foreach ($class->getProperties() as $property) {
+            foreach ($property->getAttributes() as $attr) {
+                $name = $attr->getArguments()['name'] ?? $property->getName();
+                if ($attr->getName() === GraphQL\Argument::class && $name === $field->name) {
+                    return $property;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static function extractValueCase(EnumType $enum, EnumValueDefinition $value): ?EnumCase
+    {
+        foreach ($enum->getCases() as $case) {
+            foreach ($case->getAttributes() as $attr) {
+                $name = $attr->getArguments()['name'] ?? $case->getName();
+                if ($attr->getName() === GraphQL\Value::class && $name === $value->name) {
+                    return $case;
+                }
+            }
+        }
         return null;
     }
 

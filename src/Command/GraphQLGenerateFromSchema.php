@@ -9,6 +9,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
 use ForestCityLabs\Framework\GraphQL\Diff\ArgumentDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\EnumTypeDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\FieldDiff;
+use ForestCityLabs\Framework\GraphQL\Diff\InputFieldDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\InputObjectTypeDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\InterfaceTypeDiff;
 use ForestCityLabs\Framework\GraphQL\Diff\ObjectTypeDiff;
@@ -39,6 +40,7 @@ use GraphQL\Type\Definition\StringType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildSchema;
+use Kint\Zval\EnumValue;
 use LogicException;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Method;
@@ -164,6 +166,12 @@ class GraphQLGenerateFromSchema extends Command
             }
         }
 
+        // Confirm persistence of files.
+        if (!$io->confirm('Are you sure you would like to persist the changes?')) {
+            $io->error('Changes aborted!');
+            return Command::FAILURE;
+        }
+
         // Save the changes made to the code.
         $this->saveFiles();
 
@@ -174,6 +182,8 @@ class GraphQLGenerateFromSchema extends Command
 
     public function createNewType(NamedType $type, StyleInterface $io): void
     {
+        $io->text(sprintf('Creating type "%s".', $type->name));
+
         // Determine the annotation and type name.
         switch ($type::class) {
             case InterfaceType::class:
@@ -196,9 +206,10 @@ class GraphQLGenerateFromSchema extends Command
                 throw new LogicException(sprintf('Cannot map type "%s"!', $type::class));
         }
 
-        // Ask whether to map to existing class.
+        // Ask whether to map input to existing class.
         if (
-            count($this->manager->getTypes()) > 0
+            $type_name === 'input'
+            && count($this->manager->getTypes()) > 0
             && 'Create new' !== $class_name = $io->choice(
                 sprintf('Create class for %s "%s" or map to existing class?', $type_name, $type->name),
                 array_values(['Create new'] + array_map(fn(GraphQLFile $info): string => $info->getFullName(), $this->manager->getTypes())),
@@ -206,13 +217,12 @@ class GraphQLGenerateFromSchema extends Command
             )
         ) {
             // Get the existing class.
-            $io->note(sprintf('Mapping %s "%s" to class "%s".', $type_name, $type->name, $class_name));
+            $io->text(sprintf('Mapping %s "%s" to class "%s".', $type_name, $type->name, $class_name));
             $info = $this->manager->getTypeByClass($class_name);
             $class = $info->getClassLike();
         } else {
             // Ask what to name the class.
-            $io->note(sprintf('Creating new class for %s "%s".', $type_name, $type->name));
-            $class_name = $io->ask('What should the class name be (without the namespace)?', $type->name);
+            $io->text(sprintf('Creating new class for %s "%s".', $type_name, $type->name));
 
             // Create the file and the namespace.
             $file = new PhpFile();
@@ -220,13 +230,13 @@ class GraphQLGenerateFromSchema extends Command
 
             // Create the class (or enum).
             if ($type_name === 'enum') {
-                $class = $namespace->addEnum($class_name);
+                $class = $namespace->addEnum($type->name);
             } else {
-                $class = $namespace->addClass($class_name);
+                $class = $namespace->addClass($type->name);
             }
 
             // Add the graphql file.
-            $info = new GraphQLFile($this->entity_namespace . $class->getName() . '.php', $file, $namespace, $class);
+            $info = new GraphQLFile($this->entity_dir . $class->getName() . '.php', $file, $namespace, $class);
             $this->manager->addType($info);
         }
 
@@ -364,11 +374,10 @@ class GraphQLGenerateFromSchema extends Command
 
     private function updateAlteredControllerType(ObjectTypeDiff $diff, StyleInterface $io): void
     {
-        // TODO: Update the attribute.
-
         // Remove dropped fields.
         foreach ($diff->getDroppedFields() as $field) {
-            $this->removeDroppedField($field, $info);
+            list($info, ) = $this->manager->getControllerForField($diff->getOldType()->name, $field->name);
+            $this->removeDroppedField($field, $info, $io);
         }
 
         // Create new fields.
@@ -378,6 +387,7 @@ class GraphQLGenerateFromSchema extends Command
 
         // Update altered fields.
         foreach ($diff->getAlteredFields() as $field_diff) {
+            list($info, ) = $this->manager->getControllerForField($diff->getOldType()->name, $field->name);
             $this->updateAlteredField($field_diff, $info, $io);
         }
     }
@@ -409,12 +419,12 @@ class GraphQLGenerateFromSchema extends Command
 
         // If the field has arguments add it as a method field.
         if (count($field->args) > 0) {
-            $io->note(sprintf('Adding method to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
+            $io->text(sprintf('Adding method to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
             $method = GraphQLCodeHelper::addMethodField(
                 $info->getNamespace(),
                 $info->getClass(),
                 $field,
-                $io->ask('What should the method be called?', $field->name),
+                $field->name,
                 $this->mapType($field->getType())
             );
 
@@ -423,12 +433,12 @@ class GraphQLGenerateFromSchema extends Command
                 $this->createNewArgument($arg, $method, $info, $io);
             }
         } else {
-            $io->note(sprintf('Adding property to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
+            $io->text(sprintf('Adding property to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
             $property = GraphQLCodeHelper::addPropertyField(
                 $info->getNamespace(),
                 $info->getClass(),
                 $field,
-                $io->ask('What should the property be called?', $field->name),
+                $field->name,
                 $this->mapType($field->getType())
             );
 
@@ -483,7 +493,7 @@ class GraphQLGenerateFromSchema extends Command
 
     private function removeDroppedField(FieldDefinition $field, GraphQLFile $info, StyleInterface $io): void
     {
-        $io->warning(sprintf('Removing dropped field "%s".', $field->name));
+        $io->text(sprintf('Removing dropped field "%s".', $field->name));
 
         // Determine field type.
         if (count($field->args) > 0) {
@@ -526,7 +536,7 @@ class GraphQLGenerateFromSchema extends Command
             $info->getNamespace(),
             $info->getClass(),
             $field,
-            $io->ask('What should the method be called?', $field->name),
+            $field->name,
             $this->mapType($field->getType())
         );
 
@@ -550,12 +560,12 @@ class GraphQLGenerateFromSchema extends Command
     {
         // Ensure the argument type exists.
         $this->ensureType($arg->getType(), $io);
-        $io->note(sprintf('Adding parameter to method "%s" for argument "%s".', $method->getName(), $arg->name));
+        $io->text(sprintf('Adding parameter to method "%s" for argument "%s".', $method->getName(), $arg->name));
         GraphQLCodeHelper::addParameterArgument(
             $info->getNamespace(),
             $method,
             $arg,
-            $io->ask('What should the parameter be called?', $arg->name),
+            $arg->name,
             $this->mapType($arg->getType())
         );
     }
@@ -581,50 +591,49 @@ class GraphQLGenerateFromSchema extends Command
     {
         // Ensure the type exists.
         $this->ensureType($field->getType(), $io);
-        $options = array_map(fn (Property $property): string => $property->getName(), array_filter($info->getClass()->getProperties(), function (Property $property) {
-            foreach ($property->getAttributes() as $attribute) {
-                if ($attribute->getName() === GraphQL\Argument::class) {
-                    return false;
-                }
-            }
-            return true;
-        }));
-        if (count($options) > 0) {
-            $choice = $io->choice(sprintf('Add property to class "%s" for field "%s" or map to existing property?', $info->getClass()->getName(), $field->name), array_values(['Create new'] + $options));
-            if ($choice !== 'Create new') {
-                $property = $info->getClass()->getProperty($choice);
-                $property->addAttribute(GraphQL\Argument::class);
-                return;
+        if ($info->getClass()->hasProperty($field->name)) {
+            $property = $info->getClass()->getProperty($field->name);
+            $property->addAttribute(GraphQL\Argument::class);
+        } else {
+            $io->text(sprintf('Adding property to class "%s" for field "%s".', $info->getClass()->getName(), $field->name));
+            $property = GraphQLCodeHelper::addPropertyArgument(
+                $info->getNamespace(),
+                $info->getClass(),
+                $field,
+                $field->name,
+                $this->mapType($field->getType())
+            );
+
+            // Add getters and setters.
+            CodeGenerator::addGetter($info->getClass(), $property);
+            if ($property->getType() == 'array') {
+                CodeGenerator::addHasser($info->getClass(), $property);
+                CodeGenerator::addAdder($info->getClass(), $property);
+                CodeGenerator::addRemover($info->getClass(), $property);
+            } else {
+                CodeGenerator::addSetter($info->getClass(), $property);
             }
         }
-        $io->note(sprintf('Adding property to class "%s" for field "%s".', $info->getClass()->getName(), $field->name));
-        $property = GraphQLCodeHelper::addPropertyArgument(
+    }
+
+    private function updateAlteredInputField(InputFieldDiff $field, GraphQLFile $info, StyleInterface $io): void
+    {
+        GraphQLCodeHelper::updatePropertyArgument(
             $info->getNamespace(),
             $info->getClass(),
-            $field,
-            $io->ask('What should the parameter be called?', $field->name),
-            $this->mapType($field->getType())
+            $field->getNewField(),
+            $this->mapType($field->getNewField()->getType()),
         );
+    }
 
-        // Add getters and setters.
-        CodeGenerator::addGetter($info->getClass(), $property);
-        if ($property->getType() == 'array') {
-            CodeGenerator::addHasser($info->getClass(), $property);
-            CodeGenerator::addAdder($info->getClass(), $property);
-            CodeGenerator::addRemover($info->getClass(), $property);
-        } else {
-            CodeGenerator::addSetter($info->getClass(), $property);
+    private function removeDroppedInputField(InputObjectField $field, GraphQLFile $info, StyleInterface $io): void
+    {
+        $property = GraphQLCodeHelper::extractArgumentProperty($info->getClass(), $field);
+
+        // If other annotations exist on this property confirm deletion.
+        if (count($property->getAttributes()) == 1 || $io->ask(sprintf('Would you like to remove the property "%s"?', $property->getName()))) {
+            $info->getClass()->removeProperty($property->getName());
         }
-    }
-
-    private function updateAlteredInputField(): void
-    {
-        // TODO: Update the attribute.
-    }
-
-    private function removeDroppedInputField(): void
-    {
-        // TODO: Remove the dropped input field.
     }
 
     private function createNewValue(EnumValueDefinition $value, GraphQLFile $info, StyleInterface $io): void
@@ -638,18 +647,19 @@ class GraphQLGenerateFromSchema extends Command
             $info->getNamespace(),
             $info->getEnum(),
             $value,
-            $io->ask('What should the case be called?', $value->name)
+            $value->name
         );
     }
 
-    private function updateAlteredValue(): void
+    private function updateAlteredValue(EnumValueDefinition $value, GraphQLFile $info, StyleInterface $io): void
     {
-        // TODO: Update the annotation.
+        GraphQLCodeHelper::updateCaseValue($info->getEnum(), $value);
     }
 
-    private function removeDroppedValue(): void
+    private function removeDroppedValue(EnumValueDefinition $value, GraphQLFile $info, StyleInterface $io): void
     {
-        // TODO: Remove the dropped value.
+        $case = GraphQLCodeHelper::extractValueCase($info->getEnum(), $value);
+        $info->getEnum()->removeCase($case->getName());
     }
 
     private function ensureType(Type $type, StyleInterface $io): void
@@ -689,6 +699,7 @@ class GraphQLGenerateFromSchema extends Command
     private function saveFiles(): void
     {
         foreach ($this->manager->getTypes() as $type) {
+            d($type->getFilename());
             file_put_contents($type->getFilename(), $this->printer->printFile($type->getFile()));
         }
 

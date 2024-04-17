@@ -38,6 +38,11 @@ class SchemaComparator
 
         // Iterate over the new type map collection new and altered types.
         foreach ($new->getTypeMap() as $new_type) {
+            // Skip hidden types.
+            if (substr($new_type->name, 0, 2) == "__") {
+                continue;
+            }
+
             // This is a new type.
             if (null === $old_type = $old->getType($new_type->name)) {
                 $args['new_' . self::detectType($new_type)][] = $new_type;
