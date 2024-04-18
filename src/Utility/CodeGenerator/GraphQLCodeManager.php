@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Utility\CodeGenerator;
 
 use ForestCityLabs\Framework\GraphQL\Attribute as GraphQL;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
+use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpFile;
 use ReflectionClass;
 
@@ -21,6 +22,11 @@ class GraphQLCodeManager
      */
     private array $controllers;
 
+    /**
+     * @var array<GraphQLFile>
+     */
+    private array $removed;
+
     public function __construct(
         private ClassDiscoveryInterface $type_discovery,
         private ClassDiscoveryInterface $controller_discovery,
@@ -32,6 +38,7 @@ class GraphQLCodeManager
         // Reset the type and controller arrays.
         $this->types = [];
         $this->controllers = [];
+        $this->removed = [];
 
         // Iterate over classes and discover types within them.
         foreach ($this->type_discovery->discoverClasses() as $class_name) {
@@ -54,6 +61,24 @@ class GraphQLCodeManager
             $this->controllers[$namespace->getName() . '\\' . $class->getName()]
                 = new GraphQLFile($reflection->getFileName(), $file, $namespace, $class);
         }
+    }
+
+    public function getUnmappedTypes(string $attribute_type, string $instance_of = ClassType::class): array
+    {
+        return array_filter($this->types, function (GraphQLFile $info) use ($instance_of, $attribute_type): bool {
+            // Must be an instance of this type.
+            if (!$info->getClassLike() instanceof $instance_of) {
+                return false;
+            }
+
+            // Check the attributes.
+            foreach ($info->getClassLike()->getAttributes() as $attribute) {
+                if ($attribute->getName() === $attribute_type) {
+                    return false;
+                }
+            }
+            return true;
+        });
     }
 
     public function getTypes(): array
@@ -136,22 +161,31 @@ class GraphQLCodeManager
 
     public function removeController(string $name): static
     {
+        $this->removed[$name] = $this->controllers[$name];
         unset($this->controllers[$name]);
         return $this;
     }
 
     public function removeType(string $name): static
     {
+        $this->removed[$name] = $this->types[$name];
         unset($this->types[$name]);
         return $this;
+    }
+
+    /**
+     * @return array<GraphQLFile>
+     */
+    public function getRemoved(): array
+    {
+        return $this->removed;
     }
 
     private function extractInfo(ReflectionClass $reflection): array
     {
         $file = PhpFile::fromCode(file_get_contents($reflection->getFileName()));
-        $namespace = $file->getNamespaces()[0];
-        $classes = $namespace->getClasses();
-        $class = reset($classes);
+        $namespace = $file->getNamespaces()[$reflection->getNamespaceName()];
+        $class = $file->getClasses()[$reflection->getName()];
         return [$file, $namespace, $class];
     }
 }

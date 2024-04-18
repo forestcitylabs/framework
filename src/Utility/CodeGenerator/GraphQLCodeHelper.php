@@ -73,6 +73,102 @@ class GraphQLCodeHelper
         return $class;
     }
 
+    public static function buildObjectType(
+        PhpNamespace $namespace,
+        ClassType $class,
+        ObjectType $type
+    ): ClassType {
+        // Add GraphQL attribute use.
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        // Build attribute args.
+        $args = [];
+        if ($class->getName() !== $type->name) {
+            $args['name'] = $type->name;
+        }
+        if (!empty($type->description)) {
+            $args['description'] = $type->description;
+        }
+
+        // Add attribute to class.
+        $class->addAttribute(GraphQL\ObjectType::class, $args);
+
+        // Return the class.
+        return $class;
+    }
+
+    public static function buildInterfaceType(
+        PhpNamespace $namespace,
+        ClassType $class,
+        InterfaceType $type
+    ): ClassType {
+        // Add GraphQL attribute use.
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        // Build attribute args.
+        $args = [];
+        if ($class->getName() !== $type->name) {
+            $args['name'] = $type->name;
+        }
+        if (!empty($type->description)) {
+            $args['description'] = $type->description;
+        }
+
+        // Add attribute to class.
+        $class->addAttribute(GraphQL\InterfaceType::class, $args);
+
+        // Return the class.
+        return $class;
+    }
+
+    public static function buildInputType(
+        PhpNamespace $namespace,
+        ClassType $class,
+        InputObjectType $type
+    ): ClassType {
+        // Add GraphQL attribute use.
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        // Build attribute args.
+        $args = [];
+        if ($class->getName() !== $type->name) {
+            $args['name'] = $type->name;
+        }
+        if (!empty($type->description)) {
+            $args['description'] = $type->description;
+        }
+
+        // Add attribute to class.
+        $class->addAttribute(GraphQL\InputType::class, $args);
+
+        // Return the class.
+        return $class;
+    }
+
+    public static function buildEnumType(
+        PhpNamespace $namespace,
+        EnumType $enum,
+        DefinitionEnumType $type
+    ): EnumType {
+        // Add GraphQL attribute use.
+        $namespace->addUse(GraphQL::class, 'GraphQL');
+
+        // Build attribute args.
+        $args = [];
+        if ($enum->getName() !== $type->name) {
+            $args['name'] = $type->name;
+        }
+        if (!empty($type->description)) {
+            $args['description'] = $type->description;
+        }
+
+        // Add attribute to class.
+        $enum->addAttribute(GraphQL\EnumType::class, $args);
+
+        // Return the class.
+        return $enum;
+    }
+
     public static function addPropertyField(
         PhpNamespace $namespace,
         ClassType $class,

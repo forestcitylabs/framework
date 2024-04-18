@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL\Diff;
 
+use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\Argument;
 use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\EnumValueDefinition;
@@ -218,18 +219,22 @@ class SchemaComparator
 
         // Extract new and altered fields.
         foreach ($new->getFields() as $new_field) {
-            // This is a new field.
-            if (null === $old_field = $old->getField($new_field->getName())) {
-                $args['new_fields'][] = $new_field;
+            try {
+                // Get the old field.
+                $old_field = $old->getField($new_field->name);
 
-            // There is a type mismatch, the fields are different.
-            } elseif ($new_field->getType() !== $old_field->getType()) {
-                $args['dropped_fields'][] = $old_field;
-                $args['new_fields'][] = $new_field;
+                // There is a type mismatch, the fields are different.
+                if ($new_field->getType() !== $old_field->getType()) {
+                    $args['dropped_fields'][] = $old_field;
+                    $args['new_fields'][] = $new_field;
 
-            // Compare the fields.
-            } elseif (null !== $altered_field = self::compareFields($old_field, $new_field)) {
-                $args['altered_fields'][] = $altered_field;
+                // Compare the fields.
+                } elseif (null !== $altered_field = self::compareFields($old_field, $new_field)) {
+                    $args['altered_fields'][] = $altered_field;
+                }
+            } catch (InvariantViolation) {
+                // An invariant violation means that this is a new field.
+                $args['new_fields'][] = $new_field;
             }
         }
 
