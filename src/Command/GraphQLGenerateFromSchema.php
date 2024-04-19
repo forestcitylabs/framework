@@ -196,7 +196,12 @@ class GraphQLGenerateFromSchema extends Command
         }
 
         // Build the type attribute.
-        GraphQLCodeHelper::buildObjectType($info->getNamespace(), $info->getClass(), $type);
+        $class = GraphQLCodeHelper::buildObjectType($info->getNamespace(), $info->getClass(), $type);
+
+        // Implement interfaces.
+        foreach ($type->getInterfaces() as $interface) {
+            $class->setExtends($this->mapType($interface));
+        }
         $this->manager->addType($info);
 
         // Add fields for this type.
