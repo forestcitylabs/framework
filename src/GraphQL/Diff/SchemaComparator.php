@@ -48,7 +48,7 @@ class SchemaComparator
             if (null === $old_type = $old->getType($new_type->name)) {
                 $args['new_' . self::detectType($new_type)][] = $new_type;
 
-            // If there is a type mismatch these are not equal.
+            // Type mismatch means this is a new type.
             } elseif ($old_type::class !== $new_type::class) {
                 $args['dropped_' . self::detectType($old_type)][] = $old_type;
                 $args['new_' . self::detectType($new_type)][] = $new_type;
@@ -61,7 +61,7 @@ class SchemaComparator
 
         // Iterate over the old type map and extract dropped types.
         foreach ($old->getTypeMap() as $old_type) {
-            if (null === $new_type = $new->getType($old_type->name)) {
+            if (null === $new->getType($old_type->name)) {
                 $args['dropped_' . self::detectType($old_type)][] = $old_type;
             }
         }
@@ -102,18 +102,30 @@ class SchemaComparator
 
         // Extract new and altered fields.
         foreach ($new->getFields() as $new_field) {
-            // This is a new field.
-            if (null === $old_field = $old->getField($new_field->getName())) {
-                $args['new_fields'][] = $new_field;
+            try {
+                $old_field = $old->getField($new_field->getName());
 
-            // There is a type mismatch, the fields are different.
-            } elseif ($new_field->getType() !== $old_field->getType()) {
+                // There is a type mismatch, the fields are different.
+                if ($new_field->getType() !== $old_field->getType()) {
+                    $args['dropped_fields'][] = $old_field;
+                    $args['new_fields'][] = $new_field;
+
+                    // Compare the fields.
+                } elseif (null !== $altered_field = self::compareFields($old_field, $new_field)) {
+                    $args['altered_fields'][] = $altered_field;
+                }
+                // This is a new field.
+            } catch (InvariantViolation) {
+                $args['new_fields'][] = $new_field;
+            }
+        }
+
+        // Determine dropped fields.
+        foreach ($old->getFields() as $old_field) {
+            try {
+                $new->getField($old_field->name);
+            } catch (InvariantViolation) {
                 $args['dropped_fields'][] = $old_field;
-                $args['new_fields'][] = $new_field;
-
-            // Compare the fields.
-            } elseif (null !== $altered_field = self::compareFields($old_field, $new_field)) {
-                $args['altered_fields'][] = $altered_field;
             }
         }
 
@@ -139,24 +151,29 @@ class SchemaComparator
 
         // Extract new and altered fields.
         foreach ($new->getFields() as $new_field) {
-            // This is a new field.
-            if (null === $old_field = $old->getField($new_field->name)) {
-                $args['new_fields'][] = $new_field;
+            try {
+                $old_field = $old->getField($new_field->name);
 
-            // There is a type mismatch, the fields are different.
-            } elseif ($new_field->getType() !== $old_field->getType()) {
-                $args['dropped_fields'][] = $old_field;
-                $args['new_fields'][] = $new_field;
+                // There is a type mismatch, the fields are different.
+                if ($new_field->getType() !== $old_field->getType()) {
+                    $args['dropped_fields'][] = $old_field;
+                    $args['new_fields'][] = $new_field;
 
-            // Compare the fields.
-            } elseif (null !== $altered_field = self::compareInputFields($old_field, $new_field)) {
-                $args['altered_fields'][] = $altered_field;
+                    // Compare the fields.
+                } elseif (null !== $altered_field = self::compareInputFields($old_field, $new_field)) {
+                    $args['altered_fields'][] = $altered_field;
+                }
+                // This is a new field.
+            } catch (InvariantViolation) {
+                $args['new_fields'][] = $new_field;
             }
         }
 
         // Determine dropped fields.
         foreach ($old->getFields() as $old_field) {
-            if (null === $new->getField($old_field->name)) {
+            try {
+                $new->getField($old_field->name);
+            } catch (InvariantViolation) {
                 $args['dropped_fields'][] = $old_field;
             }
         }
@@ -183,28 +200,33 @@ class SchemaComparator
 
         // Extract new and altered values.
         foreach ($new->getValues() as $new_value) {
-            if (null === $old_value = $old->getValue($new_value->name)) {
+            try {
+                $old_value = $old->getValue($new_value->name);
+                if (null !== $altered_value = self::compareEnumValues($old_value, $new_value)) {
+                    $args['altered_values'][] = $altered_value;
+                }
+            } catch (InvariantViolation) {
                 $args['new_values'][] = $new_value;
-            } elseif (null !== $altered_value = self::compareEnumValues($old_value, $new_value)) {
-                $args['altered_values'][] = $altered_value;
             }
-        }
 
-        // Determine dropped values.
-        foreach ($old->getValues() as $old_value) {
-            if (null === $new->getValue($old_value->name)) {
-                $args['dropped_values'][] = $old_value;
+            // Determine dropped values.
+            foreach ($old->getValues() as $old_value) {
+                try {
+                    $new->getValue($old_value->name);
+                } catch (InvariantViolation) {
+                    $args['dropped_values'][] = $old_value;
+                }
             }
-        }
 
-        // Create the enum diff.
-        $diff = new EnumTypeDiff(...$args);
+            // Create the enum diff.
+            $diff = new EnumTypeDiff(...$args);
 
-        // If this is different return it, otherwise return null.
-        if ($diff->isDifferent()) {
-            return $diff;
+            // If this is different return it, otherwise return null.
+            if ($diff->isDifferent()) {
+                return $diff;
+            }
+            return null;
         }
-        return null;
     }
 
     public static function compareInterfaceTypes(InterfaceType $old, InterfaceType $new): ?InterfaceTypeDiff
@@ -235,6 +257,15 @@ class SchemaComparator
             } catch (InvariantViolation) {
                 // An invariant violation means that this is a new field.
                 $args['new_fields'][] = $new_field;
+            }
+        }
+
+        // Determine dropped fields.
+        foreach ($old->getFields() as $old_field) {
+            try {
+                $new->getField($old_field->name);
+            } catch (InvariantViolation) {
+                $args['dropped_fields'][] = $old_field;
             }
         }
 
@@ -294,18 +325,23 @@ class SchemaComparator
         ];
 
         foreach ($new->args as $new_argument) {
-            if (null === $old_argument = $old->getArg($new_argument->name)) {
+            try {
+                $old_argument = $old->getArg($new_argument->name);
+                if ($new_argument->getType() !== $old_argument->getType()) {
+                    $args['dropped_arguments'][] = $old_argument;
+                    $args['new_arguments'][] = $new_argument;
+                } elseif (null !== $altered_argument = self::compareArguments($old_argument, $new_argument)) {
+                    $args['altered_arguments'][] = $altered_argument;
+                }
+            } catch (InvariantViolation) {
                 $args['new_arguments'][] = $new_argument;
-            } elseif ($new_argument->getType() !== $old_argument->getType()) {
-                $args['dropped_arguments'][] = $old_argument;
-                $args['new_arguments'][] = $new_argument;
-            } elseif (null !== $altered_argument = self::compareArguments($old_argument, $new_argument)) {
-                $args['altered_arguments'][] = $altered_argument;
             }
         }
 
         foreach ($old->args as $old_argument) {
-            if (null === $new->getArg($old_argument->name)) {
+            try {
+                ($new->getArg($old_argument->name));
+            } catch (InvariantViolation) {
                 $args['dropped_arguments'][] = $old_argument;
             }
         }
