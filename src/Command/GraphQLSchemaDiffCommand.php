@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Command;
 
-use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLCodeHelper;
 use GraphQL\Language\Parser;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildSchema;
