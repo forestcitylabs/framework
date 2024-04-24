@@ -124,16 +124,20 @@ class GraphQLCodeManager
         foreach ($this->controllers as $controller) {
             foreach ($controller->getClass()->getMethods() as $method) {
                 $type_match = false;
+                $field_match = false;
                 foreach ($method->getAttributes() as $attribute) {
                     // This is the correct type.
                     if ($attribute->getName() === $type_name) {
                         $type_match = true;
                     }
                     if ($attribute->getName() === GraphQL\Field::class) {
-                        $match = $attribute->getArguments()['name'] ?: $method->getName();
-                        if ($type_match && $match === $field_name) {
-                            return [$controller, $method];
+                        $match = $attribute->getArguments()['name'] ?? $method->getName();
+                        if ($match === $field_name) {
+                            $field_match = true;
                         }
+                    }
+                    if ($type_match && $field_match) {
+                        return [$controller, $method];
                     }
                 }
             }

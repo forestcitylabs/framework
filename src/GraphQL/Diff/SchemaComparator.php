@@ -106,7 +106,7 @@ class SchemaComparator
                 $old_field = $old->getField($new_field->getName());
 
                 // There is a type mismatch, the fields are different.
-                if ($new_field->getType() !== $old_field->getType()) {
+                if (Type::getNamedType($new_field->getType())->name !== Type::getNamedType($old_field->getType())->name) {
                     $args['dropped_fields'][] = $old_field;
                     $args['new_fields'][] = $new_field;
 
@@ -155,7 +155,7 @@ class SchemaComparator
                 $old_field = $old->getField($new_field->name);
 
                 // There is a type mismatch, the fields are different.
-                if ($new_field->getType() !== $old_field->getType()) {
+                if (Type::getNamedType($new_field->getType())->name !== Type::getNamedType($old_field->getType())->name) {
                     $args['dropped_fields'][] = $old_field;
                     $args['new_fields'][] = $new_field;
 
@@ -246,7 +246,7 @@ class SchemaComparator
                 $old_field = $old->getField($new_field->name);
 
                 // There is a type mismatch, the fields are different.
-                if ($new_field->getType() !== $old_field->getType()) {
+                if (Type::getNamedType($new_field->getType())->name !== Type::getNamedType($old_field->getType())->name) {
                     $args['dropped_fields'][] = $old_field;
                     $args['new_fields'][] = $new_field;
 
@@ -327,7 +327,7 @@ class SchemaComparator
         foreach ($new->args as $new_argument) {
             try {
                 $old_argument = $old->getArg($new_argument->name);
-                if ($new_argument->getType() !== $old_argument->getType()) {
+                if (Type::getNamedType($new_argument->getType())->name !== Type::getNamedType($old_argument->getType())->name) {
                     $args['dropped_arguments'][] = $old_argument;
                     $args['new_arguments'][] = $new_argument;
                 } elseif (null !== $altered_argument = self::compareArguments($old_argument, $new_argument)) {

@@ -64,7 +64,6 @@ class GraphQLGenerateFromSchema extends Command
 
     public function __construct(
         private string $schema_file,
-        private string $services_file,
         private string $entity_dir,
         private string $entity_namespace,
         private ClassDiscoveryInterface $entity_discovery,
@@ -100,11 +99,6 @@ class GraphQLGenerateFromSchema extends Command
             'controller-namespace',
             mode: InputOption::VALUE_REQUIRED,
             default: $this->controller_namespace
-        );
-        $this->addOption(
-            'services-file',
-            mode: InputOption::VALUE_REQUIRED,
-            default: $this->services_file
         );
     }
 
@@ -404,7 +398,7 @@ class GraphQLGenerateFromSchema extends Command
 
         // Update altered fields.
         foreach ($diff->getAlteredFields() as $field_diff) {
-            list($info, ) = $this->manager->getControllerForField($diff->getOldType()->name, $field->name);
+            list($info, ) = $this->manager->getControllerForField($diff->getOldType()->name == 'Query' ? GraphQL\Query::class : GraphQL\Mutation::class, $field->name);
             $this->updateAlteredField($field_diff, $info, $io);
         }
     }
@@ -485,8 +479,11 @@ class GraphQLGenerateFromSchema extends Command
 
     private function updateAlteredField(FieldDiff $diff, GraphQLFile $info, StyleInterface $io): void
     {
+        // Find the field.
+        $field = $this->findField($diff->getOldField(), $info);
+
         // Determine whether this is a method of property field.
-        if (count($diff->getNewField()->args) > 0) {
+        if ($field instanceof Method) {
             // Update the method.
             $method = GraphQLCodeHelper::updateMethodField(
                 $info->getNamespace(),
@@ -780,6 +777,32 @@ class GraphQLGenerateFromSchema extends Command
             }
             return true;
         });
+    }
+
+    private function findField(FieldDefinition $field, GraphQLFile $info): Method|Property|null
+    {
+        // Loop over properties first.
+        foreach ($info->getClass()->getProperties() as $prop) {
+            foreach ($prop->getAttributes() as $attr) {
+                $name = $attr->getArguments()['name'] ?? $prop->getName();
+                if ($attr->getName() === GraphQL\Field::class && $field->name === $name) {
+                    return $prop;
+                }
+            }
+        }
+
+        // Check methods next.
+        foreach ($info->getClass()->getMethods() as $meth) {
+            foreach ($meth->getAttributes() as $attr) {
+                $name = $attr->getArguments()['name'] ?? $meth->getName();
+                if ($attr->getName() === GraphQL\Field::class && $field->name === $name) {
+                    return $meth;
+                }
+            }
+        }
+
+        // Return null.
+        return null;
     }
 
     private function saveFiles(): void
