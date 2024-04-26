@@ -7,6 +7,7 @@ namespace ForestCityLabs\Framework\GraphQL\Diff;
 use GraphQL\Type\Definition\FieldDefinition;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
+use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\WrappingType;
 
 class FieldDiff
@@ -57,15 +58,9 @@ class FieldDiff
 
     public function isTypeDifferent(): bool
     {
-        $old_type = $this->old_field->getType();
-        $new_type = $this->new_field->getType();
-        while ($old_type instanceof WrappingType) {
-            $old_type = $old_type->getWrappedType();
-        }
-        while ($new_type instanceof WrappingType) {
-            $new_type = $new_type->getWrappedType();
-        }
-        return $old_type !== $new_type;
+        $old_type = Type::getNamedType($this->old_field->getType());
+        $new_type = Type::getNamedType($this->new_field->getType());
+        return $old_type->name !== $new_type->name;
     }
 
     public function isListDifferent(): bool
@@ -86,7 +81,7 @@ class FieldDiff
             }
             $new_type = $new_type->getWrappedType();
         }
-        return $new_list === $old_list;
+        return $new_list !== $old_list;
     }
 
     public function isNonNullDifferent(): bool
@@ -101,7 +96,7 @@ class FieldDiff
         if ($new_type instanceof NonNull) {
             $new_non_null = true;
         }
-        return $new_non_null === $old_non_null;
+        return $new_non_null !== $old_non_null;
     }
 
     public function isDeprecationReasonDifferent(): bool
