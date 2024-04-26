@@ -43,6 +43,7 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Utils\BuildSchema;
 use LogicException;
+use Nette\PhpGenerator\Attribute;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\EnumType as PhpGeneratorEnumType;
 use Nette\PhpGenerator\Method;
@@ -367,10 +368,43 @@ class GraphQLGenerateFromSchema extends Command
         }
     }
 
-    private function removeDroppedType(NamedType $type): void
+    private function removeDroppedType(NamedType $type, StyleInterface $io): void
     {
-        // Remove the type from the manager regardless.
-        $this->manager->removeType($type->name);
+        $info = $this->manager->getType($type->name);
+        $class = $info->getClassLike();
+
+        $io->text(sprintf('Removing dropped type "%s".', $type->name));
+
+        // Remove the entire type.
+        if (count($class->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire class "%s"?', $class->getName()), false)) {
+            $this->manager->removeType($type->name);
+
+        // Remove just the attribute.
+        } else {
+            $attr_type = null;
+            switch ($type::class) {
+                case InterfaceType::class:
+                    $attr_type = GraphQL\InterfaceType::class;
+                    break;
+                case ObjectType::class:
+                    $attr_type = GraphQL\ObjectType::class;
+                    break;
+                case EnumType::class:
+                    $attr_type = GraphQL\EnumType::class;
+                    break;
+                case InputObjectType::class:
+                    $attr_type = GraphQL\InputType::class;
+                    break;
+            }
+            $class->setAttributes(array_filter($class->getAttributes(), function (Attribute $attr) use ($class, $type, $attr_type): bool {
+                $name = $attr->getArguments()['name'] ?? $class->getName();
+                if ($attr->getName() === $attr_type && $name === $type->name) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }));
+        }
     }
 
     private function createNewControllerType(ObjectType $type, StyleInterface $io): void
@@ -398,6 +432,7 @@ class GraphQLGenerateFromSchema extends Command
 
         // Update altered fields.
         foreach ($diff->getAlteredFields() as $field_diff) {
+            d($field_diff->getOldField()->name);
             list($info, ) = $this->manager->getControllerForField($diff->getOldType()->name == 'Query' ? GraphQL\Query::class : GraphQL\Mutation::class, $field->name);
             $this->updateAlteredField($field_diff, $info, $io);
         }
@@ -405,21 +440,11 @@ class GraphQLGenerateFromSchema extends Command
 
     private function removeDroppedControllerType(NamedType $type, StyleInterface $io): void
     {
-        // Warn the user about removing controller types.
-        $io->warning(sprintf('The controller type "%s" has been removed from your schema!', $type->name));
-
-        // Ask whether to remove all methods for this type.
-        if (!$io->confirm(sprintf('Would you like to remove all methods for controller type "%s"?', $type->name))) {
-            return;
-        }
-
         // Remove all methods for this type.
         assert($type instanceof HasFieldsType);
         foreach ($type->getFields() as $field) {
-            list($info, $method) = $this->manager->getControllerForField($type->name, $field->name);
-            assert($info instanceof GraphQLFile);
-            $io->text(sprintf('Removing method "%s" from class "%s".', $info->getClass()->getName(), $method->getName()));
-            $info->getClass()->removeMethod($method->getName());
+            list($info, ) = $this->manager->getControllerForField($type->name, $field->name);
+            $this->removeDroppedField($field, $info, $io);
         }
     }
 
@@ -520,14 +545,26 @@ class GraphQLGenerateFromSchema extends Command
     private function removeDroppedField(FieldDefinition $field, GraphQLFile $info, StyleInterface $io): void
     {
         $io->text(sprintf('Removing dropped field "%s".', $field->name));
+        $php_field = $this->findField($field, $info);
 
-        // Determine field type.
-        if (count($field->args) > 0) {
-            $method = GraphQLCodeHelper::extractFieldMethod($info->getClass(), $field);
-            $info->getClass()->removeMethod($method->getName());
+        // Remove the entire parameter.
+        if (count($php_field->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire %s "%s"?', $php_field instanceof Method ? 'method' : 'parameter', $php_field->getName()), false)) {
+            if ($php_field instanceof Method) {
+                $info->getClass()->removeMethod($php_field->getName());
+            } else {
+                $info->getClass()->removeProperty($php_field->getName());
+            }
+
+        // Remove just the attribute.
         } else {
-            $property = GraphQLCodeHelper::extractFieldProperty($info->getClass(), $field);
-            $info->getClass()->removeProperty($property->getName());
+            $php_field->setAttributes(array_filter($php_field->getAttributes(), function (Attribute $attr) use ($php_field, $field): bool {
+                $name = $attr->getArguments()['name'] ?? $php_field->getName();
+                if ($attr->getName() === GraphQL\Field::class && $name === $field->name) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }));
         }
     }
 
@@ -615,8 +652,24 @@ class GraphQLGenerateFromSchema extends Command
 
     private function removeDroppedArgument(Argument $arg, Method $method, StyleInterface $io): void
     {
+        $io->text(sprintf('Removing dropped argument "%s".', $arg->name));
         $parameter = GraphQLCodeHelper::extractArgumentParameter($method, $arg);
-        $method->removeParameter($parameter->getName());
+
+        // Remove the entire parameter.
+        if (count($parameter->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire parameter "%s"?', $parameter->getName()), false)) {
+            $method->removeParameter($parameter->getName());
+
+        // Remove just the attribute.
+        } else {
+            $parameter->setAttributes(array_filter($parameter->getAttributes(), function (Attribute $attr) use ($parameter, $arg): bool {
+                $name = $attr->getArguments()['name'] ?? $parameter->getName();
+                if ($attr->getName() === GraphQL\Argument::class && $name === $arg->name) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }));
+        }
     }
 
     private function createNewInputField(InputObjectField $field, GraphQLFile $info, StyleInterface $io): void
@@ -660,11 +713,23 @@ class GraphQLGenerateFromSchema extends Command
 
     private function removeDroppedInputField(InputObjectField $field, GraphQLFile $info, StyleInterface $io): void
     {
+        $io->text(sprintf('Removing dropped input field "%s".', $field->name));
         $property = GraphQLCodeHelper::extractArgumentProperty($info->getClass(), $field);
 
-        // If other annotations exist on this property confirm deletion.
-        if (count($property->getAttributes()) == 1 || $io->ask(sprintf('Would you like to remove the property "%s"?', $property->getName()))) {
+        // Remove the entire parameter.
+        if (count($property->getAttributes()) == 1 && $io->confirm(sprintf('Remove the entire property "%s"?', $property->getName()), false)) {
             $info->getClass()->removeProperty($property->getName());
+
+        // Remove just the attribute.
+        } else {
+            $property->setAttributes(array_filter($property->getAttributes(), function (Attribute $attr) use ($property, $field): bool {
+                $name = $attr->getArguments()['name'] ?? $property->getName();
+                if ($attr->getName() === GraphQL\Argument::class && $name === $field->name) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }));
         }
     }
 
@@ -690,8 +755,24 @@ class GraphQLGenerateFromSchema extends Command
 
     private function removeDroppedValue(EnumValueDefinition $value, GraphQLFile $info, StyleInterface $io): void
     {
+        $io->text(sprintf('Removing dropped enum value "%s".', $value->name));
         $case = GraphQLCodeHelper::extractValueCase($info->getEnum(), $value);
-        $info->getEnum()->removeCase($case->getName());
+
+        // Remove the entire case.
+        if (count($case->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire case "%s"?', $case->getName()), false)) {
+            $info->getEnum()->removeCase($case->getName());
+
+        // Remove just the attribute.
+        } else {
+            $case->setAttributes(array_filter($case->getAttributes(), function (Attribute $attr) use ($case, $value): bool {
+                $name = $attr->getArguments()['name'] ?? $case->getName();
+                if ($attr->getName() === GraphQL\Value::class && $name === $value->name) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }));
+        }
     }
 
     private function ensureType(Type $type, StyleInterface $io): void
