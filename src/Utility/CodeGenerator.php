@@ -153,14 +153,6 @@ class CodeGenerator
             ->setType($type);
     }
 
-    public static function generateFileForClass(string $class_name, ?string $namespace = null): PhpFile
-    {
-        $file = new PhpFile();
-        $namespace = $file->addNamespace($namespace);
-        $namespace->addClass($class_name);
-        return $file;
-    }
-
     public static function camelCase(string $string): string
     {
         $parts = explode('_', $string);
