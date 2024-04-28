@@ -56,6 +56,7 @@ class GraphQLCodeHelper
                 unset($attributes[$k]);
             }
         }
+        $class->setAttributes($attributes);
 
         // Build new attribute for class.
         $args = [];
