@@ -143,6 +143,35 @@ class SchemaComparatorTest extends TestCase
     #[Test]
     public function removedObjectType(): void
     {
+        $new = BuildSchema::build('
+            schema {
+                query: Query
+                mutation: Mutation
+            }
+            type Query {
+                getApples: [Apple!]!
+            }
+            type Mutation {
+                addApple(apple: AppleInput!): Apple!
+            }
+            type Apple {
+                type: String!
+            }
+            input AppleInput {
+                type: AppleType!
+            }
+            interface Fruit {
+                id: ID!
+            }
+            enum AppleType {
+                MACINTOSH
+                ROYAL_GALA
+            }
+        ');
+        $old = BuildSchema::build($this->base_schema);
+
+        $diff = SchemaComparator::compareSchemas($old, $new);
+        $this->assertTrue($diff->isDifferent());
     }
 
     #[Test]
