@@ -1,0 +1,38 @@
+schema {
+    query: Query
+}
+
+type Query {
+    getApples: [Apple!]!
+    getBasket(id: ID!): Basket!
+}
+
+type Mutation {
+    createApple(apple: AppleInput!): Apple!
+}
+
+interface Fruit {
+    id: ID!
+}
+
+"""
+The basket holding the fruit.
+"""
+type Basket {
+    id: ID!
+    fruit: [Fruit!]!
+}
+
+type Apple implements Fruit {
+    id: ID!
+    note: String
+}
+
+enum AppleType {
+    MACINTOSH
+}
+
+input AppleInput {
+    type: AppleType!
+    note: String
+}

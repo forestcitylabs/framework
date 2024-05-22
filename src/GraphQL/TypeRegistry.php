@@ -132,7 +132,7 @@ class TypeRegistry
     {
         $values = [];
         foreach ($metadata->getValues() as $value) {
-            $values[] = [
+            $values[$value->getName()] = [
                 'name' => $value->getName(),
                 'value' => $value->getValue(),
                 'description' => $value->getDescription(),

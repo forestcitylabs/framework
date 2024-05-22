@@ -8,6 +8,7 @@ use Doctrine\Inflector\Language;
 use Doctrine\ORM\Mapping as ORM;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Literal;
+use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\Property;
 use Ramsey\Uuid\Doctrine\UuidOrderedTimeGenerator;
