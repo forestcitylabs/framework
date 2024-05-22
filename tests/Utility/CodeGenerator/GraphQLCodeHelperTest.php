@@ -206,4 +206,17 @@ class GraphQLCodeHelperTest extends TestCase
         $param = GraphQLCodeHelper::addParameterArgument($namespace, $method, $arg, 'test', 'string');
         $this->assertContains($param, $method->getParameters());
     }
+
+    #[Test]
+    public function updateParameterArgument(): void
+    {
+        $namespace = new PhpNamespace('Test');
+        $method = new Method('test');
+        $param = $method->addParameter('test');
+        $param->setType('string');
+        $param->addAttribute(GraphQL\Argument::class);
+        $arg = new Argument(['name' => 'test', 'description' => 'This is a description.', 'type' => Type::listOf(Type::string()), 'deprecationReason' => 'Nope.']);
+        $param = GraphQLCodeHelper::updateParameterArgument($namespace, $method, $arg, 'string');
+        $this->assertContains($param, $method->getParameters());
+    }
 }
