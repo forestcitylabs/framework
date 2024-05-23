@@ -1,0 +1,33 @@
+schema {
+    query: Query
+}
+
+type Query {
+    getApples: [Apple!]!
+}
+
+type Mutation {
+    createApple(apple: AppleInput!): Apple!
+}
+
+interface Fruit {
+    id: ID!
+}
+
+type Apple implements Fruit {
+    id: ID!
+}
+
+type Basket {
+    id: ID!
+    items: [Fruit!]!
+}
+
+enum AppleType {
+    MACINTOSH
+    ROYAL_GALA
+}
+
+input AppleInput {
+    type: AppleType!
+}

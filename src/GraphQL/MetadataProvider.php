@@ -183,6 +183,11 @@ class MetadataProvider
                             $metadata->addInterface($interface->getName());
                         }
                     }
+                    foreach (class_parents($metadata->getClassName()) as $extends) {
+                        if (null !== $interface = $this->getInterfaceTypeMetadataByClassName($extends)) {
+                            $metadata->addInterface($interface->getName());
+                        }
+                    }
                 }
             }
         }
@@ -297,7 +302,7 @@ class MetadataProvider
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $parameter->getName());
-                $argument->setType($argument->getType() ?? $this->mapOutputType($parameter->getType()));
+                $argument->setType($argument->getType() ?? $this->mapInputType($parameter->getType()));
                 $argument->setNotNull($argument->getNotNull() ?? $this->mapNotNull($parameter->getType()));
                 $argument->setList($argument->getList() ?? false);
 
