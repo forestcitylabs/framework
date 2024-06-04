@@ -75,10 +75,5 @@
         "symfony/property-access": "^7.0",
         "twig/twig": "^3.8",
         "webonyx/graphql-php": "^15.8"
-    },
-    "extra": {
-        "branch-aliase": {
-            "dev-main": "1.0.x-dev"
-        }
     }
 }
