@@ -72,7 +72,7 @@ class InputResolverTest extends TestCase
 
         // Mock the values to resolve.
         $values = [
-            'type' => 'macintosh',
+            'type' => AppleTypeEnum::Macintosh,
         ];
 
         // Activate the resolver.

@@ -20,10 +20,9 @@ class ValueTest extends TestCase
     #[Test]
     public function value(): void
     {
-        $value = new Value("name", 'description', 'value');
+        $value = new Value("name", 'description');
         $this->assertEquals('name', $value->getName());
         $this->assertEquals('description', $value->getDescription());
-        $this->assertEquals('value', $value->getValue());
         $this->assertEquals(null, $value->getDeprecationReason());
 
         $value->setName('other_name');
@@ -31,9 +30,6 @@ class ValueTest extends TestCase
 
         $value->setDescription('other_description');
         $this->assertEquals('other_description', $value->getDescription());
-
-        $value->setValue('other_value');
-        $this->assertEquals('other_value', $value->getValue());
 
         $value->setDeprecationReason('deprecation_reason');
         $this->assertEquals('deprecation_reason', $value->getDeprecationReason());
