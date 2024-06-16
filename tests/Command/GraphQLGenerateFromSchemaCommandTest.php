@@ -34,6 +34,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Spatie\Snapshots\MatchesSnapshots;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -90,6 +91,7 @@ class GraphQLGenerateFromSchemaCommandTest extends TestCase
                     new DateTimeParameterConverter(),
                 ),
                 new DateTimeValueTransformer(),
+                $this->createStub(EventDispatcherInterface::class)
             )
         );
         $registry = $this->registry;
