@@ -11,10 +11,12 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\GraphQL;
 
+use ForestCityLabs\Framework\Events\PreGraphQLFieldResolveEvent;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class MethodFieldResolver implements FieldResolverInterface
@@ -22,7 +24,8 @@ class MethodFieldResolver implements FieldResolverInterface
     public function __construct(
         private ContainerInterface $container,
         private ParameterProcessor $parameter_processor,
-        private ValueTransformerInterface $value_transformer
+        private ValueTransformerInterface $value_transformer,
+        private EventDispatcherInterface $dispatcher
     ) {
     }
 
@@ -45,6 +48,9 @@ class MethodFieldResolver implements FieldResolverInterface
             [$object, $method],
             $args + [$request]
         );
+
+        // Dispatch a pre-resolve event before continuing.
+        $this->dispatcher->dispatch(new PreGraphQLFieldResolveEvent([$object, $method], $request));
 
         // Call the function.
         return $this->value_transformer->transformOutput(
