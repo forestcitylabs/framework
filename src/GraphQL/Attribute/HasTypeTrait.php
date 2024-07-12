@@ -9,6 +9,7 @@ trait HasTypeTrait
     protected ?string $type;
     protected ?bool $list;
     protected ?bool $not_null;
+    protected ?string $native_type;
 
     public function getType(): ?string
     {
@@ -40,6 +41,17 @@ trait HasTypeTrait
     public function setNotNull(bool $not_null): static
     {
         $this->not_null = $not_null;
+        return $this;
+    }
+
+    public function getNativeType(): ?string
+    {
+        return $this->native_type;
+    }
+
+    public function setNativeType(string $native_type): static
+    {
+        $this->native_type = $native_type;
         return $this;
     }
 }

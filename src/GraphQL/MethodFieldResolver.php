@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
-use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,7 +22,7 @@ class MethodFieldResolver implements FieldResolverInterface
     public function __construct(
         private ContainerInterface $container,
         private ParameterProcessor $parameter_processor,
-        private ValueTransformerInterface $value_transformer
+        private ValueTransformerManager $value_transformer
     ) {
     }
 
@@ -47,8 +47,13 @@ class MethodFieldResolver implements FieldResolverInterface
         );
 
         // Call the function.
-        return $this->value_transformer->transformOutput(
-            call_user_func([$object, $method], ...$args)
-        );
+        $value = call_user_func([$object, $method], ...$args);
+
+        // Check if there is a transformer for this type.
+        if (null !== $transformer = $this->value_transformer->getTransformer($field->getNativeType())) {
+            return $transformer->transformOutput($value);
+        }
+
+        return $value;
     }
 }

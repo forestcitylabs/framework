@@ -21,6 +21,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use LogicException;
 use Psr\Cache\CacheItemPoolInterface;
@@ -41,7 +42,8 @@ class MetadataProvider
     public function __construct(
         private ClassDiscoveryInterface $type_discovery,
         private ClassDiscoveryInterface $controller_discovery,
-        private CacheItemPoolInterface $cache
+        private CacheItemPoolInterface $cache,
+        private ValueTransformerManager $value_transformer
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
@@ -218,6 +220,8 @@ class MetadataProvider
                 $field = $attribute->newInstance();
                 $field->setAttributeType(Field::TYPE_PROPERTY);
                 $field->setAttributeName($property->getName());
+                // TODO: Native types aren't guaranteed at all.
+                $field->setNativeType($property->getType()->getName());
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $property->getName());
@@ -240,6 +244,7 @@ class MetadataProvider
                 $argument = $attribute->newInstance();
                 $argument->setAttributeType(Argument::TYPE_PROPERTY);
                 $argument->setAttributeName($property->getName());
+                $argument->setNativeType($property->getType()->getName());
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $property->getName());
@@ -262,6 +267,8 @@ class MetadataProvider
                 $field = $attribute->newInstance();
                 $field->setAttributeType(Field::TYPE_METHOD);
                 $field->setAttributeName($reflection->getName() . '::' . $method->getName());
+                // TODO: Return types aren't guaranteed to be named.
+                $field->setNativeType($method->getReturnType()->getName());
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $method->getName());
@@ -299,6 +306,8 @@ class MetadataProvider
                 $argument = $attribute->newInstance();
                 $argument->setAttributeType(Argument::TYPE_PARAMETER);
                 $argument->setAttributeName($parameter->getName());
+                // TODO: Parameter types aren't guaranteed to be named.
+                $argument->setNativeType($parameter->getType()->getName());
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $parameter->getName());
@@ -367,11 +376,16 @@ class MetadataProvider
                 break;
         }
 
-        // Attempt to map type by class name as a last resort.
+        // Attempt to map type by class name.
         foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
             if ($metadata instanceof ObjectType || $metadata instanceof EnumType) {
                 return $metadata->getName();
             }
+        }
+
+        // Use the value transformer.
+        if (null !== $transform = $this->value_transformer->getGraphQLType($type->getName())) {
+            return $transform;
         }
 
         throw new LogicException(sprintf('Unable to map type "%s".', $type->getName()));
@@ -411,11 +425,16 @@ class MetadataProvider
                 break;
         }
 
-        // Attempt to map type by class name as a last resort.
+        // Attempt to map type by class name.
         foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
             if ($metadata instanceof InputType || $metadata instanceof EnumType) {
                 return $metadata->getName();
             }
+        }
+
+        // Use the value transformer.
+        if (null !== $transform = $this->value_transformer->getGraphQLType($type->getName())) {
+            return $transform;
         }
 
         throw new LogicException(sprintf('Unable to map type "%s".', $type->getName()));

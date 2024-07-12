@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
-use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -20,7 +20,7 @@ class PropertyFieldResolver implements FieldResolverInterface
 {
     public function __construct(
         private PropertyAccessorInterface $property_accessor,
-        private ValueTransformerInterface $value_transformer
+        private ValueTransformerManager $value_transformer
     ) {
     }
 
@@ -30,8 +30,14 @@ class PropertyFieldResolver implements FieldResolverInterface
         array $args = [],
         ServerRequestInterface $request = null
     ): mixed {
-        return $this->value_transformer->transformOutput(
-            $this->property_accessor->getValue($object, $field->getAttributeName())
-        );
+        // Get the value from the object.
+        $value = $this->property_accessor->getValue($object, $field->getAttributeName());
+
+        // Check if there is a value transformer for this type.
+        if (null !== $transformer = $this->value_transformer->getTransformer($field->getNativeType())) {
+            return $transformer->transformOutput($value);
+        }
+
+        return $value;
     }
 }
