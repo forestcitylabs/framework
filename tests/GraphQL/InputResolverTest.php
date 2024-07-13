@@ -14,6 +14,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\InputResolver;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
@@ -55,6 +56,7 @@ class InputResolverTest extends TestCase
         $item = $this->createStub(CacheItemInterface::class);
         $item->method('set')->willReturnSelf();
         $cache->method('getItem')->willReturn($item);
+        $transformer = $this->createStub(ValueTransformerManager::class);
         $provider = new MetadataProvider(new ManualDiscovery([
             Apple::class,
             Basket::class,
@@ -64,11 +66,11 @@ class InputResolverTest extends TestCase
         ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class
-        ]), $cache);
+        ]), $cache, $transformer);
         $em = $this->createStub(EntityManagerInterface::class);
 
         // Create the input resolver.
-        $resolver = new InputResolver($accessor, $provider, $em);
+        $resolver = new InputResolver($accessor, $provider, $em, $transformer);
 
         // Mock the values to resolve.
         $values = [

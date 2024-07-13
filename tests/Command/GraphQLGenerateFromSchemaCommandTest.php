@@ -14,6 +14,7 @@ use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
 use ForestCityLabs\Framework\GraphQL\PropertyFieldResolver;
 use ForestCityLabs\Framework\GraphQL\TypeRegistry;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\DateTimeValueTransformer;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ScanDirectoryDiscovery;
 use ForestCityLabs\Framework\Utility\CodeGenerator;
 use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLCodeHelper;
@@ -65,6 +66,7 @@ class GraphQLGenerateFromSchemaCommandTest extends TestCase
     private TypeRegistry $registry;
     private Schema $schema;
     private CacheItemPoolInterface $cache;
+    private ValueTransformerManager $transformer;
 
     protected function setUp(): void
     {
@@ -73,16 +75,18 @@ class GraphQLGenerateFromSchemaCommandTest extends TestCase
         $item->method('set')->willReturnSelf();
         $this->cache = $this->createStub(CacheItemPoolInterface::class);
         $this->cache->method('getItem')->willReturn($item);
+        $this->transformer = $this->createStub(ValueTransformerManager::class);
         $this->metadata_provider = new MetadataProvider(
             new ScanDirectoryDiscovery([__DIR__ . '/../Fixture/Generated/Entity']),
             new ScanDirectoryDiscovery([__DIR__ . '/../Fixture/Generated/Controller']),
-            $this->cache
+            $this->cache,
+            $this->transformer
         );
         $this->registry = new TypeRegistry(
             $this->metadata_provider,
             new PropertyFieldResolver(
                 new PropertyAccessor(),
-                new DateTimeValueTransformer(),
+                $this->transformer,
             ),
             new MethodFieldResolver(
                 $this->createStub(ContainerInterface::class),
@@ -90,7 +94,7 @@ class GraphQLGenerateFromSchemaCommandTest extends TestCase
                     new IndexedParameterResolver(),
                     new DateTimeParameterConverter(),
                 ),
-                new DateTimeValueTransformer(),
+                $this->transformer,
                 $this->createStub(EventDispatcherInterface::class)
             )
         );

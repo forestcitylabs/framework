@@ -14,6 +14,7 @@ use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
 use ForestCityLabs\Framework\GraphQL\PropertyFieldResolver;
 use ForestCityLabs\Framework\GraphQL\TypeRegistry;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
@@ -53,6 +54,7 @@ class TypeRegistryTest extends TestCase
         $cache = $this->createConfiguredStub(CacheItemPoolInterface::class, [
             'getItem' => $item,
         ]);
+        $transformer = $this->createStub(ValueTransformerManager::class);
 
         $provider = new MetadataProvider(new ManualDiscovery([
             Apple::class,
@@ -63,7 +65,7 @@ class TypeRegistryTest extends TestCase
         ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class,
-        ]), $cache);
+        ]), $cache, $transformer);
 
         $registry = new TypeRegistry($provider, $this->createStub(PropertyFieldResolver::class), $this->createStub(MethodFieldResolver::class));
 

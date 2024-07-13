@@ -7,6 +7,7 @@ namespace ForestCityLabs\Framework\Tests\GraphQL;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\PropertyFieldResolver;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,8 +24,7 @@ class PropertyFieldResolverTest extends TestCase
     public function resolve(): void
     {
         $accessor = new PropertyAccessor();
-        $transformer = $this->createMock(ValueTransformerInterface::class);
-        $transformer->method('transformOutput')->willReturnArgument(0);
+        $transformer = $this->createMock(ValueTransformerManager::class);
 
         $resolver = new PropertyFieldResolver($accessor, $transformer);
 
