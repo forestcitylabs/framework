@@ -43,7 +43,7 @@ class MetadataProvider
         private ClassDiscoveryInterface $type_discovery,
         private ClassDiscoveryInterface $controller_discovery,
         private CacheItemPoolInterface $cache,
-        private ValueTransformerManager $value_transformer
+        private ValueTransformerManager $value_transformer_manager
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
@@ -220,8 +220,13 @@ class MetadataProvider
                 $field = $attribute->newInstance();
                 $field->setAttributeType(Field::TYPE_PROPERTY);
                 $field->setAttributeName($property->getName());
-                // TODO: Native types aren't guaranteed at all.
-                $field->setNativeType($property->getType()->getName());
+
+                // Determine the native type if we can.
+                if (null !== $native_type = $property->getType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $field->setNativeType($native_type->getName());
+                    }
+                }
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $property->getName());
@@ -244,7 +249,13 @@ class MetadataProvider
                 $argument = $attribute->newInstance();
                 $argument->setAttributeType(Argument::TYPE_PROPERTY);
                 $argument->setAttributeName($property->getName());
-                $argument->setNativeType($property->getType()->getName());
+
+                // Determine the native type if we can.
+                if (null !== $native_type = $property->getType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $argument->setNativeType($native_type->getName());
+                    }
+                }
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $property->getName());
@@ -267,8 +278,13 @@ class MetadataProvider
                 $field = $attribute->newInstance();
                 $field->setAttributeType(Field::TYPE_METHOD);
                 $field->setAttributeName($reflection->getName() . '::' . $method->getName());
-                // TODO: Return types aren't guaranteed to be named.
-                $field->setNativeType($method->getReturnType()->getName());
+
+                // Determine the native type if we can.
+                if (null !== $native_type = $method->getReturnType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $field->setNativeType($native_type->getName());
+                    }
+                }
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $method->getName());
@@ -306,8 +322,13 @@ class MetadataProvider
                 $argument = $attribute->newInstance();
                 $argument->setAttributeType(Argument::TYPE_PARAMETER);
                 $argument->setAttributeName($parameter->getName());
-                // TODO: Parameter types aren't guaranteed to be named.
-                $argument->setNativeType($parameter->getType()->getName());
+
+                // Determine the native type if we can.
+                if (null !== $native_type = $parameter->getType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $argument->setNativeType($native_type->getName());
+                    }
+                }
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $parameter->getName());
@@ -384,8 +405,8 @@ class MetadataProvider
         }
 
         // Use the value transformer.
-        if (null !== $transform = $this->value_transformer->getGraphQLType($type->getName())) {
-            return $transform;
+        if (null !== $gql_type = $this->value_transformer_manager->getGraphQLType($type->getName())) {
+            return $gql_type;
         }
 
         throw new LogicException(sprintf('Unable to map type "%s".', $type->getName()));
@@ -433,8 +454,8 @@ class MetadataProvider
         }
 
         // Use the value transformer.
-        if (null !== $transform = $this->value_transformer->getGraphQLType($type->getName())) {
-            return $transform;
+        if (null !== $gql_type = $this->value_transformer_manager->getGraphQLType($type->getName())) {
+            return $gql_type;
         }
 
         throw new LogicException(sprintf('Unable to map type "%s".', $type->getName()));

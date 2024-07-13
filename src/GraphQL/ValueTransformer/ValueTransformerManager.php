@@ -14,7 +14,7 @@ class ValueTransformerManager
     ) {
     }
 
-    public function getTransformer(string $native_type): ?ValueTransformerInterface
+    public function getTransformer(?string $native_type): ?ValueTransformerInterface
     {
         foreach ($this->transformers as $transformer) {
             if ($transformer->getNativeType() === $native_type) {
@@ -25,7 +25,7 @@ class ValueTransformerManager
         return null;
     }
 
-    public function getNativeType(string $graphql_type): ?string
+    public function getNativeType(?string $graphql_type): ?string
     {
         foreach ($this->transformers as $transformer) {
             if ($transformer->getGraphQLType() == $graphql_type) {
@@ -36,7 +36,7 @@ class ValueTransformerManager
         return null;
     }
 
-    public function getGraphQLType(string $native_type): ?string
+    public function getGraphQLType(?string $native_type): ?string
     {
         foreach ($this->transformers as $transformer) {
             if ($transformer->getNativeType() == $native_type) {

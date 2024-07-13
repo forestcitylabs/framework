@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL\ValueTransformer;
 
 use DateTimeImmutable;
-use DateTimeInterface;
 
-class DateTimeValueTransformer implements ValueTransformerInterface
+class DateTimeImmutableValueTransformer implements ValueTransformerInterface
 {
     public function transformOutput(mixed $value): mixed
     {
@@ -21,7 +20,7 @@ class DateTimeValueTransformer implements ValueTransformerInterface
 
     public function getNativeType(): string
     {
-        return DateTimeInterface::class;
+        return DateTimeImmutable::class;
     }
 
     public function getGraphQLType(): string
