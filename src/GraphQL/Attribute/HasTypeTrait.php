@@ -9,7 +9,7 @@ trait HasTypeTrait
     protected ?string $type;
     protected ?bool $list;
     protected ?bool $not_null;
-    protected ?string $native_type;
+    protected ?string $native_type = null;
 
     public function getType(): ?string
     {
