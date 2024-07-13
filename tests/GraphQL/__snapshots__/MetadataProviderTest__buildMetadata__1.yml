@@ -21,12 +21,12 @@ BasketInput:
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\Basket
     arguments: {  }
 AppleTypeEnum:
-    values: { Macintosh: { value: macintosh, case: { name: Macintosh, value: macintosh }, name: Macintosh, description: null, className: null, deprecationReason: null }, Green_delicious: { value: green_delicious, case: { name: Green_delicious, value: green_delicious }, name: Green_delicious, description: null, className: null, deprecationReason: null } }
+    values: { Macintosh: { case: { name: Macintosh, value: macintosh }, name: Macintosh, description: null, className: null, deprecationReason: null }, Green_delicious: { case: { name: Green_delicious, value: green_delicious }, name: Green_delicious, description: null, className: null, deprecationReason: null } }
     name: AppleTypeEnum
     description: null
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\AppleTypeEnum
 RegionEnum:
-    values: { NORTH: { value: NORTH, case: { name: NORTH }, name: NORTH, description: null, className: null, deprecationReason: null }, EQUATOR: { value: EQUATOR, case: { name: EQUATOR }, name: EQUATOR, description: null, className: null, deprecationReason: null }, SOUTH: { value: SOUTH, case: { name: SOUTH }, name: SOUTH, description: null, className: null, deprecationReason: null } }
+    values: { NORTH: { case: { name: NORTH }, name: NORTH, description: null, className: null, deprecationReason: null }, EQUATOR: { case: { name: EQUATOR }, name: EQUATOR, description: null, className: null, deprecationReason: null }, SOUTH: { case: { name: SOUTH }, name: SOUTH, description: null, className: null, deprecationReason: null } }
     name: RegionEnum
     description: null
     className: ForestCityLabs\Framework\Tests\Fixture\Entity\RegionEnum

@@ -134,7 +134,7 @@ class TypeRegistry
         foreach ($metadata->getValues() as $value) {
             $values[$value->getName()] = [
                 'name' => $value->getName(),
-                'value' => $value->getValue(),
+                'value' => $value->getCase(),
                 'description' => $value->getDescription(),
                 'deprecationReason' => $value->getDeprecationReason(),
             ];

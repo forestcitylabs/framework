@@ -27,14 +27,4 @@ class EnumType extends AbstractType
     {
         return $this->values;
     }
-
-    public function getCaseFromValue(string|bool|float|int|null $input): mixed
-    {
-        foreach ($this->values as $value) {
-            if ($input === $value->getValue()) {
-                return $value->getCase();
-            }
-        }
-        return null;
-    }
 }

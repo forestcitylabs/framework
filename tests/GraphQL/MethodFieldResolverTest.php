@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Tests\GraphQL;
 
 use Doctrine\ORM\EntityManagerInterface;
+use ForestCityLabs\Framework\Events\PreGraphQLFieldResolveEvent;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
@@ -14,11 +15,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Ramsey\Uuid\Uuid;
 
 #[CoversClass(MethodFieldResolver::class)]
+#[UsesClass(PreGraphQLFieldResolveEvent::class)]
 #[Group('graphql')]
 class MethodFieldResolverTest extends TestCase
 {
@@ -30,6 +35,7 @@ class MethodFieldResolverTest extends TestCase
         $container = $this->createStub(ContainerInterface::class);
         $processor = $this->createStub(ParameterProcessor::class);
         $transformer = $this->createStub(ValueTransformerInterface::class);
+        $dispatcher = $this->createStub(EventDispatcherInterface::class);
 
         // Create the values.
         $field = $this->createConfiguredStub(Field::class, [
@@ -44,7 +50,7 @@ class MethodFieldResolverTest extends TestCase
         ]);
 
         // Resolve a field.
-        $resolver = new MethodFieldResolver($container, $processor, $transformer);
-        $resolver->resolveField($field);
+        $resolver = new MethodFieldResolver($container, $processor, $transformer, $dispatcher);
+        $resolver->resolveField($field, request: $this->createStub(ServerRequestInterface::class));
     }
 }

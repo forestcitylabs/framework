@@ -115,6 +115,16 @@ class MetadataProvider
         return null;
     }
 
+    public function getEnumTypeMetadataByClassName(string $class_name): ?EnumType
+    {
+        foreach ($this->getMetadataByClassName($class_name) as $metadata) {
+            if ($metadata instanceof EnumType) {
+                return $metadata;
+            }
+        }
+        return null;
+    }
+
     private function parseTypes(array $types): void
     {
         foreach ($types as $type) {
@@ -351,11 +361,6 @@ class MetadataProvider
 
                 // Reasonable defaults.
                 $value->setName($value->getName() ?? $case->getName());
-                if ($case instanceof ReflectionEnumBackedCase) {
-                    $value->setValue($value->getValue() ?? $case->getBackingValue());
-                } else {
-                    $value->setValue($value->getValue() ?? $case->getName());
-                }
 
                 // Yield the value attribute.
                 yield $value;
