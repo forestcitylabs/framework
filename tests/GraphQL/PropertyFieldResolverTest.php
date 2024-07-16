@@ -6,6 +6,8 @@ namespace ForestCityLabs\Framework\Tests\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\PropertyFieldResolver;
+use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\DateTimeValueTransformer;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -16,6 +18,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 
 #[CoversClass(PropertyFieldResolver::class)]
 #[UsesClass(Field::class)]
+#[UsesClass(DateTimeValueTransformer::class)]
 #[Group('graphql')]
 class PropertyFieldResolverTest extends TestCase
 {
@@ -23,10 +26,9 @@ class PropertyFieldResolverTest extends TestCase
     public function resolve(): void
     {
         $accessor = new PropertyAccessor();
-        $transformer = $this->createMock(ValueTransformerInterface::class);
-        $transformer->method('transformOutput')->willReturnArgument(0);
+        $transformer = $this->createMock(TransformerManager::class);
 
-        $resolver = new PropertyFieldResolver($accessor, $transformer);
+        $resolver = new PropertyFieldResolver($accessor, new DateTimeValueTransformer(), $transformer);
 
         $object = new \stdClass();
         $object->test = "test";

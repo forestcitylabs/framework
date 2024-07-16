@@ -21,6 +21,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
+use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ClassDiscoveryInterface;
 use LogicException;
 use Psr\Cache\CacheItemPoolInterface;
@@ -28,7 +29,6 @@ use Ramsey\Uuid\UuidInterface;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionEnum;
-use ReflectionEnumBackedCase;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionType;
@@ -41,7 +41,8 @@ class MetadataProvider
     public function __construct(
         private ClassDiscoveryInterface $type_discovery,
         private ClassDiscoveryInterface $controller_discovery,
-        private CacheItemPoolInterface $cache
+        private CacheItemPoolInterface $cache,
+        private TransformerManager $transformer_manager
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
@@ -229,6 +230,13 @@ class MetadataProvider
                 $field->setAttributeType(Field::TYPE_PROPERTY);
                 $field->setAttributeName($property->getName());
 
+                // Determine the native type if we can.
+                if (null !== $native_type = $property->getType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $field->setNativeType($native_type->getName());
+                    }
+                }
+
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $property->getName());
                 $field->setType($field->getType() ?? $this->mapOutputType($property->getType()));
@@ -251,6 +259,13 @@ class MetadataProvider
                 $argument->setAttributeType(Argument::TYPE_PROPERTY);
                 $argument->setAttributeName($property->getName());
 
+                // Determine the native type if we can.
+                if (null !== $native_type = $property->getType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $argument->setNativeType($native_type->getName());
+                    }
+                }
+
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $property->getName());
                 $argument->setType($argument->getType() ?? $this->mapInputType($property->getType()));
@@ -272,6 +287,13 @@ class MetadataProvider
                 $field = $attribute->newInstance();
                 $field->setAttributeType(Field::TYPE_METHOD);
                 $field->setAttributeName($reflection->getName() . '::' . $method->getName());
+
+                // Determine the native type if we can.
+                if (null !== $native_type = $method->getReturnType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $field->setNativeType($native_type->getName());
+                    }
+                }
 
                 // Reasonable defaults.
                 $field->setName($field->getName() ?? $method->getName());
@@ -309,6 +331,13 @@ class MetadataProvider
                 $argument = $attribute->newInstance();
                 $argument->setAttributeType(Argument::TYPE_PARAMETER);
                 $argument->setAttributeName($parameter->getName());
+
+                // Determine the native type if we can.
+                if (null !== $native_type = $parameter->getType()) {
+                    if ($native_type instanceof ReflectionNamedType) {
+                        $argument->setNativeType($native_type->getName());
+                    }
+                }
 
                 // Reasonable defaults.
                 $argument->setName($argument->getName() ?? $parameter->getName());
@@ -372,11 +401,16 @@ class MetadataProvider
                 break;
         }
 
-        // Attempt to map type by class name as a last resort.
+        // Attempt to map type by class name.
         foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
             if ($metadata instanceof ObjectType || $metadata instanceof EnumType) {
                 return $metadata->getName();
             }
+        }
+
+        // Use the value transformer.
+        if (null !== $gql_type = $this->transformer_manager->getGraphQLType($type->getName())) {
+            return $gql_type;
         }
 
         throw new LogicException(sprintf('Unable to map type "%s".', $type->getName()));
@@ -416,11 +450,16 @@ class MetadataProvider
                 break;
         }
 
-        // Attempt to map type by class name as a last resort.
+        // Attempt to map type by class name.
         foreach ($this->getMetadataByClassName($type->getName()) as $metadata) {
             if ($metadata instanceof InputType || $metadata instanceof EnumType) {
                 return $metadata->getName();
             }
+        }
+
+        // Use the value transformer.
+        if (null !== $gql_type = $this->transformer_manager->getGraphQLType($type->getName())) {
+            return $gql_type;
         }
 
         throw new LogicException(sprintf('Unable to map type "%s".', $type->getName()));
