@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ForestCityLabs\Framework\Tests\GraphQL\ValueTransformer;
+namespace ForestCityLabs\Framework\Tests\GraphQL\Transformer;
 
 use DateTimeImmutable;
 use ForestCityLabs\Framework\GraphQL\Transformer\DateTimeImmutableTransformer;

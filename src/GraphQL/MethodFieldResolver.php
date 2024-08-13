@@ -14,7 +14,6 @@ namespace ForestCityLabs\Framework\GraphQL;
 use ForestCityLabs\Framework\Events\PreGraphQLFieldResolveEvent;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
-use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -26,7 +25,6 @@ class MethodFieldResolver implements FieldResolverInterface
         private ContainerInterface $container,
         private ParameterProcessor $parameter_processor,
         private TransformerManager $transformer_manager,
-        private ValueTransformerInterface $value_transformer,
         private EventDispatcherInterface $dispatcher
     ) {
     }
@@ -62,6 +60,6 @@ class MethodFieldResolver implements FieldResolverInterface
             $value = $transformer->transformOutput($value);
         }
 
-        return $this->value_transformer->transformOutput($value);
+        return $value;
     }
 }
