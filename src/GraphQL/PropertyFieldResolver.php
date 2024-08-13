@@ -13,7 +13,6 @@ namespace ForestCityLabs\Framework\GraphQL;
 
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
-use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -21,7 +20,6 @@ class PropertyFieldResolver implements FieldResolverInterface
 {
     public function __construct(
         private PropertyAccessorInterface $property_accessor,
-        private ValueTransformerInterface $value_transformer,
         private TransformerManager $transformer_manager
     ) {
     }
@@ -40,6 +38,6 @@ class PropertyFieldResolver implements FieldResolverInterface
             $value = $transformer->transformOutput($value);
         }
 
-        return $this->value_transformer->transformOutput($value);
+        return $value;
     }
 }

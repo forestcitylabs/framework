@@ -12,7 +12,6 @@ use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
-use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
