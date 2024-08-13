@@ -10,7 +10,7 @@ class TransformerManager
      * @param array<TransformerInterface> $transformers
      */
     public function __construct(
-        private array $transformers
+        private array $transformers = []
     ) {
     }
 
