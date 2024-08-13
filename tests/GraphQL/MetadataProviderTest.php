@@ -11,6 +11,8 @@ use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
+use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
+use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerManager;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\BasketController;
 use ForestCityLabs\Framework\Tests\Fixture\Entity\Apple;
@@ -51,6 +53,7 @@ class MetadataProviderTest extends TestCase
         $cache = $this->createConfiguredStub(CacheItemPoolInterface::class, [
             'getItem' => $item,
         ]);
+        $transformer = $this->createStub(TransformerManager::class);
         $metadata_provider = new MetadataProvider(new ManualDiscovery([
             Apple::class,
             Basket::class,
@@ -60,7 +63,7 @@ class MetadataProviderTest extends TestCase
         ]), new ManualDiscovery([
             AppleController::class,
             BasketController::class,
-        ]), $cache);
+        ]), $cache, $transformer);
         $this->assertMatchesSnapshot($metadata_provider->getAllTypeMetadata());
 
         $valid = $metadata_provider->getTypeMetadata('Apple');

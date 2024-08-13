@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\Events\PreGraphQLFieldResolveEvent;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
+use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
 use ForestCityLabs\Framework\GraphQL\ValueTransformer\ValueTransformerInterface;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
@@ -34,7 +35,8 @@ class MethodFieldResolverTest extends TestCase
         // Mock the services.
         $container = $this->createStub(ContainerInterface::class);
         $processor = $this->createStub(ParameterProcessor::class);
-        $transformer = $this->createStub(ValueTransformerInterface::class);
+        $transformer = $this->createStub(TransformerManager::class);
+        $value_transformer = $this->createStub(ValueTransformerInterface::class);
         $dispatcher = $this->createStub(EventDispatcherInterface::class);
 
         // Create the values.
@@ -50,7 +52,7 @@ class MethodFieldResolverTest extends TestCase
         ]);
 
         // Resolve a field.
-        $resolver = new MethodFieldResolver($container, $processor, $transformer, $dispatcher);
+        $resolver = new MethodFieldResolver($container, $processor, $transformer, $value_transformer, $dispatcher);
         $resolver->resolveField($field, request: $this->createStub(ServerRequestInterface::class));
     }
 }
