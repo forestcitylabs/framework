@@ -5,6 +5,7 @@ namespace ForestCityLabs\Framework\GraphQL;
 use Application\Exception\GraphQL\EntityNotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
+use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
 use ReflectionProperty;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -13,7 +14,8 @@ class InputResolver
     public function __construct(
         private PropertyAccessorInterface $property_accessor,
         private MetadataProvider $metadata_provider,
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        private TransformerManager $transformer_manager
     ) {
     }
 
@@ -48,6 +50,11 @@ class InputResolver
 
                 // Set the value to an entity.
                 $values[$argument->getName()] = $entity;
+            }
+
+            // Check if there is a value transformer for this type.
+            if (null !== $transformer = $this->transformer_manager->getTransformer($argument->getNativeType())) {
+                $values[$argument->getName()] = $transformer->transformInput($values[$argument->getName()]);
             }
 
             if (isset($values[$argument->getName()])) {
