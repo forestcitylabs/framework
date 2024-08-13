@@ -14,7 +14,6 @@ use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
 use ForestCityLabs\Framework\GraphQL\PropertyFieldResolver;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
 use ForestCityLabs\Framework\GraphQL\TypeRegistry;
-use ForestCityLabs\Framework\GraphQL\ValueTransformer\DateTimeValueTransformer;
 use ForestCityLabs\Framework\Utility\ClassDiscovery\ScanDirectoryDiscovery;
 use ForestCityLabs\Framework\Utility\CodeGenerator;
 use ForestCityLabs\Framework\Utility\CodeGenerator\GraphQLCodeHelper;
@@ -86,7 +85,6 @@ class GraphQLGenerateFromSchemaCommandTest extends TestCase
             $this->metadata_provider,
             new PropertyFieldResolver(
                 new PropertyAccessor(),
-                new DateTimeValueTransformer(),
                 $this->transformer,
             ),
             new MethodFieldResolver(
@@ -96,7 +94,6 @@ class GraphQLGenerateFromSchemaCommandTest extends TestCase
                     new DateTimeParameterConverter(),
                 ),
                 $this->transformer,
-                new DateTimeValueTransformer(),
                 $this->createStub(EventDispatcherInterface::class)
             )
         );
