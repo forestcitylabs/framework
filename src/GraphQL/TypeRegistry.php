@@ -84,6 +84,16 @@ class TypeRegistry
         return $this->types[$name];
     }
 
+    public function getQueryType(): ?Type
+    {
+        return $this->getType($this->metadata_provider->getQueryType());
+    }
+
+    public function getMutationType(): ?Type
+    {
+        return $this->getType($this->metadata_provider->getMutationType());
+    }
+
     private function buildInputType(InputTypeAttribute $input_metadata): Type
     {
         return new InputObjectType([

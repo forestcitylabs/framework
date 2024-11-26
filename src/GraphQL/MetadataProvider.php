@@ -43,7 +43,9 @@ class MetadataProvider
         private ClassDiscoveryInterface $type_discovery,
         private ClassDiscoveryInterface $controller_discovery,
         private CacheItemPoolInterface $cache,
-        private TransformerManager $transformer_manager
+        private TransformerManager $transformer_manager,
+        private string $query_type = 'Query',
+        private string $mutation_type = 'Mutation'
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
@@ -309,12 +311,12 @@ class MetadataProvider
 
                 // This is a query field.
                 if (count($method->getAttributes(Query::class)) > 0) {
-                    yield 'Query' => $field;
+                    yield $this->query_type => $field;
                 }
 
                 // This is a mutation field.
                 if (count($method->getAttributes(Mutation::class)) > 0) {
-                    yield 'Mutation' => $field;
+                    yield $this->mutation_type => $field;
                 }
 
                 // This is a field on an object type.
@@ -486,5 +488,15 @@ class MetadataProvider
         }
 
         return 'array' === $type->getName() || is_a($type->getName(), Traversable::class, true);
+    }
+
+    public function getQueryType(): string
+    {
+        return $this->query_type;
+    }
+
+    public function getMutationType(): string
+    {
+        return $this->mutation_type;
     }
 }
