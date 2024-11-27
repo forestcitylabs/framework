@@ -19,6 +19,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
 use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Owner;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
@@ -308,13 +309,30 @@ class MetadataProvider
                     $field->addArgument($argument);
                 }
 
+                // Determine the parent for this field.
+                foreach ($method->getAttributes(Owner::class) as $attribute) {
+                    $owner = $attribute->newInstance();
+
+                    // Use class metadata if available.
+                    if (class_exists($owner->getName())) {
+                        foreach ($this->getMetadataByClassName($owner->getName()) as $metadata) {
+                            yield $metadata->getName() => $field;
+                        }
+                    } else {
+                        // Use the raw name otherwise.
+                        yield $owner->getName() => $field;
+                    }
+                }
+
                 // This is a query field.
                 if (count($method->getAttributes(Query::class)) > 0) {
+                    trigger_deprecation('forestcitylabs/core', '1.2.0', 'Use the "Query" attribute is deprecated, use the "Parent" attribute instead.');
                     yield $this->query_type => $field;
                 }
 
                 // This is a mutation field.
                 if (count($method->getAttributes(Mutation::class)) > 0) {
+                    trigger_deprecation('forestcitylabs/core', '1.2.0', 'Use the "Mutation" attribute is deprecated, use the "Parent" attribute instead.');
                     yield $this->mutation_type => $field;
                 }
 

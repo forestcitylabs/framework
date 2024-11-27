@@ -7,14 +7,14 @@ namespace ForestCityLabs\Framework\GraphQL\Attribute;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class Parent
+class Owner
 {
-    function __construct(private string $parent)
+    function __construct(private string $name)
     {
     }
 
-    public function getParent(): string
+    public function getName(): string
     {
-        return $this->parent;
+        return $this->name;
     }
 }
