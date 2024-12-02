@@ -19,6 +19,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
 use ForestCityLabs\Framework\GraphQL\Attribute\InterfaceType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Mutation;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Owner;
 use ForestCityLabs\Framework\GraphQL\Attribute\Query;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
@@ -29,7 +30,6 @@ use Ramsey\Uuid\UuidInterface;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionEnum;
-use ReflectionEnumBackedCase;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionType;
@@ -43,7 +43,9 @@ class MetadataProvider
         private ClassDiscoveryInterface $type_discovery,
         private ClassDiscoveryInterface $controller_discovery,
         private CacheItemPoolInterface $cache,
-        private TransformerManager $transformer_manager
+        private TransformerManager $transformer_manager,
+        private string $query_type = 'Query',
+        private string $mutation_type = 'Mutation'
     ) {
         $item = $cache->getItem('core.graphql.metadata');
         if (!$item->isHit()) {
@@ -307,14 +309,31 @@ class MetadataProvider
                     $field->addArgument($argument);
                 }
 
+                // Determine the parent for this field.
+                foreach ($method->getAttributes(Owner::class) as $attribute) {
+                    $owner = $attribute->newInstance();
+
+                    // Use class metadata if available.
+                    if (class_exists($owner->getName())) {
+                        foreach ($this->getMetadataByClassName($owner->getName()) as $metadata) {
+                            yield $metadata->getName() => $field;
+                        }
+                    } else {
+                        // Use the raw name otherwise.
+                        yield $owner->getName() => $field;
+                    }
+                }
+
                 // This is a query field.
                 if (count($method->getAttributes(Query::class)) > 0) {
-                    yield 'Query' => $field;
+                    trigger_deprecation('forestcitylabs/core', '1.2.0', 'Use the "Query" attribute is deprecated, use the "Parent" attribute instead.');
+                    yield $this->query_type => $field;
                 }
 
                 // This is a mutation field.
                 if (count($method->getAttributes(Mutation::class)) > 0) {
-                    yield 'Mutation' => $field;
+                    trigger_deprecation('forestcitylabs/core', '1.2.0', 'Use the "Mutation" attribute is deprecated, use the "Parent" attribute instead.');
+                    yield $this->mutation_type => $field;
                 }
 
                 // This is a field on an object type.
@@ -486,5 +505,15 @@ class MetadataProvider
         }
 
         return 'array' === $type->getName() || is_a($type->getName(), Traversable::class, true);
+    }
+
+    public function getQueryType(): string
+    {
+        return $this->query_type;
+    }
+
+    public function getMutationType(): string
+    {
+        return $this->mutation_type;
     }
 }

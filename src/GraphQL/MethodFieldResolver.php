@@ -37,25 +37,27 @@ class MethodFieldResolver implements FieldResolverInterface
         array $args = [],
         ServerRequestInterface $request = null
     ): mixed {
-        // If the object is passed use that, otherwise use a service.
-        if (null !== $object) {
-            list(, $method) = explode('::', $field->getAttributeName());
+        // Get the service and method strings.
+        list($service_name, $method) = explode('::', $field->getAttributeName());
+
+        // If the object has a method that is callable use that.
+        if (is_callable([$object, $method])) {
+            $service = $object;
         } else {
-            list($service, $method) = explode('::', $field->getAttributeName());
-            $object = $this->container->get($service);
+            $service = $this->container->get($service_name);
         }
 
         // Resolve the arguments.
         $args = $this->parameter_processor->processParameters(
-            [$object, $method],
-            $args + [$request]
+            [$service, $method],
+            $args + [$request, $object]
         );
 
         // Dispatch a pre-resolve event before continuing.
-        $this->dispatcher->dispatch(new PreGraphQLFieldResolveEvent([$object, $method], $request));
+        $this->dispatcher->dispatch(new PreGraphQLFieldResolveEvent([$service, $method], $request));
 
         // Call the function.
-        $value = call_user_func([$object, $method], ...$args);
+        $value = call_user_func([$service, $method], ...$args);
 
         // Check if there is a transformer for this type.
         if (null !== $transformer = $this->transformer_manager->getTransformer($field->getNativeType())) {
