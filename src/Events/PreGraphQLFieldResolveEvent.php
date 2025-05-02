@@ -10,7 +10,8 @@ class PreGraphQLFieldResolveEvent
 {
     public function __construct(
         private mixed $context,
-        private ServerRequestInterface $request
+        private ServerRequestInterface $request,
+        private array $args,
     ) {
     }
 
@@ -22,5 +23,10 @@ class PreGraphQLFieldResolveEvent
     public function getRequest(): ServerRequestInterface
     {
         return $this->request;
+    }
+
+    public function getArgs(): array
+    {
+        return $this->args;
     }
 }

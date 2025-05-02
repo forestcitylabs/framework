@@ -54,7 +54,7 @@ class MethodFieldResolver implements FieldResolverInterface
         );
 
         // Dispatch a pre-resolve event before continuing.
-        $this->dispatcher->dispatch(new PreGraphQLFieldResolveEvent([$service, $method], $request));
+        $this->dispatcher->dispatch(new PreGraphQLFieldResolveEvent([$service, $method], $request, $args));
 
         // Call the function.
         $value = call_user_func([$service, $method], ...$args);
