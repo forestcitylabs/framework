@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionFunctionAbstract;
 use stdClass;
 
 #[CoversClass(RequiresScope::class)]
@@ -24,7 +25,10 @@ class RequiresScopeTest extends TestCase
     {
         $attribute = new RequiresScope('admin');
         $this->expectException(UnauthorizedException::class);
-        $attribute->checkRequirement($this->createMock(ServerRequestInterface::class));
+        $attribute->checkRequirement(
+            $this->createMock(ServerRequestInterface::class),
+            $this->createMock(ReflectionFunctionAbstract::class)
+        );
     }
 
     #[Test]
@@ -34,7 +38,10 @@ class RequiresScopeTest extends TestCase
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')->with('_access_token')->willReturn(new stdClass());
         $this->expectException(UnauthorizedException::class);
-        $attribute->checkRequirement($request);
+        $attribute->checkRequirement(
+            $request,
+            $this->createMock(ReflectionFunctionAbstract::class)
+        );
     }
 
     #[Test]
@@ -46,6 +53,9 @@ class RequiresScopeTest extends TestCase
         $request->method('getAttribute')->with('_access_token')->willReturn($token);
         $token->method('hasScope')->willReturn(false);
         $this->expectException(InsufficientScopeException::class);
-        $attribute->checkRequirement($request);
+        $attribute->checkRequirement(
+            $request,
+            $this->createMock(ReflectionFunctionAbstract::class)
+        );
     }
 }

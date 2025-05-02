@@ -17,6 +17,7 @@ use ForestCityLabs\Framework\Security\Exception\UnauthorizedException;
 use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Utility\SerializerTrait;
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionFunctionAbstract;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 class RequiresRole implements RequirementInterface
@@ -28,7 +29,7 @@ class RequiresRole implements RequirementInterface
     ) {
     }
 
-    public function checkRequirement(ServerRequestInterface $request): void
+    public function checkRequirement(ServerRequestInterface $request, ReflectionFunctionAbstract $reflection): void
     {
         // Must have an access token.
         if (null === $access_token = $request->getAttribute('_access_token')) {

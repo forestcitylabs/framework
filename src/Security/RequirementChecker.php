@@ -29,7 +29,7 @@ class RequirementChecker
 
         // Iterate over requirements, if any return false immediately return.
         foreach ($this->parseRequirements($reflection) as $requirement) {
-            $requirement->checkRequirement($request);
+            $requirement->checkRequirement($request, $reflection);
         }
     }
 
