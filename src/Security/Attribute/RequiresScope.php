@@ -30,8 +30,11 @@ class RequiresScope implements RequirementInterface
     ) {
     }
 
-    public function checkRequirement(ServerRequestInterface $request, ReflectionFunctionAbstract $reflection): void
-    {
+    public function checkRequirement(
+        ServerRequestInterface $request,
+        ?array $args = null,
+        ?ReflectionFunctionAbstract $reflection = null
+    ): void {
         // Must have an access token.
         if (null === $access_token = $request->getAttribute('_access_token')) {
             throw new UnauthorizedException();

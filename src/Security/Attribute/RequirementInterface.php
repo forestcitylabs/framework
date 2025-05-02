@@ -21,7 +21,12 @@ interface RequirementInterface
      *
      * @param  ServerRequestInterface $request The incoming request.
      * @param  ReflectionFunctionAbstract $reflection The reflection for the function being executed.
+     * @param  array $args The arguments being passed to the function.
      * @throws HttpException                   If the requirement fails.
      */
-    public function checkRequirement(ServerRequestInterface $request, ReflectionFunctionAbstract $reflection): void;
+    public function checkRequirement(
+        ServerRequestInterface $request,
+        ?array $args = null,
+        ?ReflectionFunctionAbstract $reflection = null,
+    ): void;
 }

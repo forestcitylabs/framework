@@ -18,6 +18,6 @@ class SecurityPreGraphQLFieldResolveListener
 
     public function __invoke(PreGraphQLFieldResolveEvent $event)
     {
-        $this->checker->checkRequirements($event->getContext(), $event->getRequest());
+        $this->checker->checkRequirements($event->getContext(), $event->getRequest(), $event->getArgs());
     }
 }

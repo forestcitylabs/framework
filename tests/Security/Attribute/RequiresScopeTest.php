@@ -27,6 +27,7 @@ class RequiresScopeTest extends TestCase
         $this->expectException(UnauthorizedException::class);
         $attribute->checkRequirement(
             $this->createMock(ServerRequestInterface::class),
+            [],
             $this->createMock(ReflectionFunctionAbstract::class)
         );
     }
@@ -40,6 +41,7 @@ class RequiresScopeTest extends TestCase
         $this->expectException(UnauthorizedException::class);
         $attribute->checkRequirement(
             $request,
+            [],
             $this->createMock(ReflectionFunctionAbstract::class)
         );
     }
@@ -55,6 +57,7 @@ class RequiresScopeTest extends TestCase
         $this->expectException(InsufficientScopeException::class);
         $attribute->checkRequirement(
             $request,
+            [],
             $this->createMock(ReflectionFunctionAbstract::class)
         );
     }
