@@ -10,11 +10,13 @@ use ForestCityLabs\Framework\GraphQL\Transformer\TransformerInterface;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 
 #[CoversClass(TransformerManager::class)]
 #[UsesClass(DateTimeImmutableTransformer::class)]
+#[Group('graphql')]
 class TransformerManagerTest extends TestCase
 {
     #[Test]

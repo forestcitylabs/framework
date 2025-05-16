@@ -7,10 +7,12 @@ namespace ForestCityLabs\Framework\Tests\GraphQL\Transformer;
 use DateTimeImmutable;
 use ForestCityLabs\Framework\GraphQL\Transformer\DateTimeImmutableTransformer;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(DateTimeImmutableTransformer::class)]
+#[Group('graphql')]
 class DateTimeImmutableTransformerTest extends TestCase
 {
     private const DATE = '2024-07-13T09:30:00-04:00';
