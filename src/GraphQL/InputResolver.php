@@ -2,11 +2,9 @@
 
 namespace ForestCityLabs\Framework\GraphQL;
 
-use Application\Exception\GraphQL\EntityNotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
 use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
-use ReflectionProperty;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 class InputResolver
@@ -40,25 +38,18 @@ class InputResolver
                 );
             }
 
-            // Lookup objects by ID.
-            if ($argument->getType() === 'ID') {
-                $property = new ReflectionProperty($input->getClassName(), $argument->getAttributeName());
-                $repo = $this->em->getRepository($property->getType()->getName());
-                if (null === $entity = $repo->findOneBy(['id' => $values[$argument->getName()]])) {
-                    throw new EntityNotFoundException();
-                }
-
-                // Set the value to an entity.
-                $values[$argument->getName()] = $entity;
-            }
-
             // Check if there is a value transformer for this type.
             if (null !== $transformer = $this->transformer_manager->getTransformer($argument->getNativeType())) {
                 $values[$argument->getName()] = $transformer->transformInput($values[$argument->getName()]);
             }
 
+            // Use the property accessor to set the value.
             if (isset($values[$argument->getName()])) {
-                $this->property_accessor->setValue($object, $argument->getAttributeName(), $values[$argument->getName()]);
+                $this->property_accessor->setValue(
+                    $object,
+                    $argument->getAttributeName(),
+                    $values[$argument->getName()]
+                );
             }
         }
 
