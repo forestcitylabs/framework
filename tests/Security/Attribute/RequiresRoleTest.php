@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionFunctionAbstract;
 use stdClass;
 
 #[CoversClass(RequiresRole::class)]
@@ -31,7 +32,7 @@ class RequiresRoleTest extends TestCase
             ->with('_access_token')
             ->willReturn(null);
         $this->expectException(UnauthorizedException::class);
-        $attribute->checkRequirement($request);
+        $attribute->checkRequirement($request, [], $this->createMock(ReflectionFunctionAbstract::class));
     }
 
     #[Test]
@@ -43,7 +44,7 @@ class RequiresRoleTest extends TestCase
             ->with('_access_token')
             ->willReturn(new stdClass());
         $this->expectException(UnauthorizedException::class);
-        $attribute->checkRequirement($request);
+        $attribute->checkRequirement($request, [], $this->createMock(ReflectionFunctionAbstract::class));
     }
 
     #[Test]
@@ -64,6 +65,6 @@ class RequiresRoleTest extends TestCase
 
         // Expect the forbidden exception.
         $this->expectException(ForbiddenException::class);
-        $attribute->checkRequirement($request);
+        $attribute->checkRequirement($request, [], $this->createMock(ReflectionFunctionAbstract::class));
     }
 }

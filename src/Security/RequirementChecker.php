@@ -22,14 +22,14 @@ class RequirementChecker
     ) {
     }
 
-    public function checkRequirements($callable, ServerRequestInterface $request): void
+    public function checkRequirements($callable, ServerRequestInterface $request, array $args = []): void
     {
         // Get reflection.
         $reflection = FunctionReflectionFactory::createReflection($callable);
 
         // Iterate over requirements, if any return false immediately return.
         foreach ($this->parseRequirements($reflection) as $requirement) {
-            $requirement->checkRequirement($request);
+            $requirement->checkRequirement($request, $args, $reflection);
         }
     }
 

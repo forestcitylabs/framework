@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Security\Attribute;
 
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionFunctionAbstract;
 
 interface RequirementInterface
 {
@@ -19,7 +20,13 @@ interface RequirementInterface
      * Check the requirement against a given request.
      *
      * @param  ServerRequestInterface $request The incoming request.
+     * @param  array $args The arguments being passed to the function.
+     * @param  ReflectionFunctionAbstract $reflection The reflection for the function being executed.
      * @throws HttpException                   If the requirement fails.
      */
-    public function checkRequirement(ServerRequestInterface $request): void;
+    public function checkRequirement(
+        ServerRequestInterface $request,
+        array $args,
+        ReflectionFunctionAbstract $reflection,
+    ): void;
 }

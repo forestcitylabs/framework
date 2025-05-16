@@ -12,11 +12,13 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Security\Attribute;
 
 use Attribute;
+use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\Security\Exception\ForbiddenException;
 use ForestCityLabs\Framework\Security\Exception\UnauthorizedException;
 use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Utility\SerializerTrait;
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionFunctionAbstract;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 class RequiresRole implements RequirementInterface
@@ -28,8 +30,11 @@ class RequiresRole implements RequirementInterface
     ) {
     }
 
-    public function checkRequirement(ServerRequestInterface $request): void
-    {
+    public function checkRequirement(
+        ServerRequestInterface $request,
+        array $args,
+        ReflectionFunctionAbstract $reflection
+    ): void {
         // Must have an access token.
         if (null === $access_token = $request->getAttribute('_access_token')) {
             throw new UnauthorizedException();
