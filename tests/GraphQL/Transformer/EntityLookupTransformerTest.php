@@ -13,7 +13,6 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 #[CoversClass(EntityLookupTransformer::class)]
 #[Group('graphql')]
@@ -23,12 +22,9 @@ class EntityLookupTransformerTest extends TestCase
     public function transformOutput(): void
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $pa = $this->createMock(PropertyAccessorInterface::class);
-        $transformer = new EntityLookupTransformer(Apple::class, $em, $pa);
-        $uuid = Uuid::fromString('6aca5a90-3261-11f0-9b76-f2cd93df51d7');
+        $transformer = new EntityLookupTransformer(Apple::class, $em);
         $apple = new Apple();
-        $pa->method('getValue')->with($apple, 'id')->willReturn($uuid);
-        $this->assertEquals($transformer->transformOutput($apple), $uuid);
+        $this->assertEquals($transformer->transformOutput($apple), $apple);
     }
 
     #[Test]
@@ -36,8 +32,7 @@ class EntityLookupTransformerTest extends TestCase
     {
         $em = $this->createMock(EntityManagerInterface::class);
         $repo = $this->createMock(EntityRepository::class);
-        $pa = $this->createMock(PropertyAccessorInterface::class);
-        $transformer = new EntityLookupTransformer(Apple::class, $em, $pa);
+        $transformer = new EntityLookupTransformer(Apple::class, $em);
         $uuid = Uuid::fromString('6aca5a90-3261-11f0-9b76-f2cd93df51d7');
         $apple = new Apple();
         $em->method('getRepository')->with(Apple::class)->willReturn($repo);
@@ -49,8 +44,7 @@ class EntityLookupTransformerTest extends TestCase
     public function getTypes(): void
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $pa = $this->createMock(PropertyAccessorInterface::class);
-        $transformer = new EntityLookupTransformer(Apple::class, $em, $pa);
+        $transformer = new EntityLookupTransformer(Apple::class, $em);
         $this->assertEquals('ID', $transformer->getGraphQLType());
         $this->assertEquals(Apple::class, $transformer->getNativeType());
     }

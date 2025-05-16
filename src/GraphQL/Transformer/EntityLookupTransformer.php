@@ -5,20 +5,18 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\GraphQL\Transformer;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 class EntityLookupTransformer implements TransformerInterface
 {
     public function __construct(
         private string $native_type,
-        private EntityManagerInterface $em,
-        private PropertyAccessorInterface $property_accessor
+        private EntityManagerInterface $em
     ) {
     }
 
     public function transformOutput(mixed $value): mixed
     {
-        return $this->property_accessor->getValue($value, 'id');
+        return $value;
     }
 
     public function transformInput(mixed $value): mixed
