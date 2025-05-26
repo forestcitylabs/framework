@@ -24,18 +24,22 @@ class Argument extends AbstractType
     protected string $attribute_type;
     protected string $attribute_name;
 
+    private mixed $default = null;
+
     public function __construct(
         ?string $name = null,
         ?string $description = null,
         ?string $type = null,
         ?bool $list = null,
-        ?bool $not_null = null
+        ?bool $not_null = null,
+        mixed $default = null
     ) {
         $this->name = $name;
         $this->type = $type;
         $this->description = $description;
         $this->list = $list;
         $this->not_null = $not_null;
+        $this->default = $default;
     }
 
     public function setAttributeType(string $type): static
@@ -58,5 +62,16 @@ class Argument extends AbstractType
     public function getAttributeName(): string
     {
         return $this->attribute_name;
+    }
+
+    public function getDefault(): mixed
+    {
+        return $this->default;
+    }
+
+    public function setDefault(mixed $default): static
+    {
+        $this->default = $default;
+        return $this;
     }
 }

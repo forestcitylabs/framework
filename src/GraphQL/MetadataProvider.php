@@ -274,6 +274,7 @@ class MetadataProvider
                 $argument->setType($argument->getType() ?? $this->mapInputType($property->getType()));
                 $argument->setNotNull($argument->getNotNull() ?? $this->mapNotNull($property->getType()));
                 $argument->setList($argument->getList() ?? $this->mapList($property->getType()));
+                $argument->setDefault($argument->getDefault() ?? $property->getDefaultValue());
 
                 // Yield the argument attribute.
                 yield $argument;
@@ -364,6 +365,7 @@ class MetadataProvider
                 $argument->setType($argument->getType() ?? $this->mapInputType($parameter->getType()));
                 $argument->setNotNull($argument->getNotNull() ?? $this->mapNotNull($parameter->getType()));
                 $argument->setList($argument->getList() ?? false);
+                $argument->setDefault($argument->getDefault() ?? ($parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null));
 
                 // Yield the argument attribute.
                 yield $argument;
