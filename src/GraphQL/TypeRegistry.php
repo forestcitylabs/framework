@@ -219,7 +219,7 @@ class TypeRegistry
             'name' => $argument_metadata->getName(),
             'description' => $argument_metadata->getDescription(),
             'type' => $type,
-            'default' => $argument_metadata->getDefault(),
+            'defaultValue' => $argument_metadata->getDefault(),
         ];
     }
 
@@ -243,7 +243,7 @@ class TypeRegistry
                 'name' => $argument_metadata->getName(),
                 'description' => $argument_metadata->getDescription(),
                 'type' => $type,
-                'default' => $argument_metadata->getDefault(),
+                'defaultValue' => $argument_metadata->getDefault(),
             ];
         }
         return $args;
