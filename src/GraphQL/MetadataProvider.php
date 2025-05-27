@@ -365,7 +365,12 @@ class MetadataProvider
                 $argument->setType($argument->getType() ?? $this->mapInputType($parameter->getType()));
                 $argument->setNotNull($argument->getNotNull() ?? $this->mapNotNull($parameter->getType()));
                 $argument->setList($argument->getList() ?? false);
-                $argument->setDefault($argument->getDefault() ?? ($parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null));
+
+                // Check for a default value.
+                if (null === $argument->getDefault() && $parameter->isDefaultValueAvailable()) {
+                    $argument->setDefault($parameter->getDefaultValue());
+                    $argument->setNotNull(false);
+                }
 
                 // Yield the argument attribute.
                 yield $argument;

@@ -215,12 +215,18 @@ class TypeRegistry
             $type = Type::nonNull($type);
         }
 
-        return [
+        $return = [
             'name' => $argument_metadata->getName(),
             'description' => $argument_metadata->getDescription(),
             'type' => $type,
-            'defaultValue' => $argument_metadata->getDefault(),
         ];
+
+        // Check if there's a default value.
+        if ($argument_metadata->getDefault() !== null) {
+            $return['defaultValue'] = $argument_metadata->getDefault();
+        }
+
+        return $return;
     }
 
     private function parseArguments(ObjectFieldAttribute $field_metadata): array
@@ -239,12 +245,19 @@ class TypeRegistry
                 $type = Type::nonNull($type);
             }
 
-            $args[] = [
+            // Build the argument.
+            $arg = [
                 'name' => $argument_metadata->getName(),
                 'description' => $argument_metadata->getDescription(),
                 'type' => $type,
-                'defaultValue' => $argument_metadata->getDefault(),
             ];
+
+            // Check if there's a default value.
+            if ($argument_metadata->getDefault() !== null) {
+                $arg['defaultValue'] = $argument_metadata->getDefault();
+            }
+
+            $args[] = $arg;
         }
         return $args;
     }
