@@ -59,7 +59,21 @@ class PredisCachePool extends AbstractCachePool
 
     public function clear(): bool
     {
-        $this->client->del($this->client->keys('*'));
+        // Get the prefix.
+        $prefix = $this->client->getOption('prefix');
+
+        // Store a cursor to delete all keys with the prefix.
+        $cursor = null;
+
+        // Scan for keys and delete them.
+        do {
+            [$cursor, $keys] = $this->client->scan($cursor, ['MATCH' => $prefix . '*']);
+            foreach ($keys as $key) {
+                $this->client->del(substr($key, strlen($prefix)));
+            }
+        } while ($cursor !== 0);
+
+        // Return success.
         return true;
     }
 }
