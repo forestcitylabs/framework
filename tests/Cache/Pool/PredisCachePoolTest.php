@@ -14,10 +14,12 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use Predis\Client;
+use Predis\Configuration\Options;
 
 #[CoversClass(PredisCachePool::class)]
 #[CoversClass(AbstractCachePool::class)]
 #[UsesClass(CacheItem::class)]
+#[UsesClass(Options::class)]
 #[Group("cache")]
 class PredisCachePoolTest extends AbstractCachePoolTestCase
 {
@@ -54,12 +56,13 @@ class PredisCachePoolTest extends AbstractCachePoolTestCase
     public function clearCache(): void
     {
         $this->client->allows()->get('no_expiry')->andReturn(null);
-        $this->client->shouldReceive('getOption')->with('prefix')->andReturn('prefix:');
+        $options = new Options(['prefix' => 'prefix:']);
+        $this->client->shouldReceive('getOptions')->andReturn($options);
         $this->client->shouldReceive('scan')
-            ->with(null, ['MATCH' => 'prefix:*'])
+            ->with(null, ['MATCH' => 'prefix:*', 'COUNT' => 1000])
             ->andReturn([1, ['prefix:key1', 'prefix:key2']]);
         $this->client->shouldReceive('scan')
-            ->with(1, ['MATCH' => 'prefix:*'])
+            ->with(1, ['MATCH' => 'prefix:*', 'COUNT' => 1000])
             ->andReturn([0, []]);
         $this->client->shouldReceive('del')
             ->with('key1')->once();
