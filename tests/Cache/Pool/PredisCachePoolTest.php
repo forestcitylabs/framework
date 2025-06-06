@@ -54,6 +54,17 @@ class PredisCachePoolTest extends AbstractCachePoolTestCase
     public function clearCache(): void
     {
         $this->client->allows()->get('no_expiry')->andReturn(null);
+        $this->client->shouldReceive('getOption')->with('prefix')->andReturn('prefix:');
+        $this->client->shouldReceive('scan')
+            ->with(null, ['MATCH' => 'prefix:*'])
+            ->andReturn([1, ['prefix:key1', 'prefix:key2']]);
+        $this->client->shouldReceive('scan')
+            ->with(1, ['MATCH' => 'prefix:*'])
+            ->andReturn([0, []]);
+        $this->client->shouldReceive('del')
+            ->with('key1')->once();
+        $this->client->shouldReceive('del')
+            ->with('key2')->once();
         parent::clearCache();
     }
 
