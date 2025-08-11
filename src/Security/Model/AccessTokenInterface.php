@@ -15,13 +15,21 @@ use DateTimeImmutable;
 
 interface AccessTokenInterface
 {
-    public function getUser(): UserInterface;
+    public function getUser(): ?UserInterface;
+
+    public function setUser(?UserInterface $user): void;
 
     public function getToken(): string;
 
+    public function setToken(string $token): void;
+
     public function getScopes(): array;
+
+    public function addScope(string $scope): void;
 
     public function hasScope(string $scope): bool;
 
-    public function getExpiry(): DateTimeImmutable;
+    public function getExpiresAt(): DateTimeImmutable;
+
+    public function setExpiresAt(DateTimeImmutable $expires_at): void;
 }

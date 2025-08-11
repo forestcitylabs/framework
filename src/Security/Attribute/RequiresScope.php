@@ -15,7 +15,6 @@ use Attribute;
 use ForestCityLabs\Framework\Security\Exception\InsufficientScopeException;
 use ForestCityLabs\Framework\Security\Exception\UnauthorizedException;
 use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
-use ForestCityLabs\Framework\Security\ScopeRegistry;
 use ForestCityLabs\Framework\Utility\SerializerTrait;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionFunctionAbstract;
@@ -48,8 +47,7 @@ class RequiresScope implements RequirementInterface
         }
 
         if (
-            !$access_token->hasScope(ScopeRegistry::ALL)
-            && !$access_token->hasScope($this->scope)
+            !$access_token->hasScope($this->scope)
         ) {
             throw new InsufficientScopeException(sprintf(
                 'Scope "%s" is required to access this resource.',

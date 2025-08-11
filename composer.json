@@ -10,6 +10,7 @@
     ],
     "require": {
         "php": "^8.0",
+        "lcobucci/jwt": "^5.5",
         "psr/cache": "^2.0",
         "psr/container": "^2.0",
         "psr/event-dispatcher": "^1.0",
