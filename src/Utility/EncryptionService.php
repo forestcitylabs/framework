@@ -26,7 +26,7 @@ class EncryptionService
             $ciphertext,
             $tag,
             $nonce,
-            $this->encryption_key
+            base64_decode($this->encryption_key),
         );
 
         if (null === $plaintext) {
@@ -44,7 +44,7 @@ class EncryptionService
             $plaintext,
             $tag,
             $nonce,
-            $this->encryption_key
+            base64_decode($this->encryption_key)
         );
 
         return base64_encode($nonce . $ciphertext);
