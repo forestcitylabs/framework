@@ -8,6 +8,6 @@ class SecureStringService
 {
     public function generateRandomString(int $length = 32): string
     {
-        return rtrim(strtr(base64_encode(sodium_randombytes_buf($length)), '+/', '-_'), '=');
+        return rtrim(strtr(base64_encode(random_bytes($length)), '+/', '-_'), '=');
     }
 }
