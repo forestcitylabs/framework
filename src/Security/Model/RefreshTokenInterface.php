@@ -32,4 +32,8 @@ interface RefreshTokenInterface
     public function getExpiresAt(): DateTimeImmutable;
 
     public function setExpiresAt(DateTimeImmutable $expires_at): void;
+
+    public function setClient(ClientInterface $client): void;
+
+    public function getClient(): ClientInterface;
 }
