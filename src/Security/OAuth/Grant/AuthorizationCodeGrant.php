@@ -6,10 +6,10 @@ namespace ForestCityLabs\Framework\Security\OAuth\Grant;
 
 use DateInterval;
 use DateTimeImmutable;
-use ForestCityLabs\Framework\Security\ClientManagerInterface;
 use ForestCityLabs\Framework\Security\Exception\OAuthException;
 use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\AuthCodeManagerInterface;
+use ForestCityLabs\Framework\Security\Manager\ClientManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\RefreshTokenManagerInterface;
 use ForestCityLabs\Framework\Security\Model\AuthCodeInterface;
 use ForestCityLabs\Framework\Security\Model\ClientInterface;
@@ -39,8 +39,8 @@ class AuthorizationCodeGrant implements GrantInterface
         ClientManagerInterface $client_manager,
         SecureStringService $secure_string_service,
         OAuthScopeRegistry $scope_registry,
-        DateInterval $code_ttl = new DateInterval('P5M'),
-        DateInterval $access_token_ttl = new DateInterval('P1H'),
+        DateInterval $code_ttl = new DateInterval('PT5M'),
+        DateInterval $access_token_ttl = new DateInterval('PT1H'),
         DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
         $this->auth_code_manager = $auth_code_manager;
@@ -57,7 +57,7 @@ class AuthorizationCodeGrant implements GrantInterface
     public function canHandleAuthorizationRequest(ServerRequestInterface $request): bool
     {
         $params = $request->getQueryParams();
-        if ($request->getMethod === 'GET' && isset($params['response_type']) && $params['response_type'] === 'code') {
+        if ($request->getMethod() === 'GET' && isset($params['response_type']) && $params['response_type'] === 'code') {
             return true;
         }
         return false;
@@ -65,9 +65,9 @@ class AuthorizationCodeGrant implements GrantInterface
 
     public function canHandleTokenRequest(ServerRequestInterface $request): bool
     {
-        $params = $request->getQueryParams();
+        $params = $request->getParsedBody();
         if (
-            $request->getMethod === 'POST'
+            $request->getMethod() === 'POST'
             && isset($params['grant_type'])
             && $params['grant_type'] === 'authorization_code'
         ) {
@@ -80,7 +80,7 @@ class AuthorizationCodeGrant implements GrantInterface
     {
         // Validate the authorization request.
         $params = $request->getQueryParams();
-        if ($params['response_type'] ?? null !== 'code') {
+        if (!array_key_exists('response_type', $params) || $params['response_type'] !== 'code') {
             throw new OAuthException('Invalid response type. Only "code" is supported.');
         }
 
@@ -93,7 +93,7 @@ class AuthorizationCodeGrant implements GrantInterface
         }
 
         // If no scope is provided, use the default scopes of the client.
-        if (!array_key_exists('scope', $params)) {
+        if (!array_key_exists('scope', $params) || $params['scope'] === '') {
             $params['scope'] = implode(' ', $client->getScopes());
         }
 
@@ -128,14 +128,14 @@ class AuthorizationCodeGrant implements GrantInterface
 
         // Create auth request.
         return new AuthRequest(
-            $request->getQueryParams()['client_id'],
-            $request->getQueryParams()['redirect_uri'],
-            $request->getQueryParams()['response_type'],
+            $params['client_id'],
+            $params['redirect_uri'],
+            $params['response_type'],
             (new DateTimeImmutable())->add($this->code_ttl),
-            $request->getQueryParams()['scope'] ?? null,
-            $request->getQueryParams()['state'] ?? null,
-            $request->getQueryParams()['code_challenge'] ?? null,
-            $request->getQueryParams()['code_challenge_method'] ?? null
+            $params['scope'] ?? null,
+            $params['state'] ?? null,
+            $params['code_challenge'] ?? null,
+            $params['code_challenge_method'] ?? null
         );
     }
 
@@ -153,7 +153,7 @@ class AuthorizationCodeGrant implements GrantInterface
         $code->setUser($user);
 
         // Get the requested scopes.
-        $requested_scopes = explode(' ', $auth_request['scope']);
+        $requested_scopes = explode(' ', $auth_request->getScope() ?? '');
 
         // If no scopes are granted, use the scopes from the auth request.
         if (null === $granted_scopes) {
@@ -216,7 +216,7 @@ class AuthorizationCodeGrant implements GrantInterface
 
         // Find the auth code.
         $auth_code = $this->auth_code_manager->findAuthCode($params['code']);
-        if (null === $auth_code || $auth_code->getClient()->getId() !== $params['client_id']) {
+        if (null === $auth_code || $auth_code->getClient()->getIdentifier() !== $params['client_id']) {
             throw new OAuthException('Invalid authorization code');
         }
 
@@ -229,7 +229,7 @@ class AuthorizationCodeGrant implements GrantInterface
         // Create access token and persist it.
         $access_token = $this->access_token_manager->generateAccessToken();
         $access_token->setUser($auth_code->getUser());
-        $access_token->setToken($this->secure_string_service->generateRandomString());
+        $access_token->setToken($this->secure_string_service->generateRandomString(128));
         $access_token->setExpiresAt((new DateTimeImmutable())->add($this->access_token_ttl));
         foreach ($auth_code->getScopes() as $scope) {
             $access_token->addScope($scope);
@@ -239,8 +239,9 @@ class AuthorizationCodeGrant implements GrantInterface
         // Create a refresh token and persist it.
         $refresh_token = $this->refresh_token_manager->generateRefreshToken();
         $refresh_token->setUser($auth_code->getUser());
-        $refresh_token->setToken($this->secure_string_service->generateRandomString());
+        $refresh_token->setToken($this->secure_string_service->generateRandomString(128));
         $refresh_token->setExpiresAt((new DateTimeImmutable())->add($this->refresh_token_ttl));
+        $refresh_token->setClient($auth_code->getClient());
         foreach ($auth_code->getScopes() as $scope) {
             $refresh_token->addScope($scope);
         }
