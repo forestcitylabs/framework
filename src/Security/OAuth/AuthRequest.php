@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Security\OAuth;
 
 use DateTimeImmutable;
-use Serializable;
 
-class AuthRequest implements Serializable
+class AuthRequest
 {
     public function __construct(
         private string $client_id,
@@ -112,9 +111,9 @@ class AuthRequest implements Serializable
         $this->nonce = $nonce;
     }
 
-    public function serialize(): string
+    public function __serialize(): array
     {
-        return serialize([
+        return [
             'client_id' => $this->client_id,
             'redirect_uri' => $this->redirect_uri,
             'response_type' => $this->response_type,
@@ -124,10 +123,10 @@ class AuthRequest implements Serializable
             'code_challenge' => $this->code_challenge,
             'code_challenge_method' => $this->code_challenge_method,
             'nonce' => $this->nonce,
-        ]);
+        ];
     }
 
-    public function unserialize($serialized): void
+    public function __unserialize(array $serialized): void
     {
         [
             'client_id' => $this->client_id,
@@ -139,6 +138,6 @@ class AuthRequest implements Serializable
             'code_challenge' => $this->code_challenge,
             'code_challenge_method' => $this->code_challenge_method,
             'nonce' => $this->nonce,
-        ] = unserialize($serialized, ['allowed_classes' => [DateTimeImmutable::class]]);
+        ] = $serialized;
     }
 }
