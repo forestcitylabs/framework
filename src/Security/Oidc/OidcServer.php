@@ -20,6 +20,7 @@ class OidcServer extends OAuthServer
     protected OidcClaimRegistry $claim_registry;
 
     public function __construct(
+        string $redirect_uri,
         Configuration $jwt,
         ResponseFactoryInterface $rf,
         StreamFactoryInterface $sf,
@@ -31,7 +32,15 @@ class OidcServer extends OAuthServer
     ) {
         $this->jwt = $jwt;
         $this->claim_registry = $claim_registry;
-        parent::__construct($rf, $sf, $encryption_service, $scope_registry, $grants, $cookie_key);
+        parent::__construct(
+            $redirect_uri,
+            $rf,
+            $sf,
+            $encryption_service,
+            $scope_registry,
+            $grants,
+            $cookie_key
+        );
     }
 
     public function handleUserInfoRequest(ServerRequestInterface $request): ResponseInterface
@@ -69,6 +78,7 @@ class OidcServer extends OAuthServer
                 && !$this->claim_registry->isValidClaim($scope)
                 && !$this->claim_registry->isValidGroup($scope)
             ) {
+                d('hey');
                 throw new OAuthException(sprintf('Invalid scope: %s', $scope));
             }
         }
