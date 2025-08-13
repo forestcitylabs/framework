@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Security\Model;
 
+use DateTimeImmutable;
+
 interface AuthCodeInterface
 {
     /**
@@ -53,14 +55,14 @@ interface AuthCodeInterface
      *
      * @return \DateTimeInterface The expiration time.
      */
-    public function getExpiresAt(): \DateTimeInterface;
+    public function getExpiresAt(): DateTimeImmutable;
 
     /**
      * Set the expiration time of the authorization code.
      *
      * @param \DateTimeInterface $expiresAt The expiration time.
      */
-    public function setExpiresAt(\DateTimeInterface $expiresAt): void;
+    public function setExpiresAt(DateTimeImmutable $expiresAt): void;
 
     public function getUser(): UserInterface;
 
