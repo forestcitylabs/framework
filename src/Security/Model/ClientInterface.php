@@ -23,7 +23,7 @@ interface ClientInterface
     /**
      * Get the redirect URI for the client.
      *
-     * @return string The redirect URI.
+     * @return array The redirect URIs.
      */
     public function getRedirectUris(): array;
 
