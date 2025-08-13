@@ -7,6 +7,7 @@ namespace ForestCityLabs\Framework\Security\Oidc\Grant;
 use DateInterval;
 use DateTimeImmutable;
 use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
+use ForestCityLabs\Framework\Security\Manager\ClientManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\RefreshTokenManagerInterface;
 use ForestCityLabs\Framework\Security\OAuth\AuthRequest;
 use ForestCityLabs\Framework\Security\OAuth\Grant\RefreshTokenGrant as OAuthRefreshTokenGrant;
@@ -26,7 +27,8 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
         AccessTokenManagerInterface $access_token_manager,
         SecureStringService $secure_string_service,
         OAuthScopeRegistry $scope_registry,
-        DateInterval $access_token_ttl = new DateInterval('P1H'),
+        ClientManagerInterface $client_manager,
+        DateInterval $access_token_ttl = new DateInterval('PT1H'),
         DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
         $this->jwt = $jwt;
@@ -35,6 +37,7 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
             $access_token_manager,
             $secure_string_service,
             $scope_registry,
+            $client_manager,
             $access_token_ttl,
             $refresh_token_ttl
         );
