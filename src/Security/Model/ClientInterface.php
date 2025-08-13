@@ -11,7 +11,7 @@ interface ClientInterface
      *
      * @return string The client ID.
      */
-    public function getId(): string;
+    public function getIdentifier(): string;
 
     /**
      * Get the client secret.
@@ -25,7 +25,7 @@ interface ClientInterface
      *
      * @return string The redirect URI.
      */
-    public function getRedirectUri(): string;
+    public function getRedirectUris(): array;
 
     /**
      * Get the scopes allowed for the client.
@@ -35,8 +35,6 @@ interface ClientInterface
     public function getScopes(): array;
 
     public function hasRedirectUri(string $redirectUri): bool;
-
-    public function getRedirectUris(): array;
 
     public function isConfidential(): bool;
 }
