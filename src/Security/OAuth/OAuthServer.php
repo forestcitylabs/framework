@@ -10,6 +10,7 @@ use Dflydev\FigCookies\Modifier\SameSite;
 use Dflydev\FigCookies\SetCookie;
 use ForestCityLabs\Framework\Security\Exception\OAuthException;
 use ForestCityLabs\Framework\Security\Model\UserInterface;
+use ForestCityLabs\Framework\Security\OAuth\Grant\AuthorizationCodeGrant;
 use ForestCityLabs\Framework\Utility\EncryptionService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -18,6 +19,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 class OAuthServer
 {
+    protected string $redirect_uri;
     protected ResponseFactoryInterface $rf;
     protected StreamFactoryInterface $sf;
     protected EncryptionService $encryption_service;
@@ -26,6 +28,7 @@ class OAuthServer
     protected OAuthScopeRegistry $scope_registry;
 
     public function __construct(
+        string $redirect_uri,
         ResponseFactoryInterface $rf,
         StreamFactoryInterface $sf,
         EncryptionService $encryption_service,
@@ -33,6 +36,7 @@ class OAuthServer
         array $grants = [],
         string $cookie_key = '_oauth_session',
     ) {
+        $this->redirect_uri = $redirect_uri;
         $this->rf = $rf;
         $this->sf = $sf;
         $this->encryption_service = $encryption_service;
@@ -46,7 +50,14 @@ class OAuthServer
         // Check if any grant can handle the authorization request.
         foreach ($this->grants as $grant) {
             if ($grant->canHandleAuthorizationRequest($request)) {
-                $auth_request = $grant->handleAuthorizationRequest($request);
+                try {
+                    $auth_request = $grant->handleAuthorizationRequest($request);
+                } catch (OAuthException $e) {
+                    // If the grant cannot handle the request, return a 400 Bad Request response.
+                    return $this->rf->createResponse(400)->withBody(
+                        $this->sf->createStream($e->getMessage())
+                    );
+                }
 
                 // Create a cookie to store the encrypted authorization request.
                 $set_cookie = SetCookie::create(
@@ -60,7 +71,7 @@ class OAuthServer
 
                 // Return the response with the cookie set.
                 return FigResponseCookies::set(
-                    $this->rf->createResponse(),
+                    $this->rf->createResponse(302)->withHeader('Location', $this->redirect_uri),
                     $set_cookie
                 );
             }
@@ -74,11 +85,12 @@ class OAuthServer
 
     public function approveAuthorizationRequest(
         ServerRequestInterface $request,
-        UserInterface $user
+        UserInterface $user,
+        ?array $granted_scopes = null,
     ): ResponseInterface {
         // Check if any grant can approve the authorization request.
         foreach ($this->grants as $grant) {
-            if ($grant->canHandleAuthorizationRequest($request)) {
+            if ($grant instanceof AuthorizationCodeGrant) {
                 // Must have an active authorization request to respond.
                 if (null === $auth_request = $this->getAuthorizationRequest($request)) {
                     return $this->rf->createResponse(400)->withBody(
@@ -88,7 +100,7 @@ class OAuthServer
 
                 // Get the authorization code.
                 try {
-                    $code = $grant->approveAuthorizationRequest($auth_request, $request, $user);
+                    $code = $grant->approveAuthorizationRequest($auth_request, $request, $granted_scopes, $user);
                 } catch (OAuthException $e) {
                     return $this->rf->createResponse(400)->withBody(
                         $this->sf->createStream($e->getMessage())
@@ -130,7 +142,9 @@ class OAuthServer
                 // Create a response.
                 $response = $this->rf->createResponse(200)
                     ->withHeader('Content-Type', 'application/json')
-                    ->withBody($this->sf->createStream(json_encode($token_response->formatResponse(), JSON_THROW_ON_ERROR)));
+                    ->withBody(
+                        $this->sf->createStream(json_encode($token_response->formatResponse(), JSON_THROW_ON_ERROR))
+                    );
 
                 // If we have an authorization request expire that now.
                 if (null !== $this->getAuthorizationRequest($request)) {
