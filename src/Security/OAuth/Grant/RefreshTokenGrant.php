@@ -8,6 +8,7 @@ use DateInterval;
 use DateTimeImmutable;
 use ForestCityLabs\Framework\Security\Exception\OAuthException;
 use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
+use ForestCityLabs\Framework\Security\Manager\ClientManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\RefreshTokenManagerInterface;
 use ForestCityLabs\Framework\Security\Model\AuthCodeInterface;
 use ForestCityLabs\Framework\Security\Model\UserInterface;
@@ -23,6 +24,7 @@ class RefreshTokenGrant implements GrantInterface
     private AccessTokenManagerInterface $access_token_manager;
     private SecureStringService $secure_string_service;
     private OAuthScopeRegistry $scope_registry;
+    protected ClientManagerInterface $client_manager;
     protected DateInterval $access_token_ttl;
     protected DateInterval $refresh_token_ttl;
 
@@ -31,12 +33,14 @@ class RefreshTokenGrant implements GrantInterface
         AccessTokenManagerInterface $access_token_manager,
         SecureStringService $secure_string_service,
         OAuthScopeRegistry $scope_registry,
-        DateInterval $access_token_ttl = new DateInterval('P1H'),
+        ClientManagerInterface $client_manager,
+        DateInterval $access_token_ttl = new DateInterval('PT1H'),
         DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
         $this->refresh_token_manager = $refresh_token_manager;
         $this->access_token_manager = $access_token_manager;
         $this->secure_string_service = $secure_string_service;
+        $this->client_manager = $client_manager;
         $this->scope_registry = $scope_registry;
         $this->access_token_ttl = $access_token_ttl;
         $this->refresh_token_ttl = $refresh_token_ttl;
@@ -57,7 +61,8 @@ class RefreshTokenGrant implements GrantInterface
     public function approveAuthorizationRequest(
         AuthRequest $auth_request,
         ServerRequestInterface $request,
-        ?UserInterface $user
+        ?array $granted_scopes = null,
+        ?UserInterface $user = null,
     ): AuthCodeInterface {
         // Refresh token grants do not approve authorization requests.
         throw new \RuntimeException('Refresh token grant does not approve authorization requests.');
@@ -71,13 +76,24 @@ class RefreshTokenGrant implements GrantInterface
 
     public function handleTokenRequest(ServerRequestInterface $request, ?AuthRequest $auth_request): OAuthTokenResponse
     {
+        $params = $request->getParsedBody();
         // Lookup the refresh token from the request.
         if (
             null === $old_refresh_token = $this->refresh_token_manager->findRefreshTokenByToken(
-                $request->getParsedBody()['refresh_token']
+                $params['refresh_token']
             )
         ) {
             throw new OAuthException('Invalid refresh token.');
+        }
+
+        // Get the client from the request.
+        if (null === $client = $this->client_manager->findClientById($params['client_id'] ?? '')) {
+            throw new OAuthException('Client not found for the refresh token request.');
+        }
+
+        // Check the client matches.
+        if ($client !== $old_refresh_token->getClient()) {
+            throw new OAuthException('Client mismatch for the refresh token.');
         }
 
         // Ensure the refresh token is not expired.
@@ -89,7 +105,7 @@ class RefreshTokenGrant implements GrantInterface
         // Create a new access token.
         $access_token = $this->access_token_manager->generateAccessToken();
         $access_token->setUser($old_refresh_token->getUser());
-        $access_token->setToken($this->secure_string_service->generateRandomString());
+        $access_token->setToken($this->secure_string_service->generateRandomString(128));
         $access_token->setExpiresAt((new DateTimeImmutable())->add($this->access_token_ttl));
 
         // Filter privileged scopes before adding to the new access token.
@@ -103,8 +119,9 @@ class RefreshTokenGrant implements GrantInterface
         // Create a new refresh token.
         $refresh_token = $this->refresh_token_manager->generateRefreshToken();
         $refresh_token->setUser($old_refresh_token->getUser());
-        $refresh_token->setToken($this->secure_string_service->generateRandomString());
+        $refresh_token->setToken($this->secure_string_service->generateRandomString(128));
         $refresh_token->setExpiresAt((new DateTimeImmutable())->add($this->refresh_token_ttl));
+        $refresh_token->setClient($client);
 
         // Add filtered scopes from the new access token.
         foreach ($access_token->getScopes() as $scope) {
