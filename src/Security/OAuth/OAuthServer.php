@@ -182,14 +182,4 @@ class OAuthServer
         // No cookie found, return null.
         return null;
     }
-
-    public function validateScopes(array $scopes): void
-    {
-        // Validate the requested scopes against the registered scopes.
-        foreach ($scopes as $scope) {
-            if (!$this->scope_registry->isValidScope($scope)) {
-                throw new OAuthException("Invalid scope: $scope");
-            }
-        }
-    }
 }
