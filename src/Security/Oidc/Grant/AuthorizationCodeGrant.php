@@ -85,7 +85,13 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
         // If the scope includes 'openid', we need to ensure the ID token is included.
         $scopes = explode(' ', $auth_request->getScope());
         if (in_array('openid', $scopes, true)) {
+            // Get the current time.
             $now = new DateTimeImmutable();
+
+            // Get the client from the auth request.
+            $client = $this->client_manager->findClientById($auth_request->getClientId());
+
+            // Start building the ID token.
             $builder = $this->jwt->builder()
                 ->issuedBy($request->getUri()->getScheme() . '://' . $request->getUri()->getHost())
                 ->permittedFor($auth_request->getClientId())
@@ -93,9 +99,17 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
                 ->issuedAt($now)
                 ->expiresAt($now->add($this->access_token_ttl))
                 ->withClaim('nonce', $auth_request->getNonce());
-            foreach ($this->claim_resolver->resolveClaims($scopes, $response->getAccessToken()->getUser()) as $claim => $value) {
-                // Add the claim to the ID token.
-                $builder = $builder->withClaim($claim, $value);
+
+            // Add allowed claims to the ID token.
+            foreach (
+                $this->claim_resolver->resolveClaims(
+                    $scopes,
+                    $response->getAccessToken()->getUser()
+                ) as $claim => $value
+            ) {
+                if (in_array($claim, $client->getScopes())) {
+                    $builder = $builder->withClaim($claim, $value);
+                }
             }
 
             $id_token = $builder->getToken(
@@ -123,7 +137,7 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
             ) {
                 throw new OAuthException("Invalid scope: $scope");
             }
-            if (!in_array($scope, $client->getScopes(), true)) {
+            if (!in_array($scope, array_merge($client->getScopes(), $this->claim_registry->getGroups()), true)) {
                 throw new OAuthException(sprintf('Invalid scope "%s" for client.', $scope));
             }
         }
