@@ -26,12 +26,12 @@ class OidcClaimRegistry
 
     public function getClaims(): array
     {
-        return $this->claims;
+        return array_keys($this->claims);
     }
 
     public function getGroups(): array
     {
-        return $this->groups;
+        return array_keys($this->groups);
     }
 
     public function getGroup($group): array
