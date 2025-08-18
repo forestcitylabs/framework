@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Middleware;
 
-use ForestCityLabs\Framework\Security\OAuth\OidcServer;
+use ForestCityLabs\Framework\Security\Oidc\OidcServer;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -15,16 +15,14 @@ use Psr\Http\Server\RequestHandlerInterface;
 class OidcMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private string $redirect_path,
+        private string $redirect_uri,
         private ResponseFactoryInterface $rf,
         private StreamFactoryInterface $sf,
-        private OidcServer $oidc_server,
-        private string $encryption_key,
-        private string $cookie_key = '_oauth_session',
-        private string $auth_path = '/authorize',
-        private string $token_path = '/token',
-        private string $userinfo_path = '/userinfo',
-        private string $jwks_path = '/jwks.json',
+        private OidcServer $server,
+        private string $auth_path = '/oauth/authorize',
+        private string $token_path = '/oauth/token',
+        private string $userinfo_path = '/oauth/userinfo',
+        private string $jwks_path = '/oauth/jwks.json',
     ) {
     }
 
@@ -32,26 +30,19 @@ class OidcMiddleware implements MiddlewareInterface
     {
         switch ($request->getUri()->getPath()) {
             case $this->auth_path:
-                // Create auth request and redirect to the application.
-                return $this->oidc_server
+                return $this->server
                     ->handleAuthorizationRequest($request)
                     ->withStatus(302)
-                    ->withHeader('Location', $this->redirect_path);
+                    ->withHeader('Location', $this->redirect_uri);
             case $this->token_path:
-                // Handle token request
-                return $this->oidc_server->handleTokenRequest($request);
+                return $this->server->handleTokenRequest($request);
             case $this->userinfo_path:
-                // Handle user info request
-                // Validate the access token and return user information.
-                // This is typically where you would implement the UserInfo endpoint.
+                return $this->server->handleUserInfoRequest($request);
                 break;
             case $this->jwks_path:
-                // Handle JWKS request
-                // Return the JSON Web Key Set (JWKS) for public keys used to verify JWTs.
-                // This is where you would implement the JWKS endpoint.
+                return $this->server->handleJwksRequest();
                 break;
             case '/.well-known/openid-configuration':
-                // Handle OpenID Connect discovery request
                 return $this->rf->createResponse(200)
                     ->withBody($this->sf->createStream(json_encode([
                         'issuer' => $request->getUri()->getScheme() . '://' . $request->getUri()->getHost(),

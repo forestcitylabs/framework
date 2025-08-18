@@ -19,7 +19,6 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 class OAuthServer
 {
-    protected string $redirect_uri;
     protected ResponseFactoryInterface $rf;
     protected StreamFactoryInterface $sf;
     protected EncryptionService $encryption_service;
@@ -28,7 +27,6 @@ class OAuthServer
     protected OAuthScopeRegistry $scope_registry;
 
     public function __construct(
-        string $redirect_uri,
         ResponseFactoryInterface $rf,
         StreamFactoryInterface $sf,
         EncryptionService $encryption_service,
@@ -36,7 +34,6 @@ class OAuthServer
         array $grants = [],
         string $cookie_key = '_oauth_session',
     ) {
-        $this->redirect_uri = $redirect_uri;
         $this->rf = $rf;
         $this->sf = $sf;
         $this->encryption_service = $encryption_service;
@@ -70,10 +67,7 @@ class OAuthServer
                     ->withMaxAge($auth_request->getExpiresAt()->getTimestamp() - time());
 
                 // Return the response with the cookie set.
-                return FigResponseCookies::set(
-                    $this->rf->createResponse(302)->withHeader('Location', $this->redirect_uri),
-                    $set_cookie
-                );
+                return FigResponseCookies::set($this->rf->createResponse(), $set_cookie);
             }
         }
 

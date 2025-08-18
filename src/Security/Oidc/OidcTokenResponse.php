@@ -11,7 +11,7 @@ use Lcobucci\JWT\Token;
 
 class OidcTokenResponse extends OAuthTokenResponse
 {
-    private Token $id_token;
+    private ?Token $id_token;
 
     public function __construct(
         AccessTokenInterface $access_token,

@@ -19,7 +19,10 @@ class OAuthScopeRegistry
     public function filterPrivilegedScopes(array $scopes): array
     {
         return array_values(array_filter($scopes, function ($value) {
-            return !$this->scopes[$value];
+            if (isset($this->scopes[$value])) {
+                return !$this->scopes[$value];
+            }
+            return true;
         }));
     }
 

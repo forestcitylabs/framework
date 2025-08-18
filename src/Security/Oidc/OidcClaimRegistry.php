@@ -47,7 +47,10 @@ class OidcClaimRegistry
     {
         // Filter the claims based on the defined claims.
         return array_values(array_filter($claims, function ($claim) {
-            return !$this->claims[$claim];
+            if (isset($this->claims[$claim])) {
+                return !$this->claims[$claim];
+            }
+            return true;
         }));
     }
 

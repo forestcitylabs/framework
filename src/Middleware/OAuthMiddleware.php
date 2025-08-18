@@ -13,6 +13,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 class OAuthMiddleware implements MiddlewareInterface
 {
     public function __construct(
+        private string $redirect_path,
         private OAuthServer $server,
         private string $auth_path = '/oauth/authorize',
         private string $token_path = '/oauth/token'
@@ -23,7 +24,11 @@ class OAuthMiddleware implements MiddlewareInterface
     {
         switch ($request->getUri()->getPath()) {
             case $this->auth_path:
-                return $this->server->handleAuthorizationRequest($request);
+                return $this
+                    ->server
+                    ->handleAuthorizationRequest($request)
+                    ->withStatus(302)
+                    ->withHeader('Location', $this->redirect_path);
             case $this->token_path:
                 return $this->server->handleTokenRequest($request);
         }
