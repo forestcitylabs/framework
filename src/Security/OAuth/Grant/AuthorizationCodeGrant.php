@@ -22,36 +22,17 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class AuthorizationCodeGrant implements GrantInterface
 {
-    protected AuthCodeManagerInterface $auth_code_manager;
-    protected AccessTokenManagerInterface $access_token_manager;
-    protected RefreshTokenManagerInterface $refresh_token_manager;
-    protected ClientManagerInterface $client_manager;
-    protected SecureStringService $secure_string_service;
-    protected OAuthScopeRegistry $scope_registry;
-    protected DateInterval $code_ttl;
-    protected DateInterval $access_token_ttl;
-    protected DateInterval $refresh_token_ttl;
-
     public function __construct(
-        AuthCodeManagerInterface $auth_code_manager,
-        AccessTokenManagerInterface $access_token_manager,
-        RefreshTokenManagerInterface $refresh_token_manager,
-        ClientManagerInterface $client_manager,
-        SecureStringService $secure_string_service,
-        OAuthScopeRegistry $scope_registry,
-        DateInterval $code_ttl = new DateInterval('PT5M'),
-        DateInterval $access_token_ttl = new DateInterval('PT1H'),
-        DateInterval $refresh_token_ttl = new DateInterval('P1M'),
+        protected AuthCodeManagerInterface $auth_code_manager,
+        protected AccessTokenManagerInterface $access_token_manager,
+        protected RefreshTokenManagerInterface $refresh_token_manager,
+        protected ClientManagerInterface $client_manager,
+        protected SecureStringService $secure_string_service,
+        protected OAuthScopeRegistry $scope_registry,
+        protected DateInterval $code_ttl = new DateInterval('PT5M'),
+        protected DateInterval $access_token_ttl = new DateInterval('PT1H'),
+        protected DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
-        $this->auth_code_manager = $auth_code_manager;
-        $this->access_token_manager = $access_token_manager;
-        $this->refresh_token_manager = $refresh_token_manager;
-        $this->client_manager = $client_manager;
-        $this->secure_string_service = $secure_string_service;
-        $this->scope_registry = $scope_registry;
-        $this->code_ttl = $code_ttl;
-        $this->access_token_ttl = $access_token_ttl;
-        $this->refresh_token_ttl = $refresh_token_ttl;
     }
 
     public function canHandleAuthorizationRequest(ServerRequestInterface $request): bool

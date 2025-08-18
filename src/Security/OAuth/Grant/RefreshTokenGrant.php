@@ -20,30 +20,15 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class RefreshTokenGrant implements GrantInterface
 {
-    private RefreshTokenManagerInterface $refresh_token_manager;
-    private AccessTokenManagerInterface $access_token_manager;
-    private SecureStringService $secure_string_service;
-    private OAuthScopeRegistry $scope_registry;
-    protected ClientManagerInterface $client_manager;
-    protected DateInterval $access_token_ttl;
-    protected DateInterval $refresh_token_ttl;
-
     public function __construct(
-        RefreshTokenManagerInterface $refresh_token_manager,
-        AccessTokenManagerInterface $access_token_manager,
-        SecureStringService $secure_string_service,
-        OAuthScopeRegistry $scope_registry,
-        ClientManagerInterface $client_manager,
-        DateInterval $access_token_ttl = new DateInterval('PT1H'),
-        DateInterval $refresh_token_ttl = new DateInterval('P1M'),
+        protected RefreshTokenManagerInterface $refresh_token_manager,
+        protected AccessTokenManagerInterface $access_token_manager,
+        protected SecureStringService $secure_string_service,
+        protected OAuthScopeRegistry $scope_registry,
+        protected ClientManagerInterface $client_manager,
+        protected DateInterval $access_token_ttl = new DateInterval('PT1H'),
+        protected DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
-        $this->refresh_token_manager = $refresh_token_manager;
-        $this->access_token_manager = $access_token_manager;
-        $this->secure_string_service = $secure_string_service;
-        $this->client_manager = $client_manager;
-        $this->scope_registry = $scope_registry;
-        $this->access_token_ttl = $access_token_ttl;
-        $this->refresh_token_ttl = $refresh_token_ttl;
     }
 
     public function canHandleAuthorizationRequest(ServerRequestInterface $request): bool

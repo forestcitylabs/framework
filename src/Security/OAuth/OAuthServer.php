@@ -19,27 +19,14 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 class OAuthServer
 {
-    protected ResponseFactoryInterface $rf;
-    protected StreamFactoryInterface $sf;
-    protected EncryptionService $encryption_service;
-    protected array $grants = [];
-    protected string $cookie_key = '_oauth_session';
-    protected OAuthScopeRegistry $scope_registry;
-
     public function __construct(
-        ResponseFactoryInterface $rf,
-        StreamFactoryInterface $sf,
-        EncryptionService $encryption_service,
-        OAuthScopeRegistry $scope_registry,
-        array $grants = [],
-        string $cookie_key = '_oauth_session',
+        protected ResponseFactoryInterface $rf,
+        protected StreamFactoryInterface $sf,
+        protected EncryptionService $encryption_service,
+        protected OAuthScopeRegistry $scope_registry,
+        protected array $grants = [],
+        protected string $cookie_key = '_oauth_session',
     ) {
-        $this->rf = $rf;
-        $this->sf = $sf;
-        $this->encryption_service = $encryption_service;
-        $this->scope_registry = $scope_registry;
-        $this->grants = $grants;
-        $this->cookie_key = $cookie_key;
     }
 
     public function handleAuthorizationRequest(ServerRequestInterface $request): ResponseInterface

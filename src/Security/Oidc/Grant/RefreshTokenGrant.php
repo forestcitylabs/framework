@@ -12,6 +12,7 @@ use ForestCityLabs\Framework\Security\Manager\RefreshTokenManagerInterface;
 use ForestCityLabs\Framework\Security\OAuth\AuthRequest;
 use ForestCityLabs\Framework\Security\OAuth\Grant\RefreshTokenGrant as OAuthRefreshTokenGrant;
 use ForestCityLabs\Framework\Security\OAuth\OAuthScopeRegistry;
+use ForestCityLabs\Framework\Security\Oidc\ClaimResolver;
 use ForestCityLabs\Framework\Security\Oidc\OidcTokenResponse;
 use ForestCityLabs\Framework\Utility\SecureStringService;
 use Lcobucci\JWT\Configuration;
@@ -19,10 +20,9 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class RefreshTokenGrant extends OAuthRefreshTokenGrant
 {
-    private Configuration $jwt;
-
     public function __construct(
-        Configuration $jwt,
+        protected Configuration $jwt,
+        protected ClaimResolver $claim_resolver,
         RefreshTokenManagerInterface $refresh_token_manager,
         AccessTokenManagerInterface $access_token_manager,
         SecureStringService $secure_string_service,
@@ -31,7 +31,6 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
         DateInterval $access_token_ttl = new DateInterval('PT1H'),
         DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
-        $this->jwt = $jwt;
         parent::__construct(
             $refresh_token_manager,
             $access_token_manager,
@@ -48,18 +47,39 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
         // Call the parent method to handle the token request.
         $response = parent::handleTokenRequest($request, $auth_request);
 
-        // If the scope includes 'openid', we need to ensure the ID token is included.
         $scopes = explode(' ', $auth_request->getScope());
         if (in_array('openid', $scopes, true)) {
+            // Get the current time.
             $now = new DateTimeImmutable();
-            $id_token = $this->jwt->builder()
+
+            // Get the client from the auth request.
+            $client = $this->client_manager->findClientById($auth_request->getClientId());
+
+            // Start building the ID token.
+            $builder = $this->jwt->builder()
                 ->issuedBy($request->getUri()->getScheme() . '://' . $request->getUri()->getHost())
                 ->permittedFor($auth_request->getClientId())
                 ->relatedTo($response->getAccessToken()->getUser()->getIdentifier())
                 ->issuedAt($now)
                 ->expiresAt($now->add($this->access_token_ttl))
-                ->withClaim('nonce', $auth_request->getNonce())
-                ->getToken($this->jwt->signer(), $this->jwt->signingKey());
+                ->withClaim('nonce', $auth_request->getNonce());
+
+            // Add allowed claims to the ID token.
+            foreach (
+                $this->claim_resolver->resolveClaims(
+                    $scopes,
+                    $response->getAccessToken()->getUser()
+                ) as $claim => $value
+            ) {
+                if (in_array($claim, $client->getScopes())) {
+                    $builder = $builder->withClaim($claim, $value);
+                }
+            }
+
+            $id_token = $builder->getToken(
+                $this->jwt->signer(),
+                $this->jwt->signingKey()
+            );
         }
 
         // Return the response with the ID token added.

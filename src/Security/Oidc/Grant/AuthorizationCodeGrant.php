@@ -24,14 +24,10 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
 {
-    protected Configuration $jwt;
-    protected OidcClaimRegistry $claim_registry;
-    protected ClaimResolver $claim_resolver;
-
     public function __construct(
-        Configuration $jwt,
-        OidcClaimRegistry $claim_registry,
-        ClaimResolver $claim_resolver,
+        protected Configuration $jwt,
+        protected OidcClaimRegistry $claim_registry,
+        protected ClaimResolver $claim_resolver,
         AuthCodeManagerInterface $auth_code_manager,
         AccessTokenManagerInterface $access_token_manager,
         RefreshTokenManagerInterface $refresh_token_manager,
@@ -42,10 +38,6 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
         DateInterval $access_token_ttl = new DateInterval('PT1H'),
         DateInterval $refresh_token_ttl = new DateInterval('P1M'),
     ) {
-        $this->jwt = $jwt;
-        $this->claim_registry = $claim_registry;
-        $this->claim_resolver = $claim_resolver;
-
         parent::__construct(
             $auth_code_manager,
             $access_token_manager,
@@ -64,8 +56,11 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
         // Call the parent method to handle the authorization request.
         $auth_request = parent::handleAuthorizationRequest($request);
 
+        // Flatten the scopes by expanding groups to individual claims.
+        $scopes = $this->flattenScopes($auth_request->getScope());
+        $auth_request->setScope(implode(' ', $scopes));
+
         // If the scope includes 'openid' we need to include a nonce.
-        $scopes = explode(' ', $auth_request->getScope());
         if (in_array('openid', $scopes, true)) {
             $params = $request->getQueryParams();
             if (!isset($params['nonce']) || empty($params['nonce'])) {
@@ -141,5 +136,19 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
                 throw new OAuthException(sprintf('Invalid scope "%s" for client.', $scope));
             }
         }
+    }
+
+    public function flattenScopes(string $scopes): array
+    {
+        // Flatten the scopes by expanding groups to individual claims.
+        $flattened = [];
+        foreach (explode(' ', $scopes) as $scope) {
+            if ($this->claim_registry->isValidGroup($scope)) {
+                $flattened = array_merge($flattened, $this->claim_registry->getGroup($scope));
+            } else {
+                $flattened[] = $scope;
+            }
+        }
+        return array_unique($flattened);
     }
 }

@@ -15,27 +15,18 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 class OidcServer extends OAuthServer
 {
-    protected OidcClaimRegistry $claim_registry;
-    protected Keystore $keystore;
-    protected AccessTokenManagerInterface $access_token_manager;
-    protected ClaimResolver $claim_resolver;
-
     public function __construct(
-        AccessTokenManagerInterface $access_token_manager,
-        ClaimResolver $claim_resolver,
-        Keystore $keystore,
+        protected AccessTokenManagerInterface $access_token_manager,
+        protected ClaimResolver $claim_resolver,
+        protected Keystore $keystore,
+        protected OidcClaimRegistry $claim_registry,
         ResponseFactoryInterface $rf,
         StreamFactoryInterface $sf,
         EncryptionService $encryption_service,
         OAuthScopeRegistry $scope_registry,
-        OidcClaimRegistry $claim_registry,
         array $grants = [],
         string $cookie_key = '_oauth_session',
     ) {
-        $this->access_token_manager = $access_token_manager;
-        $this->keystore = $keystore;
-        $this->claim_registry = $claim_registry;
-        $this->claim_resolver = $claim_resolver;
         parent::__construct(
             $rf,
             $sf,
