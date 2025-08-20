@@ -21,9 +21,7 @@ use ForestCityLabs\Framework\Security\Oidc\ClaimResolver;
 use ForestCityLabs\Framework\Security\Oidc\Grant\RefreshTokenGrant;
 use ForestCityLabs\Framework\Security\Oidc\OidcTokenResponse;
 use ForestCityLabs\Framework\Utility\SecureStringService;
-use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Configuration;
-use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Token;
@@ -39,6 +37,8 @@ use Psr\Http\Message\UriInterface;
 #[Group('oidc')]
 #[Group('grant')]
 #[UsesClass(OAuthRefreshTokenGrant::class)]
+#[UsesClass(OAuthTokenResponse::class)]
+#[UsesClass(OidcTokenResponse::class)]
 class RefreshTokenGrantTest extends TestCase
 {
     private RefreshTokenManagerInterface $refreshTokenManager;
@@ -341,7 +341,7 @@ class RefreshTokenGrantTest extends TestCase
         $this->assertInstanceOf(OidcTokenResponse::class, $result);
         $this->assertNotNull($result->getIdToken());
         $this->assertInstanceOf(Token::class, $result->getIdToken());
-        
+
         // Verify the token has the expected claims
         $token = $result->getIdToken();
         $this->assertEquals('https://auth.example.com', $token->claims()->get('iss'));
@@ -404,7 +404,7 @@ class RefreshTokenGrantTest extends TestCase
         $this->assertInstanceOf(OidcTokenResponse::class, $result);
         $this->assertNotNull($result->getIdToken());
         $this->assertInstanceOf(Token::class, $result->getIdToken());
-        
+
         // Verify the token has the expected minimal claims
         $token = $result->getIdToken();
         $this->assertEquals('https://example.com', $token->claims()->get('iss'));
@@ -413,3 +413,4 @@ class RefreshTokenGrantTest extends TestCase
         $this->assertEquals('test-nonce', $token->claims()->get('nonce'));
     }
 }
+

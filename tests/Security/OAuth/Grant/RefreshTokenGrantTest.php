@@ -22,6 +22,7 @@ use ForestCityLabs\Framework\Utility\SecureStringService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
@@ -29,6 +30,7 @@ use RuntimeException;
 #[CoversClass(RefreshTokenGrant::class)]
 #[Group('oauth')]
 #[Group('grant')]
+#[UsesClass(OAuthTokenResponse::class)]
 class RefreshTokenGrantTest extends TestCase
 {
     private RefreshTokenManagerInterface $refreshTokenManager;
@@ -38,7 +40,6 @@ class RefreshTokenGrantTest extends TestCase
     private ClientManagerInterface $clientManager;
     private ServerRequestInterface $request;
     private RefreshTokenInterface $refreshToken;
-    private AccessTokenInterface $accessToken;
     private ClientInterface $client;
     private UserInterface $user;
     private RefreshTokenGrant $grant;
@@ -52,7 +53,6 @@ class RefreshTokenGrantTest extends TestCase
         $this->clientManager = $this->createMock(ClientManagerInterface::class);
         $this->request = $this->createMock(ServerRequestInterface::class);
         $this->refreshToken = $this->createMock(RefreshTokenInterface::class);
-        $this->accessToken = $this->createMock(AccessTokenInterface::class);
         $this->client = $this->createMock(ClientInterface::class);
         $this->user = $this->createMock(UserInterface::class);
 
@@ -368,7 +368,7 @@ class RefreshTokenGrantTest extends TestCase
         $this->secureStringService->method('generateRandomString')->willReturn('random_string');
 
         $newAccessToken->method('getScopes')->willReturn(['read', 'write']);
-        
+
         // Verify only non-privileged scopes are added
         $newAccessToken->expects($this->exactly(2))->method('addScope')->with($this->logicalOr('read', 'write'));
         $newRefreshToken->expects($this->exactly(2))->method('addScope')->with($this->logicalOr('read', 'write'));
@@ -401,7 +401,7 @@ class RefreshTokenGrantTest extends TestCase
     {
         $customAccessTtl = new DateInterval('PT2H');
         $customRefreshTtl = new DateInterval('P2M');
-        
+
         $customGrant = new RefreshTokenGrant(
             $this->refreshTokenManager,
             $this->accessTokenManager,
@@ -480,3 +480,4 @@ class RefreshTokenGrantTest extends TestCase
         $this->grant->handleTokenRequest($this->request, null);
     }
 }
+
