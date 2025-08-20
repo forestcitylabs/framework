@@ -6,16 +6,14 @@ namespace ForestCityLabs\Framework\Security\Oidc;
 
 final class Keystore
 {
-    private array $keys;
-
     public function __construct(
-        array $keys,
+        private array $keys = [],
     ) {
         // Iterate over keys generating key objects.
         foreach ($keys as $key => $file) {
             $this->keys[$key] = [
-                'private' => file_get_contents($file),
-                'public' => openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($file)))['key'],
+                'private' => @file_get_contents($file),
+                'public' => openssl_pkey_get_details(openssl_pkey_get_private(@file_get_contents($file)))['key'],
             ];
         }
     }
