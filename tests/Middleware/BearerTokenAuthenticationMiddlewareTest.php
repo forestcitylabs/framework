@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Tests\Middleware;
 
 use DateTimeImmutable;
 use ForestCityLabs\Framework\Middleware\BearerTokenAuthenticationMiddleware;
+use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
 use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Security\Repository\AccessTokenRepositoryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,12 +26,12 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
     {
         // Create the token.
         $token = $this->createConfiguredStub(AccessTokenInterface::class, [
-            'getExpiry' => new DateTimeImmutable('+1 day'),
+            'getExpiresAt' => new DateTimeImmutable('+1 day'),
         ]);
 
         // Configure the repo.
-        $repo = $this->createConfiguredStub(AccessTokenRepositoryInterface::class, [
-            'findToken' => $token,
+        $repo = $this->createConfiguredStub(AccessTokenManagerInterface::class, [
+            'findAccessToken' => $token,
         ]);
 
         // Create the request.
@@ -67,7 +68,7 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
     {
         // Create and configure the token.
         $token = $this->createStub(AccessTokenInterface::class);
-        $token->method('getExpiry')
+        $token->method('getExpiresAt')
             ->willReturn(new DateTimeImmutable('-1 day'));
 
         // Configure the request.
@@ -95,8 +96,8 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
             ->with($request);
 
         // Configure the repo.
-        $repo = $this->createStub(AccessTokenRepositoryInterface::class);
-        $repo->method('findToken')
+        $repo = $this->createStub(AccessTokenManagerInterface::class);
+        $repo->method('findAccessToken')
             ->with('test-token')
             ->willReturn($token);
 
@@ -127,9 +128,9 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
             ->with($request);
 
         // Configure the repo.
-        $repo = $this->createMock(AccessTokenRepositoryInterface::class);
+        $repo = $this->createMock(AccessTokenManagerInterface::class);
         $repo->expects($this->once())
-            ->method('findToken')
+            ->method('findAccessToken')
             ->with('test-token')
             ->willReturn(null);
         $middleware = new BearerTokenAuthenticationMiddleware($repo);
@@ -153,7 +154,7 @@ class BearerTokenAuthenticationMiddlewareTest extends TestCase
             ->with($request);
 
         // Configure the repo.
-        $repo = $this->createMock(AccessTokenRepositoryInterface::class);
+        $repo = $this->createMock(AccessTokenManagerInterface::class);
         $middleware = new BearerTokenAuthenticationMiddleware($repo);
         $middleware->process($request, $handler);
     }

@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Security\Attribute;
 
 use Attribute;
-use Doctrine\ORM\EntityManagerInterface;
 use ForestCityLabs\Framework\Security\Exception\ForbiddenException;
 use ForestCityLabs\Framework\Security\Exception\UnauthorizedException;
 use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
