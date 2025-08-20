@@ -9,18 +9,19 @@
         }
     ],
     "require": {
-        "php": "^8.0",
+        "php": "^8.1",
         "psr/cache": "^3.0",
         "psr/container": "^2.0",
         "psr/event-dispatcher": "^1.0",
         "psr/http-factory": "^1.0",
-        "psr/http-message": "^2.0",
+        "psr/http-message": "^1.1 || ^2.0",
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
         "sebastian/diff": "^7.0"
     },
     "suggest": {
+        "lcobucci/jwt": "This package ships configuration that works with this package.",
         "league/event": "This package ships configuration that works with this package.",
         "monolog/monolog": "This package ships configuration that works with this package.",
         "php-di/php-di": "This package ships configuration that works with this package.",
@@ -59,6 +60,7 @@
         "guzzlehttp/psr7": "^2.6",
         "http-interop/http-factory-guzzle": "^1.2",
         "kint-php/kint": "^6.0",
+        "lcobucci/jwt": "^5.0",
         "league/flysystem": "^3.21",
         "league/flysystem-memory": "^3.24",
         "mockery/mockery": "^1.6",

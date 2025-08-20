@@ -11,25 +11,16 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Middleware;
 
-use DateTimeImmutable;
 use Dflydev\FigCookies\Cookies;
 use Dflydev\FigCookies\SetCookie;
 use ForestCityLabs\Framework\Session\Session;
-use ForestCityLabs\Framework\Session\SessionDriverInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Ramsey\Uuid\Exception\UuidExceptionInterface;
-use Ramsey\Uuid\Uuid;
 
 class SessionMiddleware implements MiddlewareInterface
 {
-    public function __construct(
-        private SessionDriverInterface $session_driver
-    ) {
-    }
-
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler
@@ -37,68 +28,42 @@ class SessionMiddleware implements MiddlewareInterface
         // Grab the cookies from the request.
         $cookies = Cookies::fromRequest($request);
 
-        // Check if we have a session cookie.
-        if ($cookies->has('_session')) {
-            // Attempt to load an existing session.
-            try {
-                $id = Uuid::fromString($cookies->get('_session')->getValue());
-                if (null === $session = $this->session_driver->load($id)) {
-                    // Create a new session.
-                    $session = (new Session(Uuid::uuid4()))
-                        ->setExpiry(new DateTimeImmutable('+1 day'));
-                }
-            } catch (UuidExceptionInterface) {
-                $session = (new Session(Uuid::uuid4()))
-                    ->setExpiry(new DateTimeImmutable('+1 day'));
-            }
+        // Check if there's a session in the cookies.
+        if ($cookies->has(session_name()) && session_status() !== PHP_SESSION_ACTIVE) {
+            // Start the session and close it immediately to avoid session locking.
+            session_start(['read_and_close' => true]);
+
+            // Hydrate the session with existing session data.
+            $session = new Session($_SESSION);
         } else {
-            // No session cookie, create a session.
-            $session = (new Session(Uuid::uuid4()))
-                ->setExpiry(new DateTimeImmutable('+1 day'));
+            // Create a blank session.
+            $session = new Session();
         }
 
-        // Check if the session is expired.
-        if ((new DateTimeImmutable()) > $session->getExpiry()) {
-            $this->session_driver->delete($session);
-            $session = (new Session(Uuid::uuid4()))
-                ->setExpiry(new DateTimeImmutable('+1 day'));
-        }
-
-        // Delegate request, adding session attribute.
+        // Dispatch the request with the session attached.
         $response = $handler->handle($request->withAttribute('_session', $session));
 
-        // If the session is empty remove it or ignore.
-        if ($session->isEmpty()) {
-            // Expire existing cookie.
-            if ($cookies->has('_session')) {
-                return $response
-                    ->withAddedHeader('set-cookie', (string) SetCookie::create('_session')->expire())
+        // If the session is dirty we need to either persist or destroy it.
+        if ($session->isDirty()) {
+            if ($session->isEmpty() && $cookies->has(session_name())) {
+                // If the session is empty destroy it and clear the cookie.
+                session_destroy();
+                $response = $response->withAddedHeader(
+                    'set-cookie',
+                    (string) SetCookie::create(session_name())->expire()
+                )
                     ->withHeader('cache-control', 'no-store, no-cache, must-revalidate');
             }
 
-            // Return the unaltered response.
-            return $response;
-        }
-
-        // Persist the session.
-        $this->session_driver->save($session);
-
-        // If the session is new create a new session cookie.
-        if (
-            !$cookies->has('_session')
-            || $cookies->get('_session')->getValue() !== (string) $session->getId()
-        ) {
-            $response = $response->withAddedHeader(
-                'set-cookie',
-                (string) SetCookie::create('_session')
-                    ->withValue((string) $session->getId())
-                    ->withPath('/')
-                    ->withSecure()
-                    ->withHttpOnly()
-            );
+            // Session is not empty, persist it.
+            if (!$session->isEmpty()) {
+                session_start();
+                $_SESSION = $session->getData();
+                session_write_close();
+            }
         }
 
         // Return the response.
-        return $response->withHeader('cache-control', 'no-store, no-cache, must-revalidate');
+        return $response;
     }
 }
