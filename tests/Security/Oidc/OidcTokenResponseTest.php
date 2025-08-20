@@ -13,11 +13,13 @@ use Lcobucci\JWT\Token;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(OidcTokenResponse::class)]
 #[Group('oidc')]
 #[Group('security')]
+#[UsesClass(OAuthTokenResponse::class)]
 class OidcTokenResponseTest extends TestCase
 {
     private AccessTokenInterface $accessToken;
@@ -105,7 +107,7 @@ class OidcTokenResponseTest extends TestCase
         // Mock the current time for consistent testing
         $currentTime = time();
         $expiresAt = new DateTimeImmutable('+3600 seconds');
-        
+
         $this->accessToken->method('getExpiresAt')->willReturn($expiresAt);
 
         $response = new OidcTokenResponse($this->accessToken, $this->refreshToken);
@@ -193,7 +195,7 @@ class OidcTokenResponseTest extends TestCase
         $response = new OidcTokenResponse($this->accessToken);
 
         $this->assertInstanceOf(OAuthTokenResponse::class, $response);
-        
+
         // Test inherited methods work correctly
         $this->assertSame($this->accessToken, $response->getAccessToken());
         $this->assertNull($response->getRefreshToken());
@@ -220,7 +222,7 @@ class OidcTokenResponseTest extends TestCase
     public function idTokenStringConversion()
     {
         $customJwt = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMTIzIiwibmFtZSI6IkpvaG4gRG9lIn0.signature';
-        
+
         $customIdToken = $this->createMock(Token::class);
         $customIdToken->method('toString')->willReturn($customJwt);
 
@@ -260,3 +262,4 @@ class OidcTokenResponseTest extends TestCase
         $this->assertEquals('openid', $formattedResponse['scope']);
     }
 }
+
