@@ -36,7 +36,7 @@ class OAuthTokenResponse
             'access_token' => $this->access_token->getToken(),
             'token_type' => 'Bearer',
             'expires_in' => $this->access_token->getExpiresAt()->getTimestamp() - time(),
-            'refresh_token' => $this->refresh_token->getToken() ?? null,
+            'refresh_token' => $this->refresh_token?->getToken(),
             'scope' => implode(' ', $this->access_token->getScopes()),
         ];
     }
