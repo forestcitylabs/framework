@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Cache\Pool;
 
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use ForestCityLabs\Framework\Cache\CacheItem;
@@ -33,7 +33,7 @@ class DbalCachePool extends AbstractCachePool
                 $qb->expr()->isNull('expires'),
                 $qb->expr()->gt('expires', ':now')
             ))
-            ->setParameter('now', new DateTime(), 'datetime');
+            ->setParameter('now', new DateTimeImmutable(), 'datetime_immutable');
 
         // If we cannot get a result return a new cache item.
         if (false === $result = $qb->executeQuery()->fetchAssociative()) {
@@ -41,7 +41,7 @@ class DbalCachePool extends AbstractCachePool
         }
 
         // Cache item is good, return.
-        return new CacheItem($key, unserialize($result['data']), $result['expires'] ? new DateTime($result['expires']) : null, true);
+        return new CacheItem($key, unserialize($result['data']), $result['expires'] ? new DateTimeImmutable($result['expires']) : null, true);
     }
 
     public function getItems(array $keys = []): iterable
@@ -60,13 +60,13 @@ class DbalCachePool extends AbstractCachePool
                 $qb->expr()->isNull('expires'),
                 $qb->expr()->gt('expires', ':now')
             ))
-            ->setParameter('now', new DateTime(), 'datetime');
+            ->setParameter('now', new DateTimeImmutable(), 'datetime_immutable');
 
         // Pass back the results.
         $result = $qb->executeQuery()->fetchAllAssociativeIndexed();
         foreach ($keys as $key) {
             if (isset($result[$key])) {
-                $item = new CacheItem($key, unserialize($result[$key]['data']), $result[$key]['expires'] ? new DateTime($result[$key]['expires']) : null, true);
+                $item = new CacheItem($key, unserialize($result[$key]['data']), $result[$key]['expires'] ? new DateTimeImmutable($result[$key]['expires']) : null, true);
             } else {
                 $item = new CacheItem($key);
             }
@@ -89,7 +89,7 @@ class DbalCachePool extends AbstractCachePool
                 $qb->expr()->isNull('expires'),
                 $qb->expr()->gt('expires', ':now')
             ))
-            ->setParameter('now', new DateTime(), 'datetime');
+            ->setParameter('now', new DateTimeImmutable(), 'datetime_immutable');
 
         // If this is not in the database return false.
         if (false === $qb->executeQuery()->fetchOne()) {
@@ -151,7 +151,7 @@ class DbalCachePool extends AbstractCachePool
                     'key' => $item->getKey(),
                     'data' => serialize($item->get()),
                     'expires' => $item->getExpires(),
-                ], ['expires' => 'datetime'])
+                ], ['expires' => 'datetime_immutable'])
                 ->executeQuery();
 
         // Commit the transaction and return true.
