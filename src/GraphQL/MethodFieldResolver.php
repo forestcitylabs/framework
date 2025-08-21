@@ -33,7 +33,7 @@ class MethodFieldResolver implements FieldResolverInterface
         Field $field,
         ?object $object = null,
         array $args = [],
-        ServerRequestInterface $request = null
+        ?ServerRequestInterface $request = null
     ): mixed {
         // Get the service and method strings.
         list($service_name, $method) = explode('::', $field->getAttributeName());
