@@ -28,7 +28,7 @@ class PropertyFieldResolver implements FieldResolverInterface
         Field $field,
         ?object $object = null,
         array $args = [],
-        ServerRequestInterface $request = null
+        ?ServerRequestInterface $request = null
     ): mixed {
         // Get the value from the object.
         $value = $this->property_accessor->getValue($object, $field->getAttributeName());

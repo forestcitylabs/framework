@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\Cache\Pool;
 
-use DateTime;
+use DateTimeImmutable;
 use ForestCityLabs\Framework\Cache\CacheItem;
 use ForestCityLabs\Framework\Cache\Pool\AbstractCachePool;
 use ForestCityLabs\Framework\Cache\Pool\PredisCachePool;
@@ -41,7 +41,7 @@ class PredisCachePoolTest extends AbstractCachePoolTestCase
         $this->client->allows()->exists('expired')->andReturn(0);
 
         // The future item will return an item that expires in the future then nothing.
-        $this->client->allows()->get('future')->andReturn(serialize(new CacheItem('future', 'future', new DateTime('+1 day'))));
+        $this->client->allows()->get('future')->andReturn(serialize(new CacheItem('future', 'future', new DateTimeImmutable('+1 day'))));
         $this->client->allows()->exists('future')->andReturn(1);
 
         // The delete me item will be present initially and then not present.

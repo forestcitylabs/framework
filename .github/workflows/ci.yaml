@@ -19,7 +19,7 @@ jobs:
   build-test:
     strategy:
       matrix:
-        version: [8.1, 8.2, 8.3, 8.4]
+        version: [8.2, 8.3, 8.4]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -27,8 +27,9 @@ jobs:
     - uses: php-actions/phpunit@v3
       with:
         php_version: ${{matrix.version}}
-        version: 10
+        version: 11
         args: "--no-coverage"
+        test_suffix: Test.php
   build-coverage:
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +39,8 @@ jobs:
       with:
         php_extensions: xdebug
         coverage_cobertura: "coverage.xml"
-        version: 10
+        version: 11
+        test_suffix: Test.php
       env:
         XDEBUG_MODE: coverage
     - name: Upload coverage reports to Codecov

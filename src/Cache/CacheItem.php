@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Cache;
 
-use DateTimeInterface;
+use DateTimeImmutable;
 use Psr\Cache\CacheItemInterface;
 
 class CacheItem implements CacheItemInterface
@@ -12,7 +12,7 @@ class CacheItem implements CacheItemInterface
     public function __construct(
         private string $key,
         private mixed $value = null,
-        private ?DateTimeInterface $expires = null,
+        private ?DateTimeImmutable $expires = null,
         private bool $hit = false
     ) {
     }
@@ -63,7 +63,7 @@ class CacheItem implements CacheItemInterface
         return $this;
     }
 
-    public function getExpires(): ?DateTimeInterface
+    public function getExpires(): ?DateTimeImmutable
     {
         return $this->expires;
     }

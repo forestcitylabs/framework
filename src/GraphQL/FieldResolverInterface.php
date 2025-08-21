@@ -20,6 +20,6 @@ interface FieldResolverInterface
         Field $field,
         ?object $object = null,
         array $args = [],
-        ServerRequestInterface $request = null
+        ?ServerRequestInterface $request = null
     ): mixed;
 }

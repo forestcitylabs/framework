@@ -12,7 +12,6 @@ use ForestCityLabs\Framework\GraphQL\Transformer\TransformerManager;
 use ForestCityLabs\Framework\Tests\Fixture\Controller\AppleController;
 use ForestCityLabs\Framework\Utility\ParameterProcessor;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -28,7 +27,6 @@ use Ramsey\Uuid\Uuid;
 class MethodFieldResolverTest extends TestCase
 {
     #[Test]
-    #[DoesNotPerformAssertions]
     public function resolveField(): void
     {
         // Mock the services.
