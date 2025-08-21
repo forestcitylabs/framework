@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Tests\Cache\Pool;
 
-use DateTime;
+use DateTimeImmutable;
 use ForestCityLabs\Framework\Cache\CacheItem;
 use ForestCityLabs\Framework\Cache\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,7 +22,7 @@ abstract class AbstractCachePoolTestCase extends TestCase
         $item->set('no_expiry');
         $this->pool->saveDeferred($item);
         $item = $this->pool->getItem('expired');
-        $item->set('expired')->expiresAt(new DateTime('-1 day'));
+        $item->set('expired')->expiresAt(new DateTimeImmutable('-1 day'));
         $this->pool->saveDeferred($item);
         $item = $this->pool->getItem('future');
         $item->set('future')->expiresAfter(3600);

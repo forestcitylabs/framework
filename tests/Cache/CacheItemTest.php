@@ -6,6 +6,7 @@ namespace ForestCityLabs\Framework\Tests\Cache;
 
 use DateInterval;
 use DateTime;
+use DateTimeImmutable;
 use ForestCityLabs\Framework\Cache\CacheItem;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,7 +27,7 @@ class CacheItemTest extends TestCase
         $item->set("value2");
         $this->assertEquals("value2", $item->get());
 
-        $date = new DateTime("+1 day");
+        $date = new DateTimeImmutable("+1 day");
         $item->expiresAt($date);
         $this->assertSame($date, $item->getExpires());
 
