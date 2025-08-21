@@ -43,7 +43,6 @@ class ContainerParameterResolverTest extends TestCase
     }
 
     #[Test]
-    #[DoesNotPerformAssertions]
     public function resolveInvalidParameters(): void
     {
         // Mock the services.
