@@ -179,6 +179,12 @@ class OidcMiddlewareTest extends TestCase
 
         $this->response
             ->expects($this->once())
+            ->method('withHeader')
+            ->with('Content-Type', 'application/json')
+            ->willReturnSelf();
+
+        $this->response
+            ->expects($this->once())
             ->method('withBody')
             ->with($this->stream)
             ->willReturnSelf();
@@ -384,6 +390,12 @@ class OidcMiddlewareTest extends TestCase
             ->method('createResponse')
             ->with(200)
             ->willReturn($this->response);
+
+        $this->response
+            ->expects($this->once())
+            ->method('withHeader')
+            ->with('Content-Type', 'application/json')
+            ->willReturnSelf();
 
         $this->response
             ->expects($this->once())
