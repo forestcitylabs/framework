@@ -557,7 +557,7 @@ class GenerateEntityCommand extends Command
     private function addScalarProperty(
         string $name,
         string $type,
-        ClassLike $class,
+        ClassType $class,
         PhpNamespace $namespace,
         SymfonyStyle $io
     ): void {
@@ -650,7 +650,7 @@ class GenerateEntityCommand extends Command
         return false;
     }
 
-    private static function hasProperty(ClassLike $object, string $check): bool
+    private static function hasProperty(ClassType $object, string $check): bool
     {
         foreach ($object->getProperties() as $property) {
             if ($property->getName() === $check) {
