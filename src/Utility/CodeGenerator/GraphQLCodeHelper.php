@@ -41,7 +41,7 @@ class GraphQLCodeHelper
             case InterfaceType::class:
                 $attribute = GraphQL\InterfaceType::class;
                 break;
-            case DefinitionEnumType::class;
+            case DefinitionEnumType::class:
                 $attribute = GraphQL\EnumType::class;
                 break;
             case InputObjectType::class:

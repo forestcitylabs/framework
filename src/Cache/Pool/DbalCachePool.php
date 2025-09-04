@@ -41,7 +41,12 @@ class DbalCachePool extends AbstractCachePool
         }
 
         // Cache item is good, return.
-        return new CacheItem($key, unserialize($result['data']), $result['expires'] ? new DateTimeImmutable($result['expires']) : null, true);
+        return new CacheItem(
+            $key,
+            unserialize($result['data']),
+            $result['expires'] ? new DateTimeImmutable($result['expires']) : null,
+            true
+        );
     }
 
     public function getItems(array $keys = []): iterable
@@ -66,7 +71,12 @@ class DbalCachePool extends AbstractCachePool
         $result = $qb->executeQuery()->fetchAllAssociativeIndexed();
         foreach ($keys as $key) {
             if (isset($result[$key])) {
-                $item = new CacheItem($key, unserialize($result[$key]['data']), $result[$key]['expires'] ? new DateTimeImmutable($result[$key]['expires']) : null, true);
+                $item = new CacheItem(
+                    $key,
+                    unserialize($result[$key]['data']),
+                    $result[$key]['expires'] ? new DateTimeImmutable($result[$key]['expires']) : null,
+                    true
+                );
             } else {
                 $item = new CacheItem($key);
             }

@@ -34,7 +34,13 @@ class GraphQLSchemaDiffCommand extends Command
         $old = $this->schema;
 
         $differ = new Differ(new UnifiedDiffOutputBuilder());
-        $opts = ['sortArguments' => true, 'sortEnumValues' => true, 'sortFields' => true, 'sortInputFields' => true, 'sortTypes' => true];
+        $opts = [
+            'sortArguments' => true,
+            'sortEnumValues' => true,
+            'sortFields' => true,
+            'sortInputFields' => true,
+            'sortTypes' => true
+        ];
         $diff = $differ->diff(
             SchemaPrinter::doPrint($old, $opts),
             SchemaPrinter::doPrint($new, $opts),

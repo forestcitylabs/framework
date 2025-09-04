@@ -106,7 +106,11 @@ class SchemaComparator
                 $old_field = $old->getField($new_field->getName());
 
                 // There is a type mismatch, the fields are different.
-                if (Type::getNamedType($new_field->getType())->name !== Type::getNamedType($old_field->getType())->name) {
+                if (
+                    Type::getNamedType(
+                        $new_field->getType()
+                    )->name !== Type::getNamedType($old_field->getType())->name
+                ) {
                     $args['dropped_fields'][] = $old_field;
                     $args['new_fields'][] = $new_field;
 
@@ -155,7 +159,11 @@ class SchemaComparator
                 $old_field = $old->getField($new_field->name);
 
                 // There is a type mismatch, the fields are different.
-                if (Type::getNamedType($new_field->getType())->name !== Type::getNamedType($old_field->getType())->name) {
+                if (
+                    Type::getNamedType(
+                        $new_field->getType()
+                    )->name !== Type::getNamedType($old_field->getType())->name
+                ) {
                     $args['dropped_fields'][] = $old_field;
                     $args['new_fields'][] = $new_field;
 
@@ -246,7 +254,11 @@ class SchemaComparator
                 $old_field = $old->getField($new_field->name);
 
                 // There is a type mismatch, the fields are different.
-                if (Type::getNamedType($new_field->getType())->name !== Type::getNamedType($old_field->getType())->name) {
+                if (
+                    Type::getNamedType(
+                        $new_field->getType()
+                    )->name !== Type::getNamedType($old_field->getType())->name
+                ) {
                     $args['dropped_fields'][] = $old_field;
                     $args['new_fields'][] = $new_field;
 
@@ -279,8 +291,10 @@ class SchemaComparator
         return null;
     }
 
-    public static function compareTypes(Type $old, Type $new): InputObjectTypeDiff|ObjectTypeDiff|EnumTypeDiff|InterfaceTypeDiff|null
-    {
+    public static function compareTypes(
+        Type $old,
+        Type $new
+    ): InputObjectTypeDiff|ObjectTypeDiff|EnumTypeDiff|InterfaceTypeDiff|null {
         switch ($old::class) {
             case ObjectType::class:
                 return self::compareObjectTypes($old, $new);
@@ -327,7 +341,11 @@ class SchemaComparator
         foreach ($new->args as $new_argument) {
             try {
                 $old_argument = $old->getArg($new_argument->name);
-                if (Type::getNamedType($new_argument->getType())->name !== Type::getNamedType($old_argument->getType())->name) {
+                if (
+                    Type::getNamedType(
+                        $new_argument->getType()
+                    )->name !== Type::getNamedType($old_argument->getType())->name
+                ) {
                     $args['dropped_arguments'][] = $old_argument;
                     $args['new_arguments'][] = $new_argument;
                 } elseif (null !== $altered_argument = self::compareArguments($old_argument, $new_argument)) {

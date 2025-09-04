@@ -32,7 +32,10 @@ class Kernel implements RequestHandlerInterface
     {
         // Get the middleware for handling this request.
         $middleware = $this->container->get(array_shift($this->middleware));
-        $this->logger->info(sprintf('Processing request using middleware "%s"', $middleware::class), ['class' => $this::class]);
+        $this->logger->info(
+            sprintf('Processing request using middleware "%s"', $middleware::class),
+            ['class' => $this::class]
+        );
 
         // Handle the request, allowing other processes to track it.
         $this->dispatcher->dispatch(new PreMiddlewareHandleEvent($middleware, $request));

@@ -180,8 +180,20 @@ class GraphQLGenerateFromSchema extends Command
     private function createNewObjectType(ObjectType $type, StyleInterface $io): void
     {
         // Determine whether or not to map this to an existing class.
-        $choices = array_values(['Create new'] + array_map(fn (GraphQLFile $info): string => $info->getFullName(), $this->manager->getUnmappedTypes(GraphQL\ObjectType::class)));
-        if (count($choices) > 1 && 'Create new' !== $choice = $io->choice(sprintf('Create a new class for object type "%s" or map to existing class?', $type->name), $choices, $this->inferDefaultTypeChoice($choices, $type->name))) {
+        $choices = array_values(
+            ['Create new'] + array_map(
+                fn (GraphQLFile $info): string => $info->getFullName(),
+                $this->manager->getUnmappedTypes(GraphQL\ObjectType::class)
+            )
+        );
+        if (
+            count($choices) > 1
+            && 'Create new' !== $choice = $io->choice(
+                sprintf('Create a new class for object type "%s" or map to existing class?', $type->name),
+                $choices,
+                $this->inferDefaultTypeChoice($choices, $type->name)
+            )
+        ) {
             $info = $this->manager->getTypeByClass($choice);
         } else {
             $file = new PhpFile();
@@ -208,8 +220,20 @@ class GraphQLGenerateFromSchema extends Command
     private function createNewInterfaceType(InterfaceType $type, StyleInterface $io): void
     {
         // Determine whether or not to map this to an existing class.
-        $choices = array_values(['Create new'] + array_map(fn (GraphQLFile $info): string => $info->getFullName(), $this->manager->getUnmappedTypes(GraphQL\InterfaceType::class)));
-        if (count($choices) > 1 && 'Create new' !== $choice = $io->choice(sprintf('Create a new class for interface type "%s" or map to existing class?', $type->name), $choices, $this->inferDefaultTypeChoice($choices, $type->name))) {
+        $choices = array_values(
+            ['Create new'] + array_map(
+                fn (GraphQLFile $info): string => $info->getFullName(),
+                $this->manager->getUnmappedTypes(GraphQL\InterfaceType::class)
+            )
+        );
+        if (
+            count($choices) > 1
+            && 'Create new' !== $choice = $io->choice(
+                sprintf('Create a new class for interface type "%s" or map to existing class?', $type->name),
+                $choices,
+                $this->inferDefaultTypeChoice($choices, $type->name)
+            )
+        ) {
             $info = $this->manager->getTypeByClass($choice);
         } else {
             $file = new PhpFile();
@@ -232,8 +256,20 @@ class GraphQLGenerateFromSchema extends Command
     private function createNewInputType(InputObjectType $type, StyleInterface $io): void
     {
         // Determine whether or not to map this to an existing class.
-        $choices = array_values(['Create new'] + array_map(fn (GraphQLFile $info): string => $info->getFullName(), $this->manager->getUnmappedTypes(GraphQL\InputType::class)));
-        if (count($choices) > 1 && 'Create new' !== $choice = $io->choice(sprintf('Create a new class for input type "%s" or map to existing class?', $type->name), $choices, $this->inferDefaultTypeChoice($choices, $type->name))) {
+        $choices = array_values(
+            ['Create new'] + array_map(
+                fn (GraphQLFile $info): string => $info->getFullName(),
+                $this->manager->getUnmappedTypes(GraphQL\InputType::class)
+            )
+        );
+        if (
+            count($choices) > 1
+            && 'Create new' !== $choice = $io->choice(
+                sprintf('Create a new class for input type "%s" or map to existing class?', $type->name),
+                $choices,
+                $this->inferDefaultTypeChoice($choices, $type->name)
+            )
+        ) {
             $info = $this->manager->getTypeByClass($choice);
         } else {
             $file = new PhpFile();
@@ -255,8 +291,20 @@ class GraphQLGenerateFromSchema extends Command
     private function createNewEnumType(EnumType $type, StyleInterface $io): void
     {
         // Determine whether or not to map this to an existing class.
-        $choices = array_values(['Create new'] + array_map(fn (GraphQLFile $info): string => $info->getFullName(), $this->manager->getUnmappedTypes(GraphQL\EnumType::class, PhpGeneratorEnumType::class)));
-        if (count($choices) > 1 && 'Create new' !== $choice = $io->choice(sprintf('Create a new class for enum type "%s" or map to existing class?', $type->name), $choices, $this->inferDefaultTypeChoice($choices, $type->name))) {
+        $choices = array_values(
+            ['Create new'] + array_map(
+                fn (GraphQLFile $info): string => $info->getFullName(),
+                $this->manager->getUnmappedTypes(GraphQL\EnumType::class, PhpGeneratorEnumType::class)
+            )
+        );
+        if (
+            count($choices) > 1
+            && 'Create new' !== $choice = $io->choice(
+                sprintf('Create a new class for enum type "%s" or map to existing class?', $type->name),
+                $choices,
+                $this->inferDefaultTypeChoice($choices, $type->name)
+            )
+        ) {
             $info = $this->manager->getTypeByClass($choice);
         } else {
             $file = new PhpFile();
@@ -376,7 +424,10 @@ class GraphQLGenerateFromSchema extends Command
         $io->text(sprintf('Removing dropped type "%s".', $type->name));
 
         // Remove the entire type.
-        if (count($class->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire class "%s"?', $class->getName()), false)) {
+        if (
+            count($class->getAttributes()) === 1
+            && $io->confirm(sprintf('Remove the entire class "%s"?', $class->getName()), false)
+        ) {
             $this->manager->removeType($type->name);
 
         // Remove just the attribute.
@@ -396,14 +447,16 @@ class GraphQLGenerateFromSchema extends Command
                     $attr_type = GraphQL\InputType::class;
                     break;
             }
-            $class->setAttributes(array_filter($class->getAttributes(), function (Attribute $attr) use ($class, $type, $attr_type): bool {
-                $name = $attr->getArguments()['name'] ?? $class->getName();
-                if ($attr->getName() === $attr_type && $name === $type->name) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }));
+            $class->setAttributes(
+                array_filter($class->getAttributes(), function (Attribute $attr) use ($class, $type, $attr_type): bool {
+                    $name = $attr->getArguments()['name'] ?? $class->getName();
+                    if ($attr->getName() === $attr_type && $name === $type->name) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })
+            );
         }
     }
 
@@ -432,8 +485,10 @@ class GraphQLGenerateFromSchema extends Command
 
         // Update altered fields.
         foreach ($diff->getAlteredFields() as $field_diff) {
-            d($field_diff->getOldField()->name);
-            list($info, ) = $this->manager->getControllerForField($diff->getOldType()->name == 'Query' ? GraphQL\Query::class : GraphQL\Mutation::class, $field->name);
+            list($info, ) = $this->manager->getControllerForField(
+                $diff->getOldType()->name == 'Query' ? GraphQL\Query::class : GraphQL\Mutation::class,
+                $field->name
+            );
             $this->updateAlteredField($field_diff, $info, $io);
         }
     }
@@ -460,12 +515,40 @@ class GraphQLGenerateFromSchema extends Command
         }
 
         // Determine type for field.
-        if (count($type_options) > 1 && 'Property' === $io->choice(sprintf('What type of field is "%s"?', $field->name), $type_options, 'Property')) {
-            $io->text(sprintf('Adding property to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
-            $options = ['Create new'] + array_values(array_map(fn(Property $prop): string => $prop->getName(), $this->getUnmappedProperties($info->getClass(), GraphQL\Field::class)));
-            if (count($options) > 1 && 'Create new' !== $choice = $io->choice(sprintf('Create a new property for field "%s"?', $field->name), $options, $this->inferDefaultFieldChoice($options, $field->name))) {
+        if (
+            count($type_options) > 1
+            && 'Property' === $io->choice(
+                sprintf('What type of field is "%s"?', $field->name),
+                $type_options,
+                'Property'
+            )
+        ) {
+            $io->text(
+                sprintf(
+                    'Adding property to class "%s" for field "%s".',
+                    $info->getClassLike()->getName(),
+                    $field->name
+                )
+            );
+            $options = ['Create new'] + array_values(array_map(
+                fn(Property $prop): string => $prop->getName(),
+                $this->getUnmappedProperties($info->getClass(), GraphQL\Field::class)
+            ));
+            if (
+                count($options) > 1
+                && 'Create new' !== $choice = $io->choice(
+                    sprintf('Create a new property for field "%s"?', $field->name),
+                    $options,
+                    $this->inferDefaultFieldChoice($options, $field->name)
+                )
+            ) {
                 $property = $info->getClass()->getProperty($choice);
-                GraphQLCodeHelper::buildPropertyField($info->getNamespace(), $property, $field, $this->mapType($field->getType()));
+                GraphQLCodeHelper::buildPropertyField(
+                    $info->getNamespace(),
+                    $property,
+                    $field,
+                    $this->mapType($field->getType())
+                );
             } else {
                 $property = GraphQLCodeHelper::addPropertyField(
                     $info->getNamespace(),
@@ -486,7 +569,9 @@ class GraphQLGenerateFromSchema extends Command
                 }
             }
         } else {
-            $io->text(sprintf('Adding method to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name));
+            $io->text(
+                sprintf('Adding method to class "%s" for field "%s".', $info->getClassLike()->getName(), $field->name)
+            );
             $method = GraphQLCodeHelper::addMethodField(
                 $info->getNamespace(),
                 $info->getClass(),
@@ -548,7 +633,17 @@ class GraphQLGenerateFromSchema extends Command
         $php_field = $this->findField($field, $info);
 
         // Remove the entire parameter.
-        if (count($php_field->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire %s "%s"?', $php_field instanceof Method ? 'method' : 'parameter', $php_field->getName()), false)) {
+        if (
+            count($php_field->getAttributes()) === 1
+            && $io->confirm(
+                sprintf(
+                    'Remove the entire %s "%s"?',
+                    $php_field instanceof Method ? 'method' : 'parameter',
+                    $php_field->getName()
+                ),
+                false
+            )
+        ) {
             if ($php_field instanceof Method) {
                 $info->getClass()->removeMethod($php_field->getName());
             } else {
@@ -557,14 +652,19 @@ class GraphQLGenerateFromSchema extends Command
 
         // Remove just the attribute.
         } else {
-            $php_field->setAttributes(array_filter($php_field->getAttributes(), function (Attribute $attr) use ($php_field, $field): bool {
-                $name = $attr->getArguments()['name'] ?? $php_field->getName();
-                if ($attr->getName() === GraphQL\Field::class && $name === $field->name) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }));
+            $php_field->setAttributes(
+                array_filter(
+                    $php_field->getAttributes(),
+                    function (Attribute $attr) use ($php_field, $field): bool {
+                        $name = $attr->getArguments()['name'] ?? $php_field->getName();
+                        if ($attr->getName() === GraphQL\Field::class && $name === $field->name) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    }
+                )
+            );
         }
     }
 
@@ -576,14 +676,23 @@ class GraphQLGenerateFromSchema extends Command
         $io->text(sprintf('Creating field "%s" for controller "%s".', $field->name, $type->name));
 
         // Build options for controller selection.
-        $options = array_values(['Create new'] + array_map(fn(GraphQLFile $info): string => $info->getFullName(), $this->manager->getControllers()));
+        $options = array_values(
+            ['Create new'] + array_map(
+                fn(GraphQLFile $info): string => $info->getFullName(),
+                $this->manager->getControllers()
+            )
+        );
         $default = $this->inferDefaultControllerChoice($options, $field->name);
 
         // Determine whether to create a new controller or map to existing controller.
         if (
             count($this->manager->getControllers()) > 0
             && 'Create new' !== $class_name = $io->choice(
-                sprintf('Create a new controller for "%s" field "%s" or map to existing controller?', $type->name, $field->name),
+                sprintf(
+                    'Create a new controller for "%s" field "%s" or map to existing controller?',
+                    $type->name,
+                    $field->name
+                ),
                 $options,
                 $default
             )
@@ -639,8 +748,12 @@ class GraphQLGenerateFromSchema extends Command
         );
     }
 
-    private function updateAlteredArgument(ArgumentDiff $diff, Method $method, GraphQLFile $info, StyleInterface $io): void
-    {
+    private function updateAlteredArgument(
+        ArgumentDiff $diff,
+        Method $method,
+        GraphQLFile $info,
+        StyleInterface $io
+    ): void {
         // Update the annotation.
         GraphQLCodeHelper::updateParameterArgument(
             $info->getNamespace(),
@@ -656,19 +769,27 @@ class GraphQLGenerateFromSchema extends Command
         $parameter = GraphQLCodeHelper::extractArgumentParameter($method, $arg);
 
         // Remove the entire parameter.
-        if (count($parameter->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire parameter "%s"?', $parameter->getName()), false)) {
+        if (
+            count($parameter->getAttributes()) === 1
+            && $io->confirm(
+                sprintf('Remove the entire parameter "%s"?', $parameter->getName()),
+                false
+            )
+        ) {
             $method->removeParameter($parameter->getName());
 
         // Remove just the attribute.
         } else {
-            $parameter->setAttributes(array_filter($parameter->getAttributes(), function (Attribute $attr) use ($parameter, $arg): bool {
-                $name = $attr->getArguments()['name'] ?? $parameter->getName();
-                if ($attr->getName() === GraphQL\Argument::class && $name === $arg->name) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }));
+            $parameter->setAttributes(
+                array_filter($parameter->getAttributes(), function (Attribute $attr) use ($parameter, $arg): bool {
+                    $name = $attr->getArguments()['name'] ?? $parameter->getName();
+                    if ($attr->getName() === GraphQL\Argument::class && $name === $arg->name) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })
+            );
         }
     }
 
@@ -680,7 +801,13 @@ class GraphQLGenerateFromSchema extends Command
             $property = $info->getClass()->getProperty($field->name);
             $property->addAttribute(GraphQL\Argument::class);
         } else {
-            $io->text(sprintf('Adding property to class "%s" for field "%s".', $info->getClass()->getName(), $field->name));
+            $io->text(
+                sprintf(
+                    'Adding property to class "%s" for field "%s".',
+                    $info->getClass()->getName(),
+                    $field->name
+                )
+            );
             $property = GraphQLCodeHelper::addPropertyArgument(
                 $info->getNamespace(),
                 $info->getClass(),
@@ -717,19 +844,27 @@ class GraphQLGenerateFromSchema extends Command
         $property = GraphQLCodeHelper::extractArgumentProperty($info->getClass(), $field);
 
         // Remove the entire parameter.
-        if (count($property->getAttributes()) == 1 && $io->confirm(sprintf('Remove the entire property "%s"?', $property->getName()), false)) {
+        if (
+            count($property->getAttributes()) == 1
+            && $io->confirm(
+                sprintf('Remove the entire property "%s"?', $property->getName()),
+                false
+            )
+        ) {
             $info->getClass()->removeProperty($property->getName());
 
         // Remove just the attribute.
         } else {
-            $property->setAttributes(array_filter($property->getAttributes(), function (Attribute $attr) use ($property, $field): bool {
-                $name = $attr->getArguments()['name'] ?? $property->getName();
-                if ($attr->getName() === GraphQL\Argument::class && $name === $field->name) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }));
+            $property->setAttributes(
+                array_filter($property->getAttributes(), function (Attribute $attr) use ($property, $field): bool {
+                    $name = $attr->getArguments()['name'] ?? $property->getName();
+                    if ($attr->getName() === GraphQL\Argument::class && $name === $field->name) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })
+            );
         }
     }
 
@@ -759,19 +894,27 @@ class GraphQLGenerateFromSchema extends Command
         $case = GraphQLCodeHelper::extractValueCase($info->getEnum(), $value);
 
         // Remove the entire case.
-        if (count($case->getAttributes()) === 1 && $io->confirm(sprintf('Remove the entire case "%s"?', $case->getName()), false)) {
+        if (
+            count($case->getAttributes()) === 1
+            && $io->confirm(sprintf('Remove the entire case "%s"?', $case->getName()), false)
+        ) {
             $info->getEnum()->removeCase($case->getName());
 
         // Remove just the attribute.
         } else {
-            $case->setAttributes(array_filter($case->getAttributes(), function (Attribute $attr) use ($case, $value): bool {
-                $name = $attr->getArguments()['name'] ?? $case->getName();
-                if ($attr->getName() === GraphQL\Value::class && $name === $value->name) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }));
+            $case->setAttributes(
+                array_filter(
+                    $case->getAttributes(),
+                    function (Attribute $attr) use ($case, $value): bool {
+                        $name = $attr->getArguments()['name'] ?? $case->getName();
+                        if ($attr->getName() === GraphQL\Value::class && $name === $value->name) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    }
+                )
+            );
         }
     }
 

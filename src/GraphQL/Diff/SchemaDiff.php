@@ -50,7 +50,12 @@ class SchemaDiff
      */
     public function getAlteredTypes(): array
     {
-        return array_merge($this->altered_interfaces, $this->altered_types, $this->altered_enums, $this->altered_inputs);
+        return array_merge(
+            $this->altered_interfaces,
+            $this->altered_types,
+            $this->altered_enums,
+            $this->altered_inputs
+        );
     }
 
     /**
@@ -58,7 +63,12 @@ class SchemaDiff
      */
     public function getDroppedTypes(): array
     {
-        return array_merge($this->dropped_interfaces, $this->dropped_types, $this->dropped_enums, $this->dropped_inputs);
+        return array_merge(
+            $this->dropped_interfaces,
+            $this->dropped_types,
+            $this->dropped_enums,
+            $this->dropped_inputs
+        );
     }
 
     public function getNewObjectTypes(): array

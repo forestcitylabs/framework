@@ -117,7 +117,15 @@ class CodeGenerator
         if ($property->getType() === Collection::class) {
             $method->addBody('$this->' . $property->getName() . '->removeElement($' . $sub_name . ');');
         } else {
-            $method->addBody('unset($this->' . $property->getName() . '[array_search($' . $sub_name . ', $this->' . $property->getName() . ')]);');
+            $method->addBody(
+                'unset($this->'
+                    . $property->getName()
+                    . '[array_search($'
+                    . $sub_name
+                    . ', $this->'
+                    . $property->getName()
+                    . ')]);'
+            );
         }
 
         // Add the return and parameter to the method.

@@ -153,7 +153,8 @@ class GraphQLCodeManager
 
     public function addController(GraphQLFile $controller): static
     {
-        $this->controllers[$controller->getNamespace()->getName() . '\\' . $controller->getClassLike()->getName()] = $controller;
+        $this->controllers[$controller->getNamespace()->getName() . '\\' . $controller->getClassLike()->getName()]
+          = $controller;
         return $this;
     }
 

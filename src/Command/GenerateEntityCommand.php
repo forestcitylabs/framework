@@ -308,7 +308,14 @@ class GenerateEntityCommand extends Command
             $property->setType(Collection::class);
 
             // Determine if we should inverse this annotation.
-            if (null !== $inverse = $this->mapInverseManyToMany($target, $class->getName(), $property->getName(), $io)) {
+            if (
+                null !== $inverse = $this->mapInverseManyToMany(
+                    $target,
+                    $class->getName(),
+                    $property->getName(),
+                    $io
+                )
+            ) {
                 $args['inversedBy'] = $inverse;
             }
 
@@ -331,8 +338,12 @@ class GenerateEntityCommand extends Command
         }
     }
 
-    private function mapInverseOneToMany(string $class, string $target, string $target_property, SymfonyStyle $io): ?string
-    {
+    private function mapInverseOneToMany(
+        string $class,
+        string $target,
+        string $target_property,
+        SymfonyStyle $io
+    ): ?string {
         if (!$io->confirm(sprintf('Add inverse OneToMany relationship to "%s"?', $class))) {
             return null;
         }
@@ -385,8 +396,12 @@ class GenerateEntityCommand extends Command
         return $property->getName();
     }
 
-    private function mapInverseOneToOne(string $class, string $target, string $target_property, SymfonyStyle $io): ?string
-    {
+    private function mapInverseOneToOne(
+        string $class,
+        string $target,
+        string $target_property,
+        SymfonyStyle $io
+    ): ?string {
         if (!$io->confirm(sprintf('Add inverse OneToOne relationship to "%s"?', $class))) {
             return null;
         }
@@ -432,8 +447,12 @@ class GenerateEntityCommand extends Command
         return $property->getName();
     }
 
-    private function mapInverseManyToOne(string $class, string $target, string $target_property, SymfonyStyle $io): ?string
-    {
+    private function mapInverseManyToOne(
+        string $class,
+        string $target,
+        string $target_property,
+        SymfonyStyle $io
+    ): ?string {
         // Load the file.
         list( , $namespace, $class) = $this->load($class);
         assert($namespace instanceof PhpNamespace);
@@ -477,8 +496,12 @@ class GenerateEntityCommand extends Command
         return $property->getName();
     }
 
-    private function mapInverseManyToMany(string $class, string $target, string $target_property, SymfonyStyle $io): ?string
-    {
+    private function mapInverseManyToMany(
+        string $class,
+        string $target,
+        string $target_property,
+        SymfonyStyle $io
+    ): ?string {
         if (!$io->confirm(sprintf('Add inverse ManyToMany relationship to "%s"?', $class))) {
             return null;
         }
@@ -543,6 +566,7 @@ class GenerateEntityCommand extends Command
         switch ($type) {
             case 'text':
                 $args['type'] = Types::TEXT;
+                // Intentional fallthrough.
             case 'string':
                 $property->setType('string');
                 break;
@@ -643,6 +667,7 @@ class GenerateEntityCommand extends Command
         $io->definitionList(
             'Relation types',
             new TableSeparator(),
+            // phpcs:disable
             ['ManyToOne' => sprintf(
                 "Each <comment>%s</comment> relates to (has) <info>one</info> <comment>%s</comment>.\nEach <comment>%s</comment> can relate to (can have) <info>many</info> <comment>%s</comment> entities.",
                 $entity,
@@ -674,6 +699,7 @@ class GenerateEntityCommand extends Command
                 $target,
                 $entity
             )],
+            // phpcs:enable
         );
     }
 
@@ -764,7 +790,15 @@ class GenerateEntityCommand extends Command
         if ($property->getType() === Collection::class) {
             $method->addBody('$this->' . $property->getName() . '->removeElement($' . $sub_name . ');');
         } else {
-            $method->addBody('unset($this->' . $property->getName() . '[array_search($' . $sub_name . ', $this->' . $property->getName() . ')]);');
+            $method->addBody(
+                'unset($this->'
+                . $property->getName()
+                . '[array_search($'
+                . $sub_name
+                . ', $this->'
+                . $property->getName()
+                . ')]);'
+            );
         }
 
         // Add the return and parameter to the method.
