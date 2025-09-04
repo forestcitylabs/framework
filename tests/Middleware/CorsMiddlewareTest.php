@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UriInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 #[CoversClass(CorsMiddleware::class)]
@@ -163,6 +164,121 @@ class CorsMiddlewareTest extends TestCase
             ->method('handle')
             ->with($request);
         $middleware = new CorsMiddleware($this->createStub(ResponseFactoryInterface::class));
+        $middleware->process($request, $handler);
+    }
+
+    #[Test]
+    public function sameOriginRequest()
+    {
+        $uri = $this->createStub(UriInterface::class);
+        $uri->method('getScheme')->willReturn('https');
+        $uri->method('getHost')->willReturn('example.com');
+        $uri->method('getPort')->willReturn(null);
+
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('hasHeader')
+            ->with('origin')
+            ->willReturn(true);
+        $request->method('getHeader')
+            ->with('origin')
+            ->willReturn(['https://example.com']);
+        $request->method('getUri')
+            ->willReturn($uri);
+        $request->method('getMethod')
+            ->willReturn('POST');
+
+        $response = $this->createMock(ResponseInterface::class);
+        $response->expects($this->once())
+            ->method('withHeader')
+            ->with('access-control-allow-origin', 'https://example.com')
+            ->willReturnSelf();
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler->expects($this->once())
+            ->method('handle')
+            ->with($request)
+            ->willReturn($response);
+
+        $factory = $this->createStub(ResponseFactoryInterface::class);
+
+        // Empty allow_origins array - same-origin should still be allowed
+        $middleware = new CorsMiddleware($factory, []);
+        $middleware->process($request, $handler);
+    }
+
+    #[Test]
+    public function sameOriginRequestWithPort()
+    {
+        $uri = $this->createStub(UriInterface::class);
+        $uri->method('getScheme')->willReturn('http');
+        $uri->method('getHost')->willReturn('localhost');
+        $uri->method('getPort')->willReturn(3000);
+
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('hasHeader')
+            ->with('origin')
+            ->willReturn(true);
+        $request->method('getHeader')
+            ->with('origin')
+            ->willReturn(['http://localhost:3000']);
+        $request->method('getUri')
+            ->willReturn($uri);
+        $request->method('getMethod')
+            ->willReturn('POST');
+
+        $response = $this->createMock(ResponseInterface::class);
+        $response->expects($this->once())
+            ->method('withHeader')
+            ->with('access-control-allow-origin', 'http://localhost:3000')
+            ->willReturnSelf();
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler->expects($this->once())
+            ->method('handle')
+            ->with($request)
+            ->willReturn($response);
+
+        $factory = $this->createStub(ResponseFactoryInterface::class);
+
+        $middleware = new CorsMiddleware($factory, []);
+        $middleware->process($request, $handler);
+    }
+
+    #[Test]
+    public function sameOriginRequestDefaultPorts()
+    {
+        $uri = $this->createStub(UriInterface::class);
+        $uri->method('getScheme')->willReturn('https');
+        $uri->method('getHost')->willReturn('example.com');
+        $uri->method('getPort')->willReturn(443); // Default HTTPS port
+
+        $request = $this->createStub(ServerRequestInterface::class);
+        $request->method('hasHeader')
+            ->with('origin')
+            ->willReturn(true);
+        $request->method('getHeader')
+            ->with('origin')
+            ->willReturn(['https://example.com']); // No port in origin header
+        $request->method('getUri')
+            ->willReturn($uri);
+        $request->method('getMethod')
+            ->willReturn('POST');
+
+        $response = $this->createMock(ResponseInterface::class);
+        $response->expects($this->once())
+            ->method('withHeader')
+            ->with('access-control-allow-origin', 'https://example.com')
+            ->willReturnSelf();
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler->expects($this->once())
+            ->method('handle')
+            ->with($request)
+            ->willReturn($response);
+
+        $factory = $this->createStub(ResponseFactoryInterface::class);
+
+        $middleware = new CorsMiddleware($factory, []);
         $middleware->process($request, $handler);
     }
 }
