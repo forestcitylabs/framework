@@ -74,6 +74,13 @@ class CorsMiddleware implements MiddlewareInterface
     private function allowedOrigin(ServerRequestInterface $request): ?string
     {
         $origin = $request->getHeader('origin')[0];
+
+        // Check if this is a same-origin request
+        $request_origin = $this->getRequestOrigin($request);
+        if ($origin === $request_origin) {
+            return $origin;
+        }
+
         foreach ($this->allow_origins as $allowed_origin) {
             if ($allowed_origin == "*") {
                 return "*";
@@ -82,5 +89,25 @@ class CorsMiddleware implements MiddlewareInterface
             }
         }
         return null;
+    }
+
+    private function getRequestOrigin(ServerRequestInterface $request): string
+    {
+        $uri = $request->getUri();
+        $scheme = $uri->getScheme();
+        $host = $uri->getHost();
+        $port = $uri->getPort();
+
+        $origin = $scheme . '://' . $host;
+
+        // Only include port if it's not the default port for the scheme
+        if (
+            ($scheme === 'http' && $port !== null && $port !== 80) ||
+            ($scheme === 'https' && $port !== null && $port !== 443)
+        ) {
+            $origin .= ':' . $port;
+        }
+
+        return $origin;
     }
 }
