@@ -187,10 +187,10 @@ class AuthorizationCodeGrant implements GrantInterface
             }
 
             // Validate the code verifier against the code challenge.
-            $expected_challenge = base64_encode(
-                hash('sha256', $params['code_verifier'], true)
-            );
-            if ($expected_challenge !== $auth_request['code_challenge']) {
+            $hash = hash('sha256', $params['code_verifier'], true);
+            $expected_challenge = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+
+            if ($expected_challenge !== $auth_request->getCodeChallenge()) {
                 throw new OAuthException('Invalid code verifier');
             }
         }
