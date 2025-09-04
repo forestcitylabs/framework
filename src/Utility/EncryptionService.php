@@ -13,7 +13,7 @@ class EncryptionService
 
     public function decrypt(string $encoded, string $tag = ''): ?string
     {
-        $decoded = base64_decode($encoded, true);
+        $decoded = base64_decode($encoded);
         $nonce_length = SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES;
         if (false === $decoded || strlen($decoded) <= $nonce_length) {
             return null;
