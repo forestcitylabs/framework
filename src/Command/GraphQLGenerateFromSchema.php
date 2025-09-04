@@ -486,7 +486,7 @@ class GraphQLGenerateFromSchema extends Command
         // Update altered fields.
         foreach ($diff->getAlteredFields() as $field_diff) {
             list($info, ) = $this->manager->getControllerForField(
-                $diff->getOldType()->name == 'Query' ? GraphQL\Query::class : GraphQL\Mutation::class,
+                $diff->getOldType()->name,
                 $field->name
             );
             $this->updateAlteredField($field_diff, $info, $io);
@@ -718,14 +718,9 @@ class GraphQLGenerateFromSchema extends Command
             $this->mapType($field->getType())
         );
 
-        // Add controller annotation.
-        switch ($type->name) {
-            case 'Query':
-                $method->addAttribute(GraphQL\Query::class);
-                break;
-            case 'Mutation':
-                $method->addAttribute(GraphQL\Mutation::class);
-                break;
+        // Add owner attribute.
+        if (in_array($type->name, ['Query', 'Mutation'])) {
+            $method->addAttribute(GraphQL\Owner::class, [$type->name]);
         }
 
         // Add arguments.

@@ -12,7 +12,7 @@ use Ramsey\Uuid\UuidInterface;
 
 class AppleController
 {
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     #[GraphQL\Field(type: Apple::class)]
     public function getApples(
         EntityManagerInterface $em
@@ -20,7 +20,7 @@ class AppleController
         return $em->getRepository(Apple::class)->findAll();
     }
 
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     #[GraphQL\Field]
     public function getApple(
         #[GraphQL\Argument] UuidInterface $id,
@@ -29,7 +29,7 @@ class AppleController
         return $em->getRepository(Apple::class)->findOneBy(['id' => $id]);
     }
 
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     #[GraphQL\Field]
     public function addApple(
         #[GraphQL\Argument] Apple $apple,
@@ -40,7 +40,7 @@ class AppleController
         return $apple;
     }
 
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     #[GraphQL\Field]
     public function updateApple(
         #[GraphQL\Argument] UuidInterface $id,
@@ -53,7 +53,7 @@ class AppleController
         return $apple;
     }
 
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     #[GraphQL\Field]
     public function removeApple(
         #[GraphQL\Argument] UuidInterface $id,

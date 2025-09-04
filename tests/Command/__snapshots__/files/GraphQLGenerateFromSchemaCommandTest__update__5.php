@@ -10,13 +10,13 @@ use Ramsey\Uuid\UuidInterface;
 class GraphQLController
 {
     #[GraphQL\Field(type: 'Apple')]
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     public function getApples(): array
     {
     }
 
     #[GraphQL\Field]
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     public function getBasket(
         #[GraphQL\Argument]
         UuidInterface $id,
@@ -24,7 +24,7 @@ class GraphQLController
     }
 
     #[GraphQL\Field]
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     public function createApple(
         #[GraphQL\Argument]
         Apple $apple,

@@ -8,13 +8,13 @@ use ForestCityLabs\Framework\Tests\Fixture\Generated\Entity\Apple;
 class GraphQLController
 {
     #[GraphQL\Field(type: 'Apple')]
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     public function getApples(): array
     {
     }
 
     #[GraphQL\Field]
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     public function createApple(
         #[GraphQL\Argument]
         Apple $apple,

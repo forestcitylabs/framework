@@ -17,14 +17,14 @@ class BasketController
     ) {
     }
 
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     #[GraphQL\Field(type: 'Basket')]
     public function getBaskets(): array
     {
         return $this->em->getRepository(Basket::class)->findAll();
     }
 
-    #[GraphQL\Query]
+    #[GraphQL\Owner('Query')]
     #[GraphQL\Field]
     public function getBasket(
         #[GraphQL\Argument] UuidInterface $id
@@ -32,7 +32,7 @@ class BasketController
         return $this->em->getRepository(Basket::class)->findOneBy(['id' => $id]);
     }
 
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     #[GraphQL\Field]
     public function createBasket(
         #[GraphQL\Argument] Basket $basket
@@ -42,7 +42,7 @@ class BasketController
         return $basket;
     }
 
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     #[GraphQL\Field]
     public function removeBasket(
         #[GraphQL\Argument] UuidInterface $id
@@ -52,7 +52,7 @@ class BasketController
         return $id;
     }
 
-    #[GraphQL\Mutation]
+    #[GraphQL\Owner('Mutation')]
     #[GraphQL\Field]
     public function addApple(
         #[GraphQL\Argument] UuidInterface $id,
