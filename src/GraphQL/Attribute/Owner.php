@@ -9,7 +9,7 @@ use Attribute;
 #[Attribute(Attribute::TARGET_METHOD)]
 class Owner
 {
-    function __construct(private string $name)
+    public function __construct(private string $name)
     {
     }
 
