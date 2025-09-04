@@ -44,6 +44,7 @@ class OidcMiddleware implements MiddlewareInterface
                 break;
             case '/.well-known/openid-configuration':
                 return $this->rf->createResponse(200)
+                    ->withHeader('Content-Type', 'application/json')
                     ->withBody($this->sf->createStream(json_encode([
                         'issuer' => $request->getUri()->getScheme() . '://' . $request->getUri()->getHost(),
                         'authorization_endpoint' => $request->getUri()->withPath($this->auth_path)->__toString(),
