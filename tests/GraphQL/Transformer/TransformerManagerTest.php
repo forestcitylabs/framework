@@ -29,4 +29,40 @@ class TransformerManagerTest extends TestCase
         $this->assertEquals('String', $manager->getGraphQLType(DateTimeImmutable::class));
         $this->assertInstanceOf(DateTimeImmutableTransformer::class, $manager->getTransformer(DateTimeImmutable::class));
     }
+
+    #[Test]
+    public function getTransformerReturnsNullForUnknownType(): void
+    {
+        $manager = new TransformerManager([new DateTimeImmutableTransformer()]);
+        $this->assertNull($manager->getTransformer('UnknownType'));
+    }
+
+    #[Test]
+    public function getGraphQLTypeReturnsNullForUnknownType(): void
+    {
+        $manager = new TransformerManager([new DateTimeImmutableTransformer()]);
+        $this->assertNull($manager->getGraphQLType('UnknownType'));
+    }
+
+    #[Test]
+    public function emptyTransformerManager(): void
+    {
+        $manager = new TransformerManager();
+        $this->assertNull($manager->getTransformer(DateTimeImmutable::class));
+        $this->assertNull($manager->getGraphQLType(DateTimeImmutable::class));
+    }
+
+    #[Test]
+    public function getTransformerWithNullType(): void
+    {
+        $manager = new TransformerManager([new DateTimeImmutableTransformer()]);
+        $this->assertNull($manager->getTransformer(null));
+    }
+
+    #[Test]
+    public function getGraphQLTypeWithNullType(): void
+    {
+        $manager = new TransformerManager([new DateTimeImmutableTransformer()]);
+        $this->assertNull($manager->getGraphQLType(null));
+    }
 }

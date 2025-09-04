@@ -94,7 +94,7 @@ class KeystoreTest extends TestCase
             $this->assertArrayHasKey('public', $keyData);
             $this->assertIsString($keyData['private']);
             $this->assertIsString($keyData['public']);
-            
+
             // Verify the private key is valid
             $privateKey = openssl_pkey_get_private($keyData['private']);
             $this->assertTrue(is_resource($privateKey) || $privateKey instanceof \OpenSSLAsymmetricKey);
@@ -241,7 +241,7 @@ class KeystoreTest extends TestCase
             // Verify key details
             $privateKeyResource = openssl_pkey_get_private($key['private']);
             $keyDetails = openssl_pkey_get_details($privateKeyResource);
-            
+
             $this->assertEquals(OPENSSL_KEYTYPE_RSA, $keyDetails['type']);
             $this->assertEquals($config['private_key_bits'], $keyDetails['bits']);
         }

@@ -413,4 +413,3 @@ class RefreshTokenGrantTest extends TestCase
         $this->assertEquals('test-nonce', $token->claims()->get('nonce'));
     }
 }
-

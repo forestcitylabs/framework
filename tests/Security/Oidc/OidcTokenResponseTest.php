@@ -262,4 +262,3 @@ class OidcTokenResponseTest extends TestCase
         $this->assertEquals('openid', $formattedResponse['scope']);
     }
 }
-

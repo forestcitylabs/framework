@@ -57,7 +57,7 @@ class OidcMiddlewareTest extends TestCase
         $authResponse->method('withHeader')->with('Location', $redirectUri)->willReturnSelf();
 
         $this->uri->method('getPath')->willReturn('/oauth/authorize');
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
@@ -80,7 +80,7 @@ class OidcMiddlewareTest extends TestCase
         $tokenResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn('/oauth/token');
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleTokenRequest')
@@ -103,7 +103,7 @@ class OidcMiddlewareTest extends TestCase
         $userInfoResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn('/oauth/userinfo');
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleUserInfoRequest')
@@ -126,7 +126,7 @@ class OidcMiddlewareTest extends TestCase
         $jwksResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn('/oauth/jwks.json');
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleJwksRequest')
@@ -203,7 +203,7 @@ class OidcMiddlewareTest extends TestCase
         $middleware = new OidcMiddleware($redirectUri, $this->responseFactory, $this->streamFactory, $this->oidcServer);
 
         $this->uri->method('getPath')->willReturn('/api/users');
-        
+
         $this->oidcServer->expects($this->never())->method('handleAuthorizationRequest');
         $this->oidcServer->expects($this->never())->method('handleTokenRequest');
         $this->oidcServer->expects($this->never())->method('handleUserInfoRequest');
@@ -226,10 +226,10 @@ class OidcMiddlewareTest extends TestCase
         $redirectUri = '/callback';
         $customAuthPath = '/custom/auth';
         $middleware = new OidcMiddleware(
-            $redirectUri, 
-            $this->responseFactory, 
-            $this->streamFactory, 
-            $this->oidcServer, 
+            $redirectUri,
+            $this->responseFactory,
+            $this->streamFactory,
+            $this->oidcServer,
             $customAuthPath
         );
 
@@ -238,7 +238,7 @@ class OidcMiddlewareTest extends TestCase
         $authResponse->method('withHeader')->with('Location', $redirectUri)->willReturnSelf();
 
         $this->uri->method('getPath')->willReturn($customAuthPath);
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
@@ -256,10 +256,10 @@ class OidcMiddlewareTest extends TestCase
         $redirectUri = '/callback';
         $customTokenPath = '/custom/token';
         $middleware = new OidcMiddleware(
-            $redirectUri, 
-            $this->responseFactory, 
-            $this->streamFactory, 
-            $this->oidcServer, 
+            $redirectUri,
+            $this->responseFactory,
+            $this->streamFactory,
+            $this->oidcServer,
             '/oauth/authorize',
             $customTokenPath
         );
@@ -267,7 +267,7 @@ class OidcMiddlewareTest extends TestCase
         $tokenResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn($customTokenPath);
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleTokenRequest')
@@ -285,10 +285,10 @@ class OidcMiddlewareTest extends TestCase
         $redirectUri = '/callback';
         $customUserInfoPath = '/custom/userinfo';
         $middleware = new OidcMiddleware(
-            $redirectUri, 
-            $this->responseFactory, 
-            $this->streamFactory, 
-            $this->oidcServer, 
+            $redirectUri,
+            $this->responseFactory,
+            $this->streamFactory,
+            $this->oidcServer,
             '/oauth/authorize',
             '/oauth/token',
             $customUserInfoPath
@@ -297,7 +297,7 @@ class OidcMiddlewareTest extends TestCase
         $userInfoResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn($customUserInfoPath);
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleUserInfoRequest')
@@ -315,10 +315,10 @@ class OidcMiddlewareTest extends TestCase
         $redirectUri = '/callback';
         $customJwksPath = '/custom/jwks';
         $middleware = new OidcMiddleware(
-            $redirectUri, 
-            $this->responseFactory, 
-            $this->streamFactory, 
-            $this->oidcServer, 
+            $redirectUri,
+            $this->responseFactory,
+            $this->streamFactory,
+            $this->oidcServer,
             '/oauth/authorize',
             '/oauth/token',
             '/oauth/userinfo',
@@ -328,7 +328,7 @@ class OidcMiddlewareTest extends TestCase
         $jwksResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn($customJwksPath);
-        
+
         $this->oidcServer
             ->expects($this->once())
             ->method('handleJwksRequest')
@@ -347,12 +347,12 @@ class OidcMiddlewareTest extends TestCase
         $customTokenPath = '/custom/token';
         $customUserInfoPath = '/custom/userinfo';
         $customJwksPath = '/custom/jwks';
-        
+
         $middleware = new OidcMiddleware(
-            $redirectUri, 
-            $this->responseFactory, 
-            $this->streamFactory, 
-            $this->oidcServer, 
+            $redirectUri,
+            $this->responseFactory,
+            $this->streamFactory,
+            $this->oidcServer,
             $customAuthPath,
             $customTokenPath,
             $customUserInfoPath,

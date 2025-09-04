@@ -73,52 +73,52 @@ class AuthRequestTest extends TestCase
     public function testClientIdGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $newClientId = 'new_client_id';
         $authRequest->setClientId($newClientId);
-        
+
         $this->assertEquals($newClientId, $authRequest->getClientId());
     }
 
     public function testRedirectUriGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $newRedirectUri = 'https://new-example.com/callback';
         $authRequest->setRedirectUri($newRedirectUri);
-        
+
         $this->assertEquals($newRedirectUri, $authRequest->getRedirectUri());
     }
 
     public function testResponseTypeGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $newResponseType = 'token';
         $authRequest->setResponseType($newResponseType);
-        
+
         $this->assertEquals($newResponseType, $authRequest->getResponseType());
     }
 
     public function testExpiresAtGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $newExpiresAt = new DateTimeImmutable('+10 minutes');
         $authRequest->setExpiresAt($newExpiresAt);
-        
+
         $this->assertEquals($newExpiresAt, $authRequest->getExpiresAt());
     }
 
     public function testScopeGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $scope = 'read write admin';
         $authRequest->setScope($scope);
-        
+
         $this->assertEquals($scope, $authRequest->getScope());
-        
+
         // Test setting null
         $authRequest->setScope(null);
         $this->assertNull($authRequest->getScope());
@@ -127,12 +127,12 @@ class AuthRequestTest extends TestCase
     public function testStateGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $state = 'new_random_state';
         $authRequest->setState($state);
-        
+
         $this->assertEquals($state, $authRequest->getState());
-        
+
         // Test setting null
         $authRequest->setState(null);
         $this->assertNull($authRequest->getState());
@@ -141,12 +141,12 @@ class AuthRequestTest extends TestCase
     public function testCodeChallengeGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $codeChallenge = 'new_code_challenge_value';
         $authRequest->setCodeChallenge($codeChallenge);
-        
+
         $this->assertEquals($codeChallenge, $authRequest->getCodeChallenge());
-        
+
         // Test setting null
         $authRequest->setCodeChallenge(null);
         $this->assertNull($authRequest->getCodeChallenge());
@@ -155,12 +155,12 @@ class AuthRequestTest extends TestCase
     public function testCodeChallengeMethodGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $codeChallengeMethod = 'plain';
         $authRequest->setCodeChallengeMethod($codeChallengeMethod);
-        
+
         $this->assertEquals($codeChallengeMethod, $authRequest->getCodeChallengeMethod());
-        
+
         // Test setting null
         $authRequest->setCodeChallengeMethod(null);
         $this->assertNull($authRequest->getCodeChallengeMethod());
@@ -169,12 +169,12 @@ class AuthRequestTest extends TestCase
     public function testNonceGetterAndSetter(): void
     {
         $authRequest = $this->createAuthRequest();
-        
+
         $nonce = 'new_nonce_value';
         $authRequest->setNonce($nonce);
-        
+
         $this->assertEquals($nonce, $authRequest->getNonce());
-        
+
         // Test setting null
         $authRequest->setNonce(null);
         $this->assertNull($authRequest->getNonce());
@@ -238,7 +238,7 @@ class AuthRequestTest extends TestCase
         $this->assertEquals('https://minimal.com/callback', $unserializedAuthRequest->getRedirectUri());
         $this->assertEquals('code', $unserializedAuthRequest->getResponseType());
         $this->assertEquals('2024-12-31 12:00:00', $unserializedAuthRequest->getExpiresAt()->format('Y-m-d H:i:s'));
-        
+
         // Verify optional properties are null
         $this->assertNull($unserializedAuthRequest->getScope());
         $this->assertNull($unserializedAuthRequest->getState());
@@ -263,7 +263,7 @@ class AuthRequestTest extends TestCase
 
         // Test __serialize method
         $serializedData = $authRequest->__serialize();
-        
+
         $this->assertIsArray($serializedData);
         $this->assertArrayHasKey('client_id', $serializedData);
         $this->assertArrayHasKey('redirect_uri', $serializedData);
@@ -274,7 +274,7 @@ class AuthRequestTest extends TestCase
         $this->assertArrayHasKey('code_challenge', $serializedData);
         $this->assertArrayHasKey('code_challenge_method', $serializedData);
         $this->assertArrayHasKey('nonce', $serializedData);
-        
+
         $this->assertEquals('test_client', $serializedData['client_id']);
         $this->assertEquals('https://example.com/callback', $serializedData['redirect_uri']);
         $this->assertEquals('code', $serializedData['response_type']);
@@ -287,7 +287,7 @@ class AuthRequestTest extends TestCase
         // Test __unserialize method
         $newAuthRequest = new AuthRequest('temp', 'temp', 'temp', new DateTimeImmutable());
         $newAuthRequest->__unserialize($serializedData);
-        
+
         $this->assertEquals('test_client', $newAuthRequest->getClientId());
         $this->assertEquals('https://example.com/callback', $newAuthRequest->getRedirectUri());
         $this->assertEquals('code', $newAuthRequest->getResponseType());
@@ -313,7 +313,7 @@ class AuthRequestTest extends TestCase
 
         // Modify the original date (this should not affect the AuthRequest since DateTimeImmutable is immutable)
         $modifiedDate = $originalDate->add(new \DateInterval('PT10M'));
-        
+
         // The AuthRequest should still have the original date
         $this->assertEquals($originalDate, $authRequest->getExpiresAt());
         $this->assertNotEquals($modifiedDate, $authRequest->getExpiresAt());

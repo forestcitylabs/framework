@@ -34,7 +34,7 @@ class OidcClaimRegistryTest extends TestCase
             'email' => true,
             'admin' => true,
         ];
-        
+
         $groups = [
             'profile' => ['sub', 'name'],
             'email' => ['email'],
@@ -54,7 +54,7 @@ class OidcClaimRegistryTest extends TestCase
             'sub' => false,
             'name' => false,
         ];
-        
+
         $groups = [
             'profile' => ['sub', 'name', 'email'], // 'email' is not defined in claims
         ];
@@ -259,7 +259,7 @@ class OidcClaimRegistryTest extends TestCase
             'name' => false,
             'email' => true,
         ];
-        
+
         $groups = [
             'profile' => ['sub', 'name'],
             'contact' => ['email', 'phone'], // 'phone' is not defined

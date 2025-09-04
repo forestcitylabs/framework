@@ -480,4 +480,3 @@ class RefreshTokenGrantTest extends TestCase
         $this->grant->handleTokenRequest($this->request, null);
     }
 }
-

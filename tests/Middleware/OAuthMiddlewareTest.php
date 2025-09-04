@@ -48,7 +48,7 @@ class OAuthMiddlewareTest extends TestCase
         $authResponse->method('withHeader')->with('Location', $redirectPath)->willReturnSelf();
 
         $this->uri->method('getPath')->willReturn('/oauth/authorize');
-        
+
         $this->oauthServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
@@ -71,7 +71,7 @@ class OAuthMiddlewareTest extends TestCase
         $tokenResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn('/oauth/token');
-        
+
         $this->oauthServer
             ->expects($this->once())
             ->method('handleTokenRequest')
@@ -92,7 +92,7 @@ class OAuthMiddlewareTest extends TestCase
         $middleware = new OAuthMiddleware($redirectPath, $this->oauthServer);
 
         $this->uri->method('getPath')->willReturn('/api/users');
-        
+
         $this->oauthServer->expects($this->never())->method('handleAuthorizationRequest');
         $this->oauthServer->expects($this->never())->method('handleTokenRequest');
 
@@ -119,7 +119,7 @@ class OAuthMiddlewareTest extends TestCase
         $authResponse->method('withHeader')->with('Location', $redirectPath)->willReturnSelf();
 
         $this->uri->method('getPath')->willReturn($customAuthPath);
-        
+
         $this->oauthServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
@@ -137,16 +137,16 @@ class OAuthMiddlewareTest extends TestCase
         $redirectPath = '/callback';
         $customTokenPath = '/custom/token';
         $middleware = new OAuthMiddleware(
-            $redirectPath, 
-            $this->oauthServer, 
-            '/oauth/authorize', 
+            $redirectPath,
+            $this->oauthServer,
+            '/oauth/authorize',
             $customTokenPath
         );
 
         $tokenResponse = $this->createMock(ResponseInterface::class);
 
         $this->uri->method('getPath')->willReturn($customTokenPath);
-        
+
         $this->oauthServer
             ->expects($this->once())
             ->method('handleTokenRequest')
@@ -166,7 +166,7 @@ class OAuthMiddlewareTest extends TestCase
         $middleware = new OAuthMiddleware($redirectPath, $this->oauthServer, $customAuthPath);
 
         $this->uri->method('getPath')->willReturn('/oauth/authorize');
-        
+
         $this->oauthServer->expects($this->never())->method('handleAuthorizationRequest');
         $this->oauthServer->expects($this->never())->method('handleTokenRequest');
 
@@ -187,14 +187,14 @@ class OAuthMiddlewareTest extends TestCase
         $redirectPath = '/callback';
         $customTokenPath = '/custom/token';
         $middleware = new OAuthMiddleware(
-            $redirectPath, 
-            $this->oauthServer, 
-            '/oauth/authorize', 
+            $redirectPath,
+            $this->oauthServer,
+            '/oauth/authorize',
             $customTokenPath
         );
 
         $this->uri->method('getPath')->willReturn('/oauth/token');
-        
+
         $this->oauthServer->expects($this->never())->method('handleAuthorizationRequest');
         $this->oauthServer->expects($this->never())->method('handleTokenRequest');
 

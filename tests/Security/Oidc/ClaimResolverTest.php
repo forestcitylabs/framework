@@ -28,7 +28,7 @@ class ClaimResolverTest extends TestCase
         $this->claimRegistry = $this->createMock(OidcClaimRegistry::class);
         $this->propertyAccessor = $this->createMock(PropertyAccessor::class);
         $this->user = $this->createMock(UserInterface::class);
-        
+
         $this->claimResolver = new ClaimResolver(
             $this->claimRegistry,
             $this->propertyAccessor
@@ -344,11 +344,11 @@ class ClaimResolverTest extends TestCase
         $result = $this->claimResolver->resolveClaims($scopes, $this->user);
 
         $this->assertIsIterable($result);
-        
+
         // Verify we can iterate multiple times
         $array1 = iterator_to_array($result);
         $array2 = iterator_to_array($this->claimResolver->resolveClaims($scopes, $this->user));
-        
+
         $this->assertEquals($array1, $array2);
     }
 }

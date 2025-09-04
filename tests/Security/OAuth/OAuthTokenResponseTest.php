@@ -126,7 +126,7 @@ class OAuthTokenResponseTest extends TestCase
         $customAccessToken = $this->createMock(AccessTokenInterface::class);
         $customAccessToken->method('getToken')->willReturn('access_token_abc123');
         $customAccessToken->method('getScopes')->willReturn(['read']);
-        
+
         $currentTime = time();
         $expiresAt = new DateTimeImmutable('@' . ($currentTime + 7200)); // 2 hours from now
         $customAccessToken->method('getExpiresAt')->willReturn($expiresAt);
@@ -135,7 +135,7 @@ class OAuthTokenResponseTest extends TestCase
         $formattedResponse = $response->formatResponse();
 
         $actualExpiresIn = $formattedResponse['expires_in'];
-        
+
         // Allow for small timing differences (within 5 seconds)
         $this->assertGreaterThanOrEqual(7195, $actualExpiresIn);
         $this->assertLessThanOrEqual(7200, $actualExpiresIn);
@@ -287,7 +287,7 @@ class OAuthTokenResponseTest extends TestCase
         // Should be approximately 30 days in seconds (2592000)
         $expectedExpiresIn = 30 * 24 * 60 * 60;
         $actualExpiresIn = $formattedResponse['expires_in'];
-        
+
         // Allow for timing differences (within 60 seconds)
         $this->assertGreaterThanOrEqual($expectedExpiresIn - 60, $actualExpiresIn);
         $this->assertLessThanOrEqual($expectedExpiresIn, $actualExpiresIn);
@@ -299,7 +299,7 @@ class OAuthTokenResponseTest extends TestCase
         // This test verifies that the constructor requires an access token
         // by ensuring our mock is always provided
         $response = new OAuthTokenResponse($this->accessToken);
-        
+
         $this->assertNotNull($response->getAccessToken());
         $this->assertInstanceOf(AccessTokenInterface::class, $response->getAccessToken());
     }
@@ -308,7 +308,7 @@ class OAuthTokenResponseTest extends TestCase
     public function refreshTokenCanBeNull()
     {
         $response = new OAuthTokenResponse($this->accessToken, null);
-        
+
         $this->assertNull($response->getRefreshToken());
     }
 

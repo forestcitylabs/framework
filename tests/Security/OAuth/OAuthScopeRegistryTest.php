@@ -234,7 +234,7 @@ class OAuthScopeRegistryTest extends TestCase
         // Test filtering
         $allScopes = ['public_read', 'public_write', 'admin_read', 'admin_write', 'admin_delete'];
         $filtered = $registry->filterPrivilegedScopes($allScopes);
-        
+
         $this->assertEquals(['public_read', 'public_write'], $filtered);
     }
 
@@ -255,7 +255,7 @@ class OAuthScopeRegistryTest extends TestCase
 
         $expectedScopes = [
             'user:read',
-            'user:write', 
+            'user:write',
             'repo:admin',
             'openid',
             'profile.email',
