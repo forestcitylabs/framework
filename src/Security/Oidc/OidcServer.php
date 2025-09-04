@@ -50,7 +50,7 @@ class OidcServer extends OAuthServer
                         ->withHeader('Content-Type', 'application/json');
                 }
 
-                $claims = [];
+                $claims = ['sub' => $access_token->getUser()->getIdentifier()];
                 foreach (
                     $this->claim_resolver->resolveClaims(
                         $access_token->getScopes(),
