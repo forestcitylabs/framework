@@ -11,6 +11,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\InputType;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Owner;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\InputResolver;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
@@ -41,6 +42,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 #[UsesClass(Field::class)]
 #[UsesClass(MetadataProvider::class)]
 #[UsesClass(ObjectType::class)]
+#[UsesClass(Owner::class)]
 #[UsesClass(ManualDiscovery::class)]
 #[UsesClass(EnumType::class)]
 #[UsesClass(Value::class)]

@@ -9,6 +9,7 @@ use ForestCityLabs\Framework\GraphQL\Attribute\Argument;
 use ForestCityLabs\Framework\GraphQL\Attribute\EnumType;
 use ForestCityLabs\Framework\GraphQL\Attribute\Field;
 use ForestCityLabs\Framework\GraphQL\Attribute\ObjectType;
+use ForestCityLabs\Framework\GraphQL\Attribute\Owner;
 use ForestCityLabs\Framework\GraphQL\Attribute\Value;
 use ForestCityLabs\Framework\GraphQL\MetadataProvider;
 use ForestCityLabs\Framework\GraphQL\MethodFieldResolver;
@@ -37,6 +38,7 @@ use Psr\Cache\CacheItemPoolInterface;
 #[UsesClass(Argument::class)]
 #[UsesClass(Field::class)]
 #[UsesClass(ObjectType::class)]
+#[UsesClass(Owner::class)]
 #[UsesClass(AbstractType::class)]
 #[UsesClass(EnumType::class)]
 #[UsesClass(ManualDiscovery::class)]
