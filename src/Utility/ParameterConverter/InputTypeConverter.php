@@ -46,6 +46,11 @@ class InputTypeConverter implements ParameterConverterInterface
                 continue;
             }
 
+            // If there is no array input for this type ignore it.
+            if (!is_array($args[$parameter->getName()])) {
+                continue;
+            }
+
             // Resolve the type into the argument.
             $args[$parameter->getName()] = $this->input_resolver->resolve($args[$parameter->getName()], $input_type);
         }
