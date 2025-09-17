@@ -31,9 +31,7 @@ class OidcMiddleware implements MiddlewareInterface
         switch ($request->getUri()->getPath()) {
             case $this->auth_path:
                 return $this->server
-                    ->handleAuthorizationRequest($request)
-                    ->withStatus(302)
-                    ->withHeader('Location', $this->redirect_uri);
+                    ->handleAuthorizationRequest($request, $this->redirect_uri);
             case $this->token_path:
                 return $this->server->handleTokenRequest($request);
             case $this->userinfo_path:

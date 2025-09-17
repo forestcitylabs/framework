@@ -29,7 +29,7 @@ class OAuthServer
     ) {
     }
 
-    public function handleAuthorizationRequest(ServerRequestInterface $request): ResponseInterface
+    public function handleAuthorizationRequest(ServerRequestInterface $request, string $redirect): ResponseInterface
     {
         // Check if any grant can handle the authorization request.
         foreach ($this->grants as $grant) {
@@ -54,7 +54,9 @@ class OAuthServer
                     ->withMaxAge($auth_request->getExpiresAt()->getTimestamp() - time());
 
                 // Return the response with the cookie set.
-                return FigResponseCookies::set($this->rf->createResponse(), $set_cookie);
+                return FigResponseCookies::set($this->rf->createResponse(), $set_cookie)
+                    ->withStatus(302)
+                    ->withHeader('Location', $redirect);
             }
         }
 

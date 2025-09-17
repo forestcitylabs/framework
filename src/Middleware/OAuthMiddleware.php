@@ -26,9 +26,7 @@ class OAuthMiddleware implements MiddlewareInterface
             case $this->auth_path:
                 return $this
                     ->server
-                    ->handleAuthorizationRequest($request)
-                    ->withStatus(302)
-                    ->withHeader('Location', $this->redirect_path);
+                    ->handleAuthorizationRequest($request, $this->redirect_path);
             case $this->token_path:
                 return $this->server->handleTokenRequest($request);
         }
