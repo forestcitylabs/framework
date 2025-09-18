@@ -52,7 +52,7 @@ class OAuthMiddlewareTest extends TestCase
         $this->oauthServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
-            ->with($this->request)
+            ->with($this->request, '/callback')
             ->willReturn($authResponse);
 
         $this->handler->expects($this->never())->method('handle');
@@ -123,7 +123,7 @@ class OAuthMiddlewareTest extends TestCase
         $this->oauthServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
-            ->with($this->request)
+            ->with($this->request, '/callback')
             ->willReturn($authResponse);
 
         $response = $middleware->process($this->request, $this->handler);
