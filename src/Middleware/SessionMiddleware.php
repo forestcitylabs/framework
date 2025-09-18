@@ -47,6 +47,7 @@ class SessionMiddleware implements MiddlewareInterface
         if ($session->isDirty()) {
             if ($session->isEmpty() && $cookies->has(session_name())) {
                 // If the session is empty destroy it and clear the cookie.
+                session_start();
                 session_destroy();
                 $response = $response->withAddedHeader(
                     'set-cookie',

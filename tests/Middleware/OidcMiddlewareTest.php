@@ -61,7 +61,7 @@ class OidcMiddlewareTest extends TestCase
         $this->oidcServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
-            ->with($this->request)
+            ->with($this->request, '/callback')
             ->willReturn($authResponse);
 
         $this->handler->expects($this->never())->method('handle');
@@ -242,7 +242,7 @@ class OidcMiddlewareTest extends TestCase
         $this->oidcServer
             ->expects($this->once())
             ->method('handleAuthorizationRequest')
-            ->with($this->request)
+            ->with($this->request, '/callback')
             ->willReturn($authResponse);
 
         $response = $middleware->process($this->request, $this->handler);

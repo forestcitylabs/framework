@@ -47,7 +47,8 @@ class OAuthServerTest extends TestCase
         );
 
         $response = $server->handleAuthorizationRequest(
-            $this->createMock(ServerRequestInterface::class)
+            $this->createMock(ServerRequestInterface::class),
+            '/oauth/callback'
         );
 
         $this->assertInstanceOf(Response::class, $response);
@@ -76,7 +77,8 @@ class OAuthServerTest extends TestCase
         $server = new OAuthServer($rf, $sf, $es, $sr, [$gr]);
 
         $result = $server->handleAuthorizationRequest(
-            $this->createMock(ServerRequestInterface::class)
+            $this->createMock(ServerRequestInterface::class),
+            '/oauth/callback'
         );
 
         $this->assertInstanceOf(ResponseInterface::class, $result);
