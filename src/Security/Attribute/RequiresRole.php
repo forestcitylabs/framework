@@ -18,15 +18,24 @@ use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Utility\SerializerTrait;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionFunctionAbstract;
+use RuntimeException;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 class RequiresRole implements RequirementInterface
 {
     use SerializerTrait;
 
+    public const AND = 'AND';
+    public const OR = 'OR';
+
     public function __construct(
-        private string $role
+        private array $roles,
+        private string $conjunction = self::AND
     ) {
+        // Validate the conjunction.
+        if (!in_array($conjunction, [self::AND, self::OR])) {
+            throw new RuntimeException("Invalid conjuntion.");
+        }
     }
 
     public function checkRequirement(
@@ -46,10 +55,33 @@ class RequiresRole implements RequirementInterface
             ));
         }
 
-        if (!$access_token->getUser()->hasRole($this->role)) {
+        // Get the current user.
+        if (null === $user = $access_token->getUser()) {
+            throw new UnauthorizedException();
+        }
+
+        // Iterate over defined roles.
+        $result = false;
+        foreach ($this->roles as $role) {
+            if (
+                $this->conjunction === self::AND
+                && !$user->hasRole($role)
+            ) {
+                // Must have all roles, fail.
+                throw new ForbiddenException(sprintf(
+                    'Role "%s" is required to access this resource.',
+                    $role
+                ));
+            } elseif ($user->hasRole($role)) {
+                $result = true;
+            }
+        }
+
+        // Check the result.
+        if (!$result) {
             throw new ForbiddenException(sprintf(
-                'Role "%s" is required to access this resource.',
-                $this->role
+                'At least one of "%s" is required to access this resource.',
+                implode(', ', $this->roles)
             ));
         }
     }

@@ -18,15 +18,24 @@ use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Utility\SerializerTrait;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionFunctionAbstract;
+use RuntimeException;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 class RequiresScope implements RequirementInterface
 {
     use SerializerTrait;
 
+    public const AND = 'AND';
+    public const OR = 'OR';
+
     public function __construct(
-        private string $scope
+        private array $scopes,
+        private string $conjunction = self::AND
     ) {
+        // Validate the conjunction.
+        if (!in_array($conjunction, [self::AND, self::OR])) {
+            throw new RuntimeException("Invalid conjuntion.");
+        }
     }
 
     public function checkRequirement(
@@ -46,12 +55,27 @@ class RequiresScope implements RequirementInterface
             ));
         }
 
-        if (
-            !$access_token->hasScope($this->scope)
-        ) {
+        // Iterate over defined scopes.
+        $result = false;
+        foreach ($this->scopes as $scope) {
+            if (
+                $this->conjunction === self::AND
+                && !$access_token->hasScope($scope)
+            ) {
+                throw new InsufficientScopeException(sprintf(
+                    'Scope "%s" is required to access this resource.',
+                    $scope
+                ));
+            } elseif ($access_token->hasScope($scope)) {
+                $result = true;
+            }
+        }
+
+        // Check the result.
+        if (!$result) {
             throw new InsufficientScopeException(sprintf(
-                'Scope "%s" is required to access this resource.',
-                $this->scope
+                'At least one scope of "%s" is required to access this resource.',
+                implode(", ", $this->scopes)
             ));
         }
     }
