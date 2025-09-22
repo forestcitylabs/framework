@@ -14,24 +14,37 @@ namespace ForestCityLabs\Framework\Security;
 final class RoleRegistry
 {
     public function __construct(
-        private array $roles
+        private array $roles,
+        private array $hierarchy = [],
     ) {
     }
 
     public function getAllRoles(): array
     {
-        return array_keys($this->roles);
+        return $this->roles;
     }
 
     public function roleExists(string $role): bool
     {
-        return array_key_exists($role, $this->roles);
+        return in_array($role, $this->roles);
     }
 
-    public function filterPrivilegedRoles(array $roles): array
+    public function getRolesUnder(string $role): array
     {
-        return array_filter($roles, function ($value) {
-            return !$this->roles[$value];
-        });
+        $childRoles = [];
+
+        // Check if this role has direct children in the hierarchy
+        if (isset($this->hierarchy[$role])) {
+            foreach ($this->hierarchy[$role] as $childRole) {
+                // Add the direct child
+                $childRoles[] = $childRole;
+
+                // Recursively get all descendants of this child
+                $grandChildren = $this->getRolesUnder($childRole);
+                $childRoles = array_merge($childRoles, $grandChildren);
+            }
+        }
+
+        return array_unique($childRoles);
     }
 }
