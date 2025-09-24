@@ -19,7 +19,8 @@ use ReflectionNamedType;
 class ContainerParameterResolver implements ParameterResolverInterface
 {
     public function __construct(
-        private ContainerInterface $container
+        private ContainerInterface $container,
+        private array $excluded_types = [],
     ) {
     }
 
@@ -41,8 +42,8 @@ class ContainerParameterResolver implements ParameterResolverInterface
                 continue;
             }
 
-            // Cannot operate on built-in types.
-            if ($type->isBuiltin()) {
+            // Cannot operate on built-in types or excluded types.
+            if ($type->isBuiltin() || in_array($type->getName(), $this->excluded_types)) {
                 continue;
             }
 
