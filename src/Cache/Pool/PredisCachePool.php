@@ -60,7 +60,7 @@ class PredisCachePool extends AbstractCachePool
     public function clear(): bool
     {
         // Get the prefix.
-        $prefix = $this->client->getOptions()->prefix->getPrefix();
+        $prefix = $this->client->getOptions()->prefix?->getPrefix() ?? '';
 
         // Store a cursor to delete all keys with the prefix.
         $cursor = 0;
