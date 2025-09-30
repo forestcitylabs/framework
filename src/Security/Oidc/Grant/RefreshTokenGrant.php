@@ -46,23 +46,23 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
     {
         // Call the parent method to handle the token request.
         $response = parent::handleTokenRequest($request, $auth_request);
+        $params = $request->getParsedBody();
 
         $scopes = $response->getAccessToken()->getScopes();
         if (in_array('openid', $scopes, true)) {
             // Get the current time.
             $now = new DateTimeImmutable();
 
-            // Get the client from the auth request.
-            $client = $this->client_manager->findClientById($auth_request->getClientId());
+            // Get the client from the parameters.
+            $client = $this->client_manager->findClientById($params['client_id']);
 
             // Start building the ID token.
             $builder = $this->jwt->builder()
                 ->issuedBy($request->getUri()->getScheme() . '://' . $request->getUri()->getHost())
-                ->permittedFor($auth_request->getClientId())
+                ->permittedFor($client->getIdentifier())
                 ->relatedTo($response->getAccessToken()->getUser()->getIdentifier())
                 ->issuedAt($now)
-                ->expiresAt($now->add($this->access_token_ttl))
-                ->withClaim('nonce', $auth_request->getNonce());
+                ->expiresAt($now->add($this->access_token_ttl));
 
             // Add allowed claims to the ID token.
             foreach (
