@@ -47,7 +47,7 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
         // Call the parent method to handle the token request.
         $response = parent::handleTokenRequest($request, $auth_request);
 
-        $scopes = explode(' ', $auth_request->getScope());
+        $scopes = $response->getAccessToken()->getScopes();
         if (in_array('openid', $scopes, true)) {
             // Get the current time.
             $now = new DateTimeImmutable();
