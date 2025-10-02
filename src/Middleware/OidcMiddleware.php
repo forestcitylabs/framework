@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\UriInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -18,6 +19,7 @@ class OidcMiddleware implements MiddlewareInterface
         private string $redirect_uri,
         private ResponseFactoryInterface $rf,
         private StreamFactoryInterface $sf,
+        private UriInterface $base_uri,
         private OidcServer $server,
         private string $auth_path = '/oauth/authorize',
         private string $token_path = '/oauth/token',
@@ -44,11 +46,11 @@ class OidcMiddleware implements MiddlewareInterface
                 return $this->rf->createResponse(200)
                     ->withHeader('Content-Type', 'application/json')
                     ->withBody($this->sf->createStream(json_encode([
-                        'issuer' => $request->getUri()->getScheme() . '://' . $request->getUri()->getHost(),
-                        'authorization_endpoint' => $request->getUri()->withPath($this->auth_path)->__toString(),
-                        'token_endpoint' => $request->getUri()->withPath($this->token_path)->__toString(),
-                        'userinfo_endpoint' => $request->getUri()->withPath($this->userinfo_path)->__toString(),
-                        'jwks_uri' => $request->getUri()->withPath($this->jwks_path)->__toString(),
+                        'issuer' => (string) $this->base_uri,
+                        'authorization_endpoint' => (string) $this->base_uri->withPath($this->auth_path),
+                        'token_endpoint' => (string) $this->base_uri->withPath($this->token_path),
+                        'userinfo_endpoint' => (string) $this->base_uri->withPath($this->userinfo_path),
+                        'jwks_uri' => (string) $this->base_uri->withPath($this->jwks_path),
                         'response_types_supported' => ['code', 'token', 'id_token'],
                         'subject_types_supported' => ['public'],
                         'id_token_signing_alg_values_supported' => ['RS256'],
