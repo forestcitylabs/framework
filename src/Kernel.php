@@ -24,7 +24,7 @@ class Kernel implements RequestHandlerInterface
 
     public function addMiddleware(string $middleware): void
     {
-        $this->logger->info(sprintf('Adding middleware "%s".', $middleware), ['class' => $this::class]);
+        $this->logger->debug(sprintf('Adding middleware "%s".', $middleware), ['class' => $this::class]);
         $this->middleware[] = $middleware;
     }
 
@@ -32,7 +32,7 @@ class Kernel implements RequestHandlerInterface
     {
         // Get the middleware for handling this request.
         $middleware = $this->container->get(array_shift($this->middleware));
-        $this->logger->info(
+        $this->logger->debug(
             sprintf('Processing request using middleware "%s"', $middleware::class),
             ['class' => $this::class]
         );
