@@ -16,11 +16,13 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
 
 class CorsMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private ResponseFactoryInterface $response_factory,
+        private LoggerInterface $logger,
         private array $allow_origins = [],
         private array $allow_headers = [],
         private array $allow_methods = [],
@@ -34,16 +36,27 @@ class CorsMiddleware implements MiddlewareInterface
     ): ResponseInterface {
         // If there is no origin we can't process.
         if (!$request->hasHeader('origin')) {
+            $this->logger->debug('CORS: No origin header present, passing through');
             return $handler->handle($request);
         }
 
         // Attempt to map an origin.
         if (null === $allowed_origin = $this->allowedOrigin($request)) {
+            $origin = $request->getHeader('origin')[0];
+            $this->logger->warning('CORS: Origin not allowed', [
+                'origin' => $origin,
+                'method' => $request->getMethod(),
+                'uri' => (string) $request->getUri()
+            ]);
             return $this->response_factory->createResponse(403);
         }
 
         // If this is a pre-flight request return all headers immediately.
         if ($request->getMethod() == "OPTIONS") {
+            $this->logger->info('CORS: Handling preflight request', [
+                'origin' => $allowed_origin,
+                'uri' => (string) $request->getUri()
+            ]);
             $response = $this
                 ->response_factory
                 ->createResponse(204)
@@ -62,8 +75,20 @@ class CorsMiddleware implements MiddlewareInterface
 
         // Ensure we don't violate allowed methods.
         if (count($this->allow_methods) > 0 && !in_array($request->getMethod(), $this->allow_methods)) {
+            $this->logger->warning('CORS: Method not allowed', [
+                'method' => $request->getMethod(),
+                'allowed_methods' => $this->allow_methods,
+                'origin' => $allowed_origin,
+                'uri' => (string) $request->getUri()
+            ]);
             return $this->response_factory->createResponse(403);
         }
+
+        $this->logger->debug('CORS: Request allowed', [
+            'origin' => $allowed_origin,
+            'method' => $request->getMethod(),
+            'uri' => (string) $request->getUri()
+        ]);
 
         // Allow request to continue with cross-origin header.
         return $handler
