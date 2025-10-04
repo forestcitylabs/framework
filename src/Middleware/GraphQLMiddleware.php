@@ -20,6 +20,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
 
 class GraphQLMiddleware implements MiddlewareInterface
 {
@@ -27,6 +28,7 @@ class GraphQLMiddleware implements MiddlewareInterface
         private Schema $schema,
         private ResponseFactoryInterface $response_factory,
         private StreamFactoryInterface $stream_factory,
+        private LoggerInterface $logger,
         private string $path = '/graphql',
         private bool $debug = false
     ) {
@@ -58,7 +60,20 @@ class GraphQLMiddleware implements MiddlewareInterface
                 null,
                 $request,
                 $variables
-            )->toArray($debug);
+            )
+                ->setErrorsHandler(function (array $errors, callable $formatter) use ($input, $variables): array {
+                    // Log each error before formatting.
+                    foreach ($errors as $error) {
+                        $this->logger->error('GraphQL error: ' . $error->getMessage(), [
+                            'exception' => $error,
+                            'query' => $input['query'],
+                            'variables' => $variables,
+                        ]);
+                    }
+                    // Continue with default error formatting.
+                    return array_map($formatter, $errors);
+                })
+                ->toArray($debug);
 
             // Return the result.
             return $this
