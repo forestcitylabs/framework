@@ -36,7 +36,12 @@ class CacheClearCommand extends Command
 
         foreach ($this->paths as $path) {
             if (file_exists($path)) {
-                unlink($path);
+                if (is_dir($path)) {
+                    array_map('unlink', glob($path . '/*'));
+                    rmdir($path);
+                } else {
+                    unlink($path);
+                }
             }
         }
 
