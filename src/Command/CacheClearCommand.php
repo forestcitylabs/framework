@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace ForestCityLabs\Framework\Command;
 
 use Psr\Cache\CacheItemPoolInterface;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -35,12 +37,22 @@ class CacheClearCommand extends Command
         }
 
         foreach ($this->paths as $path) {
-            if (file_exists($path)) {
-                if (is_dir($path)) {
-                    array_map('unlink', glob($path . '/*'));
-                    rmdir($path);
+            foreach (glob($path) as $item) {
+                if (is_dir($item)) {
+                    $iterator = new RecursiveIteratorIterator(
+                        new RecursiveDirectoryIterator($item, RecursiveDirectoryIterator::SKIP_DOTS),
+                        RecursiveIteratorIterator::CHILD_FIRST,
+                    );
+
+                    foreach ($iterator as $rm) {
+                        if ($rm->isDir()) {
+                            rmdir($rm->getRealPath());
+                        } else {
+                            unlink($rm->getRealPath());
+                        }
+                    }
                 } else {
-                    unlink($path);
+                    unlink($item);
                 }
             }
         }
