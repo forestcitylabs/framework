@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
 
 #[CoversClass(GraphQLMiddleware::class)]
 class GraphQLMiddlewareTest extends TestCase
@@ -26,6 +27,7 @@ class GraphQLMiddlewareTest extends TestCase
             new Schema([]),
             new ResponseFactory(),
             new StreamFactory(),
+            $this->createStub(LoggerInterface::class),
         );
 
         $handler = $this->createMock(RequestHandlerInterface::class);
@@ -47,6 +49,7 @@ class GraphQLMiddlewareTest extends TestCase
             new Schema([]),
             new ResponseFactory(),
             new StreamFactory(),
+            $this->createStub(LoggerInterface::class),
         );
 
         $handler = $this->createMock(RequestHandlerInterface::class);

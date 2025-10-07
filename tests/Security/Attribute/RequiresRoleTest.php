@@ -26,7 +26,7 @@ class RequiresRoleTest extends TestCase
     #[Test]
     public function noAccessToken(): void
     {
-        $attribute = new RequiresRole('admin');
+        $attribute = new RequiresRole(['admin']);
         $request = $this->createStub(ServerRequestInterface::class);
         $request->method('getAttribute')
             ->with('_access_token')
@@ -38,7 +38,7 @@ class RequiresRoleTest extends TestCase
     #[Test]
     public function invalidToken(): void
     {
-        $attribute = new RequiresRole('admin');
+        $attribute = new RequiresRole(['admin']);
         $request = $this->createStub(ServerRequestInterface::class);
         $request->method('getAttribute')
             ->with('_access_token')
@@ -51,7 +51,7 @@ class RequiresRoleTest extends TestCase
     public function userDoesNotHaveRole(): void
     {
         // Create the attribute.
-        $attribute = new RequiresRole('admin');
+        $attribute = new RequiresRole(['admin']);
 
         // Mock the values.
         $request = $this->createMock(ServerRequestInterface::class);

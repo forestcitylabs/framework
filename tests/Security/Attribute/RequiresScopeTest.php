@@ -23,7 +23,7 @@ class RequiresScopeTest extends TestCase
     #[Test]
     public function noAccessToken(): void
     {
-        $attribute = new RequiresScope('admin');
+        $attribute = new RequiresScope(['admin']);
         $this->expectException(UnauthorizedException::class);
         $attribute->checkRequirement(
             $this->createMock(ServerRequestInterface::class),
@@ -35,7 +35,7 @@ class RequiresScopeTest extends TestCase
     #[Test]
     public function invalidToken(): void
     {
-        $attribute = new RequiresScope('admin');
+        $attribute = new RequiresScope(['admin']);
         $request = $this->createMock(ServerRequestInterface::class);
         $request->method('getAttribute')->with('_access_token')->willReturn(new stdClass());
         $this->expectException(UnauthorizedException::class);
@@ -49,7 +49,7 @@ class RequiresScopeTest extends TestCase
     #[Test]
     public function tokenDoesNotHaveScope(): void
     {
-        $attribute = new RequiresScope('admin');
+        $attribute = new RequiresScope(['admin']);
         $request = $this->createMock(ServerRequestInterface::class);
         $token = $this->createMock(AccessTokenInterface::class);
         $request->method('getAttribute')->with('_access_token')->willReturn($token);

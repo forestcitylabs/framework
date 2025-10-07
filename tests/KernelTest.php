@@ -28,8 +28,8 @@ class KernelTest extends TestCase
         $dispatcher = $this->createMock(EventDispatcherInterface::class);
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
-            ->method('info')
-            ->with($this->identicalTo('Adding middleware "TestMiddleware".'));
+            ->method('debug')
+            ->with($this->identicalTo('Adding middleware "TestMiddleware".'), $this->identicalTo(['class' => Kernel::class]));
         $kernel = new Kernel(
             $container,
             $dispatcher,

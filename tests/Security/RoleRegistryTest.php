@@ -13,31 +13,36 @@ use PHPUnit\Framework\TestCase;
 class RoleRegistryTest extends TestCase
 {
     private array $roles = [
-        'admin' => true,
-        'write' => true,
-        'read' => false,
+        'admin',
+        'write',
+        'read',
     ];
 
     #[Test]
     public function getAllRoles(): void
     {
         $registry = new RoleRegistry($this->roles);
-        $this->assertEquals(array_keys($this->roles), $registry->getAllRoles());
+        $this->assertEquals($this->roles, $registry->getAllRoles());
     }
 
     #[Test]
     public function roleExists(): void
     {
         $registry = new RoleRegistry($this->roles);
-        $this->assertEquals(true, $registry->roleExists('admin'));
-        $this->assertEquals(false, $registry->roleExists('nope'));
+        $this->assertTrue($registry->roleExists('admin'));
+        $this->assertFalse($registry->roleExists('nope'));
     }
 
     #[Test]
-    public function filterPrivilegedRoles(): void
+    public function getRolesUnder(): void
     {
-        $registry = new RoleRegistry($this->roles);
-        $roles = $registry->filterPrivilegedRoles(['read', 'write']);
-        $this->assertEquals(['read'], $roles);
+        $hierarchy = [
+            'admin' => ['write', 'read'],
+            'write' => ['read'],
+        ];
+        $registry = new RoleRegistry($this->roles, $hierarchy);
+        $roles = $registry->getRolesUnder('admin');
+        $this->assertContains('write', $roles);
+        $this->assertContains('read', $roles);
     }
 }

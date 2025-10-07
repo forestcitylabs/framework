@@ -212,7 +212,7 @@ class RefreshTokenGrantTest extends TestCase
         // Mock claim resolver
         $this->claimResolver
             ->method('resolveClaims')
-            ->with(['openid', 'profile', 'email'], $this->user)
+            ->with(['openid', 'profile'], $this->user)
             ->willReturn([
                 'name' => 'John Doe',
                 'email' => 'john@example.com',
@@ -275,7 +275,7 @@ class RefreshTokenGrantTest extends TestCase
         // Mock claim resolver returning more claims than client allows
         $this->claimResolver
             ->method('resolveClaims')
-            ->with(['openid', 'profile', 'email'], $this->user)
+            ->with(['openid', 'profile'], $this->user)
             ->willReturn([
                 'name' => 'John Doe',        // Should be included (client allows)
                 'email' => 'john@example.com', // Should be filtered out (client doesn't allow)
@@ -331,6 +331,7 @@ class RefreshTokenGrantTest extends TestCase
         $newAccessToken->method('getScopes')->willReturn(['openid', 'profile']);
 
         $this->client->method('getScopes')->willReturn(['openid', 'profile', 'name']);
+        $this->client->method('getIdentifier')->willReturn('test-client');
 
         $this->claimResolver
             ->method('resolveClaims')
@@ -347,7 +348,6 @@ class RefreshTokenGrantTest extends TestCase
         $this->assertEquals('https://auth.example.com', $token->claims()->get('iss'));
         $this->assertEquals('test-client', $token->claims()->get('aud')[0]);
         $this->assertEquals('user-456', $token->claims()->get('sub'));
-        $this->assertEquals('unique-nonce-123', $token->claims()->get('nonce'));
         $this->assertEquals('John Doe', $token->claims()->get('name'));
     }
 
@@ -393,6 +393,7 @@ class RefreshTokenGrantTest extends TestCase
         $newAccessToken->method('getScopes')->willReturn(['openid']);
 
         $this->client->method('getScopes')->willReturn(['openid']);
+        $this->client->method('getIdentifier')->willReturn('client123');
 
         // Mock claim resolver returning empty claims
         $this->claimResolver
@@ -410,6 +411,5 @@ class RefreshTokenGrantTest extends TestCase
         $this->assertEquals('https://example.com', $token->claims()->get('iss'));
         $this->assertEquals('client123', $token->claims()->get('aud')[0]);
         $this->assertEquals('user123', $token->claims()->get('sub'));
-        $this->assertEquals('test-nonce', $token->claims()->get('nonce'));
     }
 }

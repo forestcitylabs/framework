@@ -13,6 +13,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UriInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
 
 #[CoversClass(CorsMiddleware::class)]
 class CorsMiddlewareTest extends TestCase
@@ -39,7 +40,7 @@ class CorsMiddlewareTest extends TestCase
             ->willReturn($response);
         $factory = $this->createStub(ResponseFactoryInterface::class);
 
-        $middleware = new CorsMiddleware($factory, ['*']);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), ['*']);
         $middleware->process($request, $handler);
     }
 
@@ -65,7 +66,7 @@ class CorsMiddlewareTest extends TestCase
             ->willReturn($response);
         $factory = $this->createStub(ResponseFactoryInterface::class);
 
-        $middleware = new CorsMiddleware($factory, ['https://example.dev']);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), ['https://example.dev']);
         $middleware->process($request, $handler);
     }
 
@@ -85,7 +86,7 @@ class CorsMiddlewareTest extends TestCase
             ->method('createResponse')
             ->with(403);
 
-        $middleware = new CorsMiddleware($factory, ['https://example.dev']);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), ['https://example.dev']);
         $middleware->process($request, $handler);
     }
 
@@ -125,7 +126,7 @@ class CorsMiddlewareTest extends TestCase
             });
 
         $handler = $this->createStub(RequestHandlerInterface::class);
-        $middleware = new CorsMiddleware($factory, ['https://example.dev'], ['Authorization'], ['GET', 'POST'], 3600);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), ['https://example.dev'], ['Authorization'], ['GET', 'POST'], 3600);
         $middleware->process($request, $handler);
     }
 
@@ -147,7 +148,7 @@ class CorsMiddlewareTest extends TestCase
             ->method('createResponse')
             ->with(403)
             ->willReturn($response);
-        $middleware = new CorsMiddleware($factory, ['https://example.dev'], allow_methods: ['GET']);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), ['https://example.dev'], allow_methods: ['GET']);
         $middleware->process($request, $this->createMock(RequestHandlerInterface::class));
     }
 
@@ -163,7 +164,7 @@ class CorsMiddlewareTest extends TestCase
         $handler->expects($this->once())
             ->method('handle')
             ->with($request);
-        $middleware = new CorsMiddleware($this->createStub(ResponseFactoryInterface::class));
+        $middleware = new CorsMiddleware($this->createStub(ResponseFactoryInterface::class), $this->createStub(LoggerInterface::class));
         $middleware->process($request, $handler);
     }
 
@@ -202,7 +203,7 @@ class CorsMiddlewareTest extends TestCase
         $factory = $this->createStub(ResponseFactoryInterface::class);
 
         // Empty allow_origins array - same-origin should still be allowed
-        $middleware = new CorsMiddleware($factory, []);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), []);
         $middleware->process($request, $handler);
     }
 
@@ -240,7 +241,7 @@ class CorsMiddlewareTest extends TestCase
 
         $factory = $this->createStub(ResponseFactoryInterface::class);
 
-        $middleware = new CorsMiddleware($factory, []);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), []);
         $middleware->process($request, $handler);
     }
 
@@ -278,7 +279,7 @@ class CorsMiddlewareTest extends TestCase
 
         $factory = $this->createStub(ResponseFactoryInterface::class);
 
-        $middleware = new CorsMiddleware($factory, []);
+        $middleware = new CorsMiddleware($factory, $this->createStub(LoggerInterface::class), []);
         $middleware->process($request, $handler);
     }
 }
