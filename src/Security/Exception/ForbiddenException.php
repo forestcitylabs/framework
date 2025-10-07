@@ -4,13 +4,13 @@ namespace ForestCityLabs\Framework\Security\Exception;
 
 class ForbiddenException extends HttpException
 {
-    public function isClientSafe(): bool
-    {
-        return true;
-    }
-
-    public function getCategory()
+    public function getCategory(): string
     {
         return 'security';
+    }
+
+    public function getDetail(): string
+    {
+        return 'forbidden';
     }
 }

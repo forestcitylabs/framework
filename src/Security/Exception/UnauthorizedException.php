@@ -14,13 +14,13 @@ class UnauthorizedException extends HttpException
         parent::__construct($message, $code, $previous);
     }
 
-    public function isClientSafe(): bool
-    {
-        return true;
-    }
-
-    public function getCategory()
+    public function getCategory(): string
     {
         return 'security';
+    }
+
+    public function getDetail(): string
+    {
+        return 'unauthorized';
     }
 }
