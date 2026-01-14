@@ -8,6 +8,7 @@ use ForestCityLabs\Framework\Security\OAuth\AuthRequest;
 use ForestCityLabs\Framework\Security\OAuth\Grant\GrantInterface;
 use ForestCityLabs\Framework\Security\OAuth\OAuthScopeRegistry;
 use ForestCityLabs\Framework\Security\OAuth\OAuthServer;
+use ForestCityLabs\Framework\Security\OAuth\Storage\AuthRequestStorageInterface;
 use ForestCityLabs\Framework\Utility\EncryptionService;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -31,18 +32,20 @@ class OAuthServerTest extends TestCase
         $sf = $this->createMock(StreamFactoryInterface::class);
         $es = $this->createMock(EncryptionService::class);
         $sr = $this->createMock(OAuthScopeRegistry::class);
+        $storage = $this->createMock(AuthRequestStorageInterface::class);
         $gr = $this->createMock(GrantInterface::class);
         $gr->method('canHandleAuthorizationRequest')
             ->willReturn(true);
         $gr->method('handleAuthorizationRequest')
             ->willReturn($this->createMock(AuthRequest::class));
-        $rf->method('createResponse')
+        $storage->method('storeAuthRequest')
             ->willReturn(new Response());
         $server = new OAuthServer(
             $rf,
             $sf,
             $es,
             $sr,
+            $storage,
             [$gr],
         );
 
@@ -51,8 +54,9 @@ class OAuthServerTest extends TestCase
             '/oauth/callback'
         );
 
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertTrue($response->hasHeader('Set-Cookie'));
+        $this->assertInstanceOf(ResponseInterface::class, $response);
+        $this->assertEquals(302, $response->getStatusCode());
+        $this->assertTrue($response->hasHeader('Location'));
     }
 
     public function testHandleAuthorizationRequestWithNoValidGrant(): void
@@ -61,6 +65,7 @@ class OAuthServerTest extends TestCase
         $sf = $this->createMock(StreamFactoryInterface::class);
         $es = $this->createMock(EncryptionService::class);
         $sr = $this->createMock(OAuthScopeRegistry::class);
+        $storage = $this->createMock(AuthRequestStorageInterface::class);
         $gr = $this->createMock(GrantInterface::class);
 
         $gr->method('canHandleAuthorizationRequest')
@@ -74,7 +79,7 @@ class OAuthServerTest extends TestCase
             ->with('No valid grant found to handle the authorization request.')
             ->willReturn(new \GuzzleHttp\Psr7\Stream(fopen('data://text/plain;base64,' . base64_encode('No valid grant found to handle the authorization request.'), 'r')));
 
-        $server = new OAuthServer($rf, $sf, $es, $sr, [$gr]);
+        $server = new OAuthServer($rf, $sf, $es, $sr, $storage, [$gr]);
 
         $result = $server->handleAuthorizationRequest(
             $this->createMock(ServerRequestInterface::class),
@@ -91,6 +96,7 @@ class OAuthServerTest extends TestCase
         $sf = $this->createMock(StreamFactoryInterface::class);
         $es = $this->createMock(EncryptionService::class);
         $sr = $this->createMock(OAuthScopeRegistry::class);
+        $storage = $this->createMock(AuthRequestStorageInterface::class);
         $gr = $this->createMock(GrantInterface::class);
         $tokenResponse = $this->createMock(\ForestCityLabs\Framework\Security\OAuth\OAuthTokenResponse::class);
 
@@ -102,13 +108,12 @@ class OAuthServerTest extends TestCase
             ->willReturn(['access_token' => 'test_token', 'token_type' => 'Bearer']);
 
         $response = new Response(200);
-        $rf->method('createResponse')
-            ->with(200)
+        $storage->method('removeAuthRequest')
             ->willReturn($response);
         $sf->method('createStream')
             ->willReturn(new \GuzzleHttp\Psr7\Stream(fopen('data://text/plain;base64,' . base64_encode('{"access_token":"test_token","token_type":"Bearer"}'), 'r')));
 
-        $server = new OAuthServer($rf, $sf, $es, $sr, [$gr]);
+        $server = new OAuthServer($rf, $sf, $es, $sr, $storage, [$gr]);
 
         $result = $server->handleTokenRequest(
             $this->createMock(ServerRequestInterface::class)
@@ -124,6 +129,7 @@ class OAuthServerTest extends TestCase
         $sf = $this->createMock(StreamFactoryInterface::class);
         $es = $this->createMock(EncryptionService::class);
         $sr = $this->createMock(OAuthScopeRegistry::class);
+        $storage = $this->createMock(AuthRequestStorageInterface::class);
         $gr = $this->createMock(GrantInterface::class);
 
         $gr->method('canHandleTokenRequest')
@@ -137,7 +143,7 @@ class OAuthServerTest extends TestCase
             ->with('No valid grant found to handle the token request.')
             ->willReturn(new \GuzzleHttp\Psr7\Stream(fopen('data://text/plain;base64,' . base64_encode('No valid grant found to handle the token request.'), 'r')));
 
-        $server = new OAuthServer($rf, $sf, $es, $sr, [$gr]);
+        $server = new OAuthServer($rf, $sf, $es, $sr, $storage, [$gr]);
 
         $result = $server->handleTokenRequest(
             $this->createMock(ServerRequestInterface::class)
@@ -147,61 +153,13 @@ class OAuthServerTest extends TestCase
         $this->assertEquals(400, $result->getStatusCode());
     }
 
-    public function testGetAuthorizationRequestWithNoCookie(): void
-    {
-        $rf = $this->createMock(ResponseFactoryInterface::class);
-        $sf = $this->createMock(StreamFactoryInterface::class);
-        $es = $this->createMock(EncryptionService::class);
-        $sr = $this->createMock(OAuthScopeRegistry::class);
-
-        $server = new OAuthServer($rf, $sf, $es, $sr);
-
-        $request = $this->createMock(ServerRequestInterface::class);
-        $request->method('getHeader')
-            ->with('Cookie')
-            ->willReturn([]);
-
-        $result = $server->getAuthorizationRequest($request);
-
-        $this->assertNull($result);
-    }
-
-    public function testGetAuthorizationRequestWithValidCookie(): void
-    {
-        $rf = $this->createMock(ResponseFactoryInterface::class);
-        $sf = $this->createMock(StreamFactoryInterface::class);
-        $es = $this->createMock(EncryptionService::class);
-        $sr = $this->createMock(OAuthScopeRegistry::class);
-
-        $authRequest = new AuthRequest(
-            'test_client',
-            'https://example.com/callback',
-            'code',
-            new \DateTimeImmutable('+1 hour')
-        );
-
-        $es->method('decrypt')
-            ->willReturn(serialize($authRequest));
-
-        $server = new OAuthServer($rf, $sf, $es, $sr);
-
-        $request = $this->createMock(ServerRequestInterface::class);
-        $request->method('getHeaderLine')
-            ->with('Cookie')
-            ->willReturn('_oauth_session=encrypted_value');
-
-        $result = $server->getAuthorizationRequest($request);
-
-        $this->assertInstanceOf(AuthRequest::class, $result);
-        $this->assertEquals('test_client', $result->getClientId());
-    }
-
     public function testApproveAuthorizationRequestWithoutAuthorizationCodeGrant(): void
     {
         $rf = $this->createMock(ResponseFactoryInterface::class);
         $sf = $this->createMock(StreamFactoryInterface::class);
         $es = $this->createMock(EncryptionService::class);
         $sr = $this->createMock(OAuthScopeRegistry::class);
+        $storage = $this->createMock(AuthRequestStorageInterface::class);
         $gr = $this->createMock(GrantInterface::class);
 
         $response = new Response(400);
@@ -212,7 +170,7 @@ class OAuthServerTest extends TestCase
             ->with('No valid grant found to approve the authorization request.')
             ->willReturn(new \GuzzleHttp\Psr7\Stream(fopen('data://text/plain;base64,' . base64_encode('No valid grant found to approve the authorization request.'), 'r')));
 
-        $server = new OAuthServer($rf, $sf, $es, $sr, [$gr]);
+        $server = new OAuthServer($rf, $sf, $es, $sr, $storage, [$gr]);
 
         $user = $this->createMock(\ForestCityLabs\Framework\Security\Model\UserInterface::class);
         $result = $server->approveAuthorizationRequest(

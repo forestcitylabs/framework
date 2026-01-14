@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Security\OAuth;
 
-use Dflydev\FigCookies\Cookies;
-use Dflydev\FigCookies\FigResponseCookies;
-use Dflydev\FigCookies\Modifier\SameSite;
-use Dflydev\FigCookies\SetCookie;
 use ForestCityLabs\Framework\Security\Exception\OAuthException;
 use ForestCityLabs\Framework\Security\Model\UserInterface;
 use ForestCityLabs\Framework\Security\OAuth\Grant\AuthorizationCodeGrant;
+use ForestCityLabs\Framework\Security\OAuth\Storage\AuthRequestStorageInterface;
 use ForestCityLabs\Framework\Utility\EncryptionService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -24,6 +21,7 @@ class OAuthServer
         protected StreamFactoryInterface $sf,
         protected EncryptionService $encryption_service,
         protected OAuthScopeRegistry $scope_registry,
+        protected AuthRequestStorageInterface $auth_request_storage,
         protected array $grants = [],
         protected string $cookie_key = '_oauth_session',
     ) {
@@ -43,18 +41,9 @@ class OAuthServer
                     );
                 }
 
-                // Create a cookie to store the encrypted authorization request.
-                $set_cookie = SetCookie::create(
-                    $this->cookie_key,
-                    $this->encryption_service->encrypt(serialize($auth_request), $this->cookie_key)
-                )
-                    ->withHttpOnly(true)
-                    ->withSecure($request->getUri()->getScheme() === 'https')
-                    ->withSameSite(SameSite::strict())
-                    ->withMaxAge($auth_request->getExpiresAt()->getTimestamp() - time());
-
-                // Return the response with the cookie set.
-                return FigResponseCookies::set($this->rf->createResponse(), $set_cookie)
+                return $this
+                    ->auth_request_storage
+                    ->storeAuthRequest($request, $auth_request)
                     ->withStatus(302)
                     ->withHeader('Location', $redirect);
             }
@@ -75,7 +64,7 @@ class OAuthServer
         foreach ($this->grants as $grant) {
             if ($grant instanceof AuthorizationCodeGrant) {
                 // Must have an active authorization request to respond.
-                if (null === $auth_request = $this->getAuthorizationRequest($request)) {
+                if (null === $auth_request = $this->auth_request_storage->getAuthRequest($request)) {
                     return $this->rf->createResponse(400)->withBody(
                         $this->sf->createStream('No authorization request found.')
                     );
@@ -115,7 +104,10 @@ class OAuthServer
             if ($grant->canHandleTokenRequest($request)) {
                 // Get the access and refresh tokens.
                 try {
-                    $token_response = $grant->handleTokenRequest($request, $this->getAuthorizationRequest($request));
+                    $token_response = $grant->handleTokenRequest(
+                        $request,
+                        $this->auth_request_storage->getAuthRequest($request)
+                    );
                 } catch (OAuthException $e) {
                     return $this->rf->createResponse(400)->withBody(
                         $this->sf->createStream($e->getMessage())
@@ -123,22 +115,13 @@ class OAuthServer
                 }
 
                 // Create a response.
-                $response = $this->rf->createResponse(200)
+                return $this
+                    ->auth_request_storage
+                    ->removeAuthRequest($request)
                     ->withHeader('Content-Type', 'application/json')
                     ->withBody(
                         $this->sf->createStream(json_encode($token_response->formatResponse(), JSON_THROW_ON_ERROR))
                     );
-
-                // If we have an authorization request expire that now.
-                if (null !== $this->getAuthorizationRequest($request)) {
-                    // Remove the cookie for the authorization request.
-                    $response = FigResponseCookies::set(
-                        $response,
-                        SetCookie::create($this->cookie_key)->expire()
-                    );
-                }
-
-                return $response;
             }
         }
 
@@ -146,23 +129,5 @@ class OAuthServer
         return $this->rf->createResponse(400)->withBody(
             $this->sf->createStream('No valid grant found to handle the token request.')
         );
-    }
-
-    public function getAuthorizationRequest(ServerRequestInterface $request): ?AuthRequest
-    {
-        // Get cookies for this request.
-        $cookies = Cookies::fromRequest($request);
-        if ($cookies->has($this->cookie_key)) {
-            // Decrypt the cookie value.
-            return unserialize(
-                $this->encryption_service->decrypt(
-                    $cookies->get($this->cookie_key)->getValue(),
-                    $this->cookie_key
-                )
-            );
-        }
-
-        // No cookie found, return null.
-        return null;
     }
 }

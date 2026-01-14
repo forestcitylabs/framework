@@ -9,6 +9,7 @@ use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Security\Model\UserInterface;
 use ForestCityLabs\Framework\Security\OAuth\OAuthScopeRegistry;
 use ForestCityLabs\Framework\Security\OAuth\OAuthServer;
+use ForestCityLabs\Framework\Security\OAuth\Storage\AuthRequestStorageInterface;
 use ForestCityLabs\Framework\Security\Oidc\ClaimResolver;
 use ForestCityLabs\Framework\Security\Oidc\Keystore;
 use ForestCityLabs\Framework\Security\Oidc\OidcClaimRegistry;
@@ -39,6 +40,7 @@ class OidcServerTest extends TestCase
     private StreamFactoryInterface $streamFactory;
     private EncryptionService $encryptionService;
     private OAuthScopeRegistry $scopeRegistry;
+    private AuthRequestStorageInterface $authRequestStorage;
     private OidcServer $oidcServer;
     private array $tempKeyFiles = [];
 
@@ -52,6 +54,7 @@ class OidcServerTest extends TestCase
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
         $this->encryptionService = $this->createMock(EncryptionService::class);
         $this->scopeRegistry = $this->createMock(OAuthScopeRegistry::class);
+        $this->authRequestStorage = $this->createMock(AuthRequestStorageInterface::class);
 
         $this->oidcServer = new OidcServer(
             $this->accessTokenManager,
@@ -61,7 +64,8 @@ class OidcServerTest extends TestCase
             $this->responseFactory,
             $this->streamFactory,
             $this->encryptionService,
-            $this->scopeRegistry
+            $this->scopeRegistry,
+            $this->authRequestStorage
         );
     }
 
@@ -408,6 +412,7 @@ class OidcServerTest extends TestCase
             $this->streamFactory,
             $this->encryptionService,
             $this->scopeRegistry,
+            $this->authRequestStorage,
             $customGrants,
             $customCookieKey
         );

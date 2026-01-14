@@ -7,6 +7,7 @@ namespace ForestCityLabs\Framework\Security\Oidc;
 use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
 use ForestCityLabs\Framework\Security\OAuth\OAuthScopeRegistry;
 use ForestCityLabs\Framework\Security\OAuth\OAuthServer;
+use ForestCityLabs\Framework\Security\OAuth\Storage\AuthRequestStorageInterface;
 use ForestCityLabs\Framework\Utility\EncryptionService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -24,6 +25,7 @@ class OidcServer extends OAuthServer
         StreamFactoryInterface $sf,
         EncryptionService $encryption_service,
         OAuthScopeRegistry $scope_registry,
+        AuthRequestStorageInterface $auth_request_storage,
         array $grants = [],
         string $cookie_key = '_oauth_session',
     ) {
@@ -32,6 +34,7 @@ class OidcServer extends OAuthServer
             $sf,
             $encryption_service,
             $scope_registry,
+            $auth_request_storage,
             $grants,
             $cookie_key
         );
