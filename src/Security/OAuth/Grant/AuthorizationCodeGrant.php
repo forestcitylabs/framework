@@ -11,8 +11,10 @@ use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\AuthCodeManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\ClientManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\RefreshTokenManagerInterface;
+use ForestCityLabs\Framework\Security\Model\AccessTokenInterface;
 use ForestCityLabs\Framework\Security\Model\AuthCodeInterface;
 use ForestCityLabs\Framework\Security\Model\ClientInterface;
+use ForestCityLabs\Framework\Security\Model\RefreshTokenInterface;
 use ForestCityLabs\Framework\Security\Model\UserInterface;
 use ForestCityLabs\Framework\Security\OAuth\AuthRequest;
 use ForestCityLabs\Framework\Security\OAuth\OAuthScopeRegistry;
@@ -132,6 +134,9 @@ class AuthorizationCodeGrant implements GrantInterface
         $code->setClient($this->client_manager->findClientById($auth_request->getClientId()));
         $code->setExpiresAt(new DateTimeImmutable($auth_request->getExpiresAt()->format('Y-m-d H:i:s')));
         $code->setUser($user);
+        $code->setCodeChallenge($auth_request->getCodeChallenge());
+        $code->setCodeChallengeMethod($auth_request->getCodeChallengeMethod());
+        $code->setNonce($auth_request->getNonce());
 
         // Get the requested scopes.
         $requested_scopes = explode(' ', $auth_request->getScope() ?? '');
@@ -156,8 +161,34 @@ class AuthorizationCodeGrant implements GrantInterface
 
     public function handleTokenRequest(
         ServerRequestInterface $request,
-        ?AuthRequest $auth_request
     ): OAuthTokenResponse {
+        // Get auth code and create access and refresh tokens.
+        $auth_code = $this->validateTokenRequest($request);
+        $access_token = $this->generateAccessToken($auth_code);
+        $refresh_token = $this->generateRefreshToken($auth_code);
+
+        // Revoke the auth code.
+        $this->auth_code_manager->revokeAuthCode($auth_code);
+
+        // Return the token response.
+        return new OAuthTokenResponse($access_token, $refresh_token);
+    }
+
+    public function validateScopes(array $scopes, ClientInterface $client): void
+    {
+        // Validate the requested scopes against the registered scopes.
+        foreach ($scopes as $scope) {
+            if (!$this->scope_registry->isValidScope($scope)) {
+                throw new OAuthException("Invalid scope: $scope");
+            }
+            if (!in_array($scope, $client->getScopes(), true)) {
+                throw new OAuthException(sprintf('Invalid scope "%s" for client.', $scope));
+            }
+        }
+    }
+
+    protected function validateTokenRequest(ServerRequestInterface $request): AuthCodeInterface
+    {
         $params = $request->getParsedBody();
 
         // The code and client id are required parameters.
@@ -168,6 +199,12 @@ class AuthorizationCodeGrant implements GrantInterface
         // Lookup the client.
         if (null === $client = $this->client_manager->findClientById($params['client_id'])) {
             throw new OAuthException('Invalid client ID');
+        }
+
+        // Find the auth code.
+        $auth_code = $this->auth_code_manager->findAuthCode($params['code']);
+        if (null === $auth_code || $auth_code->getClient()->getIdentifier() !== $params['client_id']) {
+            throw new OAuthException('Invalid authorization code');
         }
 
         // If the client is confidential, the client secret is also required.
@@ -190,15 +227,9 @@ class AuthorizationCodeGrant implements GrantInterface
             $hash = hash('sha256', $params['code_verifier'], true);
             $expected_challenge = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
 
-            if ($expected_challenge !== $auth_request->getCodeChallenge()) {
+            if ($expected_challenge !== $auth_code->getCodeChallenge()) {
                 throw new OAuthException('Invalid code verifier');
             }
-        }
-
-        // Find the auth code.
-        $auth_code = $this->auth_code_manager->findAuthCode($params['code']);
-        if (null === $auth_code || $auth_code->getClient()->getIdentifier() !== $params['client_id']) {
-            throw new OAuthException('Invalid authorization code');
         }
 
         // Check if the auth code is expired.
@@ -207,6 +238,11 @@ class AuthorizationCodeGrant implements GrantInterface
             throw new OAuthException('Authorization code has expired');
         }
 
+        return $auth_code;
+    }
+
+    protected function generateAccessToken(AuthCodeInterface $auth_code): AccessTokenInterface
+    {
         // Create access token and persist it.
         $access_token = $this->access_token_manager->generateAccessToken();
         $access_token->setUser($auth_code->getUser());
@@ -216,7 +252,11 @@ class AuthorizationCodeGrant implements GrantInterface
             $access_token->addScope($scope);
         }
         $this->access_token_manager->persistAccessToken($access_token);
+        return $access_token;
+    }
 
+    protected function generateRefreshToken(AuthCodeInterface $auth_code): RefreshTokenInterface
+    {
         // Create a refresh token and persist it.
         $refresh_token = $this->refresh_token_manager->generateRefreshToken();
         $refresh_token->setUser($auth_code->getUser());
@@ -227,24 +267,6 @@ class AuthorizationCodeGrant implements GrantInterface
             $refresh_token->addScope($scope);
         }
         $this->refresh_token_manager->persistRefreshToken($refresh_token);
-
-        // Revoke the auth code.
-        $this->auth_code_manager->revokeAuthCode($auth_code);
-
-        // Return the token response.
-        return new OAuthTokenResponse($access_token, $refresh_token);
-    }
-
-    public function validateScopes(array $scopes, ClientInterface $client): void
-    {
-        // Validate the requested scopes against the registered scopes.
-        foreach ($scopes as $scope) {
-            if (!$this->scope_registry->isValidScope($scope)) {
-                throw new OAuthException("Invalid scope: $scope");
-            }
-            if (!in_array($scope, $client->getScopes(), true)) {
-                throw new OAuthException(sprintf('Invalid scope "%s" for client.', $scope));
-            }
-        }
+        return $refresh_token;
     }
 }

@@ -42,10 +42,10 @@ class RefreshTokenGrant extends OAuthRefreshTokenGrant
         );
     }
 
-    public function handleTokenRequest(ServerRequestInterface $request, ?AuthRequest $auth_request): OidcTokenResponse
+    public function handleTokenRequest(ServerRequestInterface $request): OidcTokenResponse
     {
         // Call the parent method to handle the token request.
-        $response = parent::handleTokenRequest($request, $auth_request);
+        $response = parent::handleTokenRequest($request);
         $params = $request->getParsedBody();
 
         $scopes = $response->getAccessToken()->getScopes();

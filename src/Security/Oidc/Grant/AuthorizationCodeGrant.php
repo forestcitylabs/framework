@@ -12,7 +12,6 @@ use ForestCityLabs\Framework\Security\Manager\AuthCodeManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\ClientManagerInterface;
 use ForestCityLabs\Framework\Security\Manager\RefreshTokenManagerInterface;
 use ForestCityLabs\Framework\Security\Model\ClientInterface;
-use ForestCityLabs\Framework\Security\OAuth\AuthRequest;
 use ForestCityLabs\Framework\Security\OAuth\Grant\AuthorizationCodeGrant as OAuthAuthorizationCodeGrant;
 use ForestCityLabs\Framework\Security\OAuth\OAuthScopeRegistry;
 use ForestCityLabs\Framework\Security\Oidc\ClaimResolver;
@@ -51,55 +50,39 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
         );
     }
 
-    public function handleAuthorizationRequest(ServerRequestInterface $request): AuthRequest
+    public function handleTokenRequest(ServerRequestInterface $request): OidcTokenResponse
     {
-        // Call the parent method to handle the authorization request.
-        $auth_request = parent::handleAuthorizationRequest($request);
-
-        // Flatten the scopes by expanding groups to individual claims.
-        $scopes = $this->flattenScopes($auth_request->getScope());
-        $auth_request->setScope(implode(' ', $scopes));
-
-        // If the scope includes 'openid' we need to include a nonce.
-        if (in_array('openid', $scopes, true)) {
-            $params = $request->getQueryParams();
-            if (!isset($params['nonce']) || empty($params['nonce'])) {
-                throw new OAuthException('Nonce is required for OpenID Connect authentication requests.');
-            }
-            $auth_request->setNonce($params['nonce']);
-        }
-
-        return $auth_request;
-    }
-
-    public function handleTokenRequest(ServerRequestInterface $request, ?AuthRequest $auth_request): OidcTokenResponse
-    {
-        // Call the parent method to handle the token request.
-        $response = parent::handleTokenRequest($request, $auth_request);
+        // Get auth code and create access and refresh tokens.
+        $auth_code = $this->validateTokenRequest($request);
+        $access_token = $this->generateAccessToken($auth_code);
+        $refresh_token = $this->generateRefreshToken($auth_code);
 
         // If the scope includes 'openid', we need to ensure the ID token is included.
-        $scopes = explode(' ', $auth_request->getScope());
+        $scopes = $this->flattenScopes($access_token->getScopes());
         if (in_array('openid', $scopes, true)) {
             // Get the current time.
             $now = new DateTimeImmutable();
 
             // Get the client from the auth request.
-            $client = $this->client_manager->findClientById($auth_request->getClientId());
+            $client = $auth_code->getClient();
 
             // Start building the ID token.
             $builder = $this->jwt->builder()
                 ->issuedBy($request->getUri()->getScheme() . '://' . $request->getUri()->getHost())
-                ->permittedFor($auth_request->getClientId())
-                ->relatedTo($response->getAccessToken()->getUser()->getIdentifier())
+                ->permittedFor($client->getIdentifier())
+                ->relatedTo($access_token->getUser()->getIdentifier())
                 ->issuedAt($now)
-                ->expiresAt($now->add($this->access_token_ttl))
-                ->withClaim('nonce', $auth_request->getNonce());
+                ->expiresAt($now->add($this->access_token_ttl));
+
+            if (null !== $nonce = $auth_code->getNonce()) {
+                $builder->withClaim('nonce', $nonce);
+            }
 
             // Add allowed claims to the ID token.
             foreach (
                 $this->claim_resolver->resolveClaims(
                     $scopes,
-                    $response->getAccessToken()->getUser()
+                    $access_token->getUser()
                 ) as $claim => $value
             ) {
                 if (in_array($claim, $client->getScopes())) {
@@ -113,10 +96,13 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
             );
         }
 
+        // Revoke the auth code.
+        $this->auth_code_manager->revokeAuthCode($auth_code);
+
         // Return the response with the ID token added.
         return new OidcTokenResponse(
-            $response->getAccessToken(),
-            $response->getRefreshToken(),
+            $access_token,
+            $refresh_token,
             $id_token ?? null
         );
     }
@@ -138,11 +124,11 @@ class AuthorizationCodeGrant extends OAuthAuthorizationCodeGrant
         }
     }
 
-    public function flattenScopes(string $scopes): array
+    public function flattenScopes(array $scopes): array
     {
         // Flatten the scopes by expanding groups to individual claims.
         $flattened = [];
-        foreach (explode(' ', $scopes) as $scope) {
+        foreach ($scopes as $scope) {
             if ($this->claim_registry->isValidGroup($scope)) {
                 $flattened = array_merge($flattened, $this->claim_registry->getGroup($scope));
             } else {

@@ -59,7 +59,7 @@ class RefreshTokenGrant implements GrantInterface
         return $request->getMethod() === 'POST' && $request->getParsedBody()['grant_type'] === 'refresh_token';
     }
 
-    public function handleTokenRequest(ServerRequestInterface $request, ?AuthRequest $auth_request): OAuthTokenResponse
+    public function handleTokenRequest(ServerRequestInterface $request): OAuthTokenResponse
     {
         $params = $request->getParsedBody();
         // Lookup the refresh token from the request.

@@ -70,7 +70,7 @@ class OAuthServer
                     );
                 }
 
-                // Get the authorization code.
+                // Create the authorization code.
                 try {
                     $code = $grant->approveAuthorizationRequest($auth_request, $request, $granted_scopes, $user);
                 } catch (OAuthException $e) {
@@ -79,7 +79,7 @@ class OAuthServer
                     );
                 }
 
-                return $this->rf->createResponse(302)
+                $response = $this->rf->createResponse(302)
                     ->withHeader(
                         'Location',
                         $auth_request->getRedirectUri()
@@ -88,6 +88,10 @@ class OAuthServer
                             . '&state='
                             . urlencode($auth_request->getState())
                     );
+
+                // Remove auth request.
+                $this->auth_request_storage->removeAuthRequest($request);
+                return $response;
             }
         }
 
@@ -104,10 +108,7 @@ class OAuthServer
             if ($grant->canHandleTokenRequest($request)) {
                 // Get the access and refresh tokens.
                 try {
-                    $token_response = $grant->handleTokenRequest(
-                        $request,
-                        $this->auth_request_storage->getAuthRequest($request)
-                    );
+                    $token_response = $grant->handleTokenRequest($request);
                 } catch (OAuthException $e) {
                     return $this->rf->createResponse(400)->withBody(
                         $this->sf->createStream($e->getMessage())
@@ -115,9 +116,7 @@ class OAuthServer
                 }
 
                 // Create a response.
-                return $this
-                    ->auth_request_storage
-                    ->removeAuthRequest($request)
+                return $this->rf->createResponse()
                     ->withHeader('Content-Type', 'application/json')
                     ->withBody(
                         $this->sf->createStream(json_encode($token_response->formatResponse(), JSON_THROW_ON_ERROR))

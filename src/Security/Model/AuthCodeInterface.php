@@ -67,4 +67,16 @@ interface AuthCodeInterface
     public function getUser(): UserInterface;
 
     public function setUser(UserInterface $user): void;
+
+    public function getCodeChallenge(): ?string;
+
+    public function setCodeChallenge(?string $code_challenge): void;
+
+    public function getCodeChallengeMethod(): ?string;
+
+    public function setCodeChallengeMethod(?string $code_challenge_method): void;
+
+    public function getNonce(): ?string;
+
+    public function setNonce(?string $nonce): void;
 }

@@ -25,5 +25,5 @@ interface GrantInterface
 
     public function canHandleTokenRequest(ServerRequestInterface $request): bool;
 
-    public function handleTokenRequest(ServerRequestInterface $request, ?AuthRequest $auth_request): OAuthTokenResponse;
+    public function handleTokenRequest(ServerRequestInterface $request): OAuthTokenResponse;
 }
