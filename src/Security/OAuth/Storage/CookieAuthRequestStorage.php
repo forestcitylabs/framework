@@ -13,7 +13,6 @@ use ForestCityLabs\Framework\Security\OAuth\AuthRequest;
 use ForestCityLabs\Framework\Utility\EncryptionService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
-use Twig\Error\RuntimeError;
 
 class CookieAuthRequestStorage implements AuthRequestStorageInterface
 {
@@ -27,18 +26,14 @@ class CookieAuthRequestStorage implements AuthRequestStorageInterface
 
     public function storeAuthRequest(ServerRequestInterface $request, AuthRequest $auth_request): ResponseInterface
     {
-        if ($request->getUri()->getScheme() !== 'https') {
-            throw new RuntimeError('Cookie auth request storage requires either https!');
-        }
-
         // Create a cookie to store the encrypted authorization request.
         $set_cookie = SetCookie::create(
             self::COOKIE_KEY,
             $this->encryption_service->encrypt(serialize($auth_request), self::COOKIE_KEY)
         )
             ->withHttpOnly(true)
-            ->withSecure(true)
-            ->withSameSite(SameSite::none())
+            ->withSecure((bool) $request->getUri()->getScheme() === 'https')
+            ->withSameSite(SameSite::strict())
             ->withMaxAge($auth_request->getExpiresAt()->getTimestamp() - time());
 
         // Return the response with the cookie set.
