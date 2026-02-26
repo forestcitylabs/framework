@@ -79,7 +79,7 @@ class GraphQLGenerateFromSchema extends Command
         parent::__construct('graphql:generate');
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         $this->addOption(
             'entity-dir',
