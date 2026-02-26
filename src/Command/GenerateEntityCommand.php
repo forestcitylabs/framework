@@ -44,7 +44,7 @@ class GenerateEntityCommand extends Command
         parent::__construct('generate:entity');
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->addArgument(
