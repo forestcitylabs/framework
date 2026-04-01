@@ -2,10 +2,8 @@
 
 namespace ForestCityLabs\Framework\GraphQL\Attribute;
 
-use Attribute;
 use ForestCityLabs\Framework\Utility\SerializerTrait;
 
-#[Attribute(Attribute::TARGET_CLASS)]
 abstract class AbstractType
 {
     use SerializerTrait;
