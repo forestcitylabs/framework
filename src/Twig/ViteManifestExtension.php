@@ -37,6 +37,7 @@ class ViteManifestExtension extends AbstractExtension
         return [
             new TwigFunction('vite_entry_script_tags', [$this, 'getScriptTags'], ['is_safe' => ['html']]),
             new TwigFunction('vite_entry_link_tags', [$this, 'getLinkTags'], ['is_safe' => ['html']]),
+            new TwigFunction('vite_react_refresh', [$this, 'getReactRefresh'], ['is_safe' => ['html']]),
         ];
     }
 
@@ -58,6 +59,21 @@ class ViteManifestExtension extends AbstractExtension
         }
 
         return sprintf('<script type="module" src="/%s"></script>', $manifestEntry['file']);
+    }
+
+    public function getReactRefresh(): string
+    {
+        if (!$this->devMode) {
+            return '';
+        }
+
+        return sprintf(
+            '<script type="module">import RefreshRuntime from "%s/@react-refresh";' .
+            'RefreshRuntime.injectIntoGlobalHook(window);' .
+            'window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>()=>{};' .
+            'window.__vite_plugin_react_preamble_installed__=true;</script>',
+            $this->devServerUrl
+        );
     }
 
     public function getLinkTags(string $entry): string

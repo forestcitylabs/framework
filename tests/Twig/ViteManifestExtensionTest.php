@@ -106,6 +106,26 @@ class ViteManifestExtensionTest extends TestCase
     }
 
     #[Test]
+    public function reactRefreshOutputsPreambleInDevMode(): void
+    {
+        $extension = new ViteManifestExtension(devMode: true, devServerUrl: 'http://localhost:5173');
+
+        $html = $extension->getReactRefresh();
+
+        $this->assertStringContainsString('@react-refresh', $html);
+        $this->assertStringContainsString('RefreshRuntime.injectIntoGlobalHook', $html);
+        $this->assertStringContainsString('__vite_plugin_react_preamble_installed__', $html);
+    }
+
+    #[Test]
+    public function reactRefreshReturnsEmptyStringInProdMode(): void
+    {
+        $extension = new ViteManifestExtension(devMode: false, manifestPath: $this->manifestPath);
+
+        $this->assertSame('', $extension->getReactRefresh());
+    }
+
+    #[Test]
     public function functionsOutputRawHtmlWithoutEscaping(): void
     {
         $extension = new ViteManifestExtension(devMode: false, manifestPath: $this->manifestPath);
