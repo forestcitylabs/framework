@@ -6,19 +6,15 @@ use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
-use Doctrine\Inflector\Inflector;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping as ORM;
 use ForestCityLabs\Framework\Utility\CodeGenerator;
 use Nette\PhpGenerator\ClassLike;
 use Nette\PhpGenerator\ClassType;
-use Nette\PhpGenerator\Literal;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\Printer;
 use Nette\PhpGenerator\Property;
-use Ramsey\Uuid\Doctrine\UuidOrderedTimeGenerator;
-use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\TableSeparator;
@@ -39,7 +35,6 @@ class GenerateEntityCommand extends Command
         private string $namespace,
         private Printer $printer,
         private EntityManagerInterface $em,
-        private Inflector $inflector
     ) {
         parent::__construct('generate:entity');
     }
@@ -68,6 +63,9 @@ class GenerateEntityCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // Reset file state for this invocation.
+        $this->files = [];
+
         // Set the io and global directory and namespace.
         $io = new SymfonyStyle($input, $output);
         $this->directory = $input->getOption('directory');
@@ -92,7 +90,7 @@ class GenerateEntityCommand extends Command
 
         // Add an ID property if needed.
         if (!self::hasProperty($class, 'id')) {
-            $this->addIdProperty($class, $namespace);
+            CodeGenerator::addIdProperty($class, $namespace);
         }
 
         // Create property name question.
@@ -104,7 +102,7 @@ class GenerateEntityCommand extends Command
             }
 
             // Validate that this is a valid php property name.
-            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches)) {
+            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name)) {
                 throw new RuntimeException(sprintf('"%s" is not a valid property name!', $name));
             }
 
@@ -137,7 +135,7 @@ class GenerateEntityCommand extends Command
         }
 
         // Confirm generation.
-        if (!$io->confirm('Do you confirm generation of the entitie(s)?')) {
+        if (!$io->confirm('Do you confirm generation of the entities?')) {
             $io->warning('Entity generation aborted!');
             return Command::SUCCESS;
         }
@@ -178,31 +176,6 @@ class GenerateEntityCommand extends Command
         // Add to files array for processing.
         $this->files[$filename] = $file;
         return [$file, $namespace, $class];
-    }
-
-    private function addIdProperty(ClassType $class, PhpNamespace $namespace): void
-    {
-        $namespace->addUse(Uuid::class);
-        $namespace->addUse(UuidOrderedTimeGenerator::class);
-        $class->addProperty('id')
-            ->setPrivate()
-            ->setType(Uuid::class)
-            ->addAttribute(ORM\Id::class)
-            ->addAttribute(
-                ORM\GeneratedValue::class,
-                ['strategy' => 'CUSTOM']
-            )
-            ->addAttribute(
-                ORM\CustomIdGenerator::class,
-                ['class' => new Literal('UuidOrderedTimeGenerator::class')]
-            )
-            ->addAttribute(ORM\Column::class, [
-                'type' => 'uuid_binary_ordered_time',
-                'unique' => true,
-            ]);
-        $class->addMethod('getId')
-            ->setReturnType(Uuid::class)
-            ->addBody('return $this->id;');
     }
 
     private function addRelationProperty(
@@ -250,8 +223,8 @@ class GenerateEntityCommand extends Command
             }
 
             // Add methods.
-            $this->addGetter($class, $property);
-            $this->addSetter($class, $property);
+            CodeGenerator::addGetter($class, $property);
+            CodeGenerator::addSetter($class, $property);
         } elseif ($association === 'OneToOne') {
             // Construct the property.
             $property->setType($namespace->getName() . '\\' . $target);
@@ -272,8 +245,8 @@ class GenerateEntityCommand extends Command
             }
 
             // Add methods.
-            $this->addGetter($class, $property);
-            $this->addSetter($class, $property);
+            CodeGenerator::addGetter($class, $property);
+            CodeGenerator::addSetter($class, $property);
         } elseif ($association === 'OneToMany') {
             // Add namespace use statements.
             $namespace->addUse(Collection::class);
@@ -331,10 +304,10 @@ class GenerateEntityCommand extends Command
             $constructor->addBody('$this->' . $property->getName() . ' = new ArrayCollection();');
 
             // Add access methods.
-            $this->addGetter($class, $property);
-            $this->addAdder($class, $property, $namespace->getName() . '\\' . $target);
-            $this->addRemover($class, $property, $namespace->getName() . '\\' . $target);
-            $this->addHasser($class, $property, $namespace->getName() . '\\' . $target);
+            CodeGenerator::addGetter($class, $property);
+            CodeGenerator::addAdder($class, $property, $namespace->getName() . '\\' . $target);
+            CodeGenerator::addRemover($class, $property, $namespace->getName() . '\\' . $target);
+            CodeGenerator::addHasser($class, $property, $namespace->getName() . '\\' . $target);
         }
     }
 
@@ -357,7 +330,7 @@ class GenerateEntityCommand extends Command
         $question = new Question('Enter inverse relation property name');
         $question->setValidator(function ($name) {
             // Validate that this is a valid php property name.
-            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches)) {
+            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name)) {
                 throw new RuntimeException(sprintf('"%s" is not a valid property name!', $name));
             }
 
@@ -387,10 +360,10 @@ class GenerateEntityCommand extends Command
         $constructor->addBody('$this->' . $property->getName() . ' = new ArrayCollection();');
 
         // Add access methods.
-        $this->addGetter($class, $property);
-        $this->addAdder($class, $property, $namespace->getName() . '\\' . $target);
-        $this->addRemover($class, $property, $namespace->getName() . '\\' . $target);
-        $this->addHasser($class, $property, $namespace->getName() . '\\' . $target);
+        CodeGenerator::addGetter($class, $property);
+        CodeGenerator::addAdder($class, $property, $namespace->getName() . '\\' . $target);
+        CodeGenerator::addRemover($class, $property, $namespace->getName() . '\\' . $target);
+        CodeGenerator::addHasser($class, $property, $namespace->getName() . '\\' . $target);
 
         // Return the property name.
         return $property->getName();
@@ -415,7 +388,7 @@ class GenerateEntityCommand extends Command
         $question = new Question('Enter inverse relation property name');
         $question->setValidator(function ($name) {
             // Validate that this is a valid php property name.
-            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches)) {
+            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name)) {
                 throw new RuntimeException(sprintf('"%s" is not a valid property name!', $name));
             }
 
@@ -428,7 +401,7 @@ class GenerateEntityCommand extends Command
             ->setPrivate()
             ->setType($namespace->getName() . '\\' . $target)
             ->setNullable($this->isNullable($io))
-            ->addAttribute(ORM\OneToMany::class, [
+            ->addAttribute(ORM\OneToOne::class, [
                 'targetEntity' => $target,
                 'mappedBy' => $target_property,
             ]);
@@ -440,8 +413,8 @@ class GenerateEntityCommand extends Command
         }
 
         // Add methods.
-        $this->addGetter($class, $property);
-        $this->addSetter($class, $property);
+        CodeGenerator::addGetter($class, $property);
+        CodeGenerator::addSetter($class, $property);
 
         // Return the property name.
         return $property->getName();
@@ -462,7 +435,7 @@ class GenerateEntityCommand extends Command
         $question = new Question('Enter inverse relation property name');
         $question->setValidator(function ($name) {
             // Validate that this is a valid php property name.
-            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches)) {
+            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name)) {
                 throw new RuntimeException(sprintf('"%s" is not a valid property name!', $name));
             }
 
@@ -489,8 +462,8 @@ class GenerateEntityCommand extends Command
         }
 
         // Add methods.
-        $this->addGetter($class, $property);
-        $this->addSetter($class, $property);
+        CodeGenerator::addGetter($class, $property);
+        CodeGenerator::addSetter($class, $property);
 
         // Return the property name.
         return $property->getName();
@@ -515,7 +488,7 @@ class GenerateEntityCommand extends Command
         $question = new Question('Enter inverse relation property name');
         $question->setValidator(function ($name) {
             // Validate that this is a valid php property name.
-            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches)) {
+            if (!(bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name)) {
                 throw new RuntimeException(sprintf('"%s" is not a valid property name!', $name));
             }
 
@@ -531,7 +504,7 @@ class GenerateEntityCommand extends Command
         $property = $class->addProperty($io->askQuestion($question))
             ->setPrivate()
             ->setType(Collection::class)
-            ->addAttribute(ORM\OneToMany::class, [
+            ->addAttribute(ORM\ManyToMany::class, [
                 'targetEntity' => $target,
                 'mappedBy' => $target_property,
             ]);
@@ -545,10 +518,10 @@ class GenerateEntityCommand extends Command
         $constructor->addBody('$this->' . $property->getName() . ' = new ArrayCollection();');
 
         // Add access methods.
-        $this->addGetter($class, $property);
-        $this->addAdder($class, $property, $namespace->getName() . '\\' . $target);
-        $this->addRemover($class, $property, $namespace->getName() . '\\' . $target);
-        $this->addHasser($class, $property, $namespace->getName() . '\\' . $target);
+        CodeGenerator::addGetter($class, $property);
+        CodeGenerator::addAdder($class, $property, $namespace->getName() . '\\' . $target);
+        CodeGenerator::addRemover($class, $property, $namespace->getName() . '\\' . $target);
+        CodeGenerator::addHasser($class, $property, $namespace->getName() . '\\' . $target);
 
         // Return the property name.
         return $property->getName();
@@ -599,8 +572,8 @@ class GenerateEntityCommand extends Command
         $property->addAttribute(ORM\Column::class, $args);
 
         // Add methods.
-        $this->addGetter($class, $property);
-        $this->addSetter($class, $property);
+        CodeGenerator::addGetter($class, $property);
+        CodeGenerator::addSetter($class, $property);
     }
 
     private function addArrayProperty(string $name, ClassType $class, SymfonyStyle $io): void
@@ -613,7 +586,7 @@ class GenerateEntityCommand extends Command
             ->addAttribute(ORM\Column::class);
 
         // Create getter method.
-        $this->addGetter($class, $property);
+        CodeGenerator::addGetter($class, $property);
 
         // Check if there is a scalar sub-type.
         if ($io->confirm('Is this a standard scalar sub-type (ie string, integer, etc)?')) {
@@ -621,22 +594,13 @@ class GenerateEntityCommand extends Command
             $sub_type = $io->choice('Please select sub-type', ['string', 'int', 'bool', 'float']);
 
             // Create methods.
-            $this->addAdder($class, $property, $sub_type);
-            $this->addRemover($class, $property, $sub_type);
-            $this->addHasser($class, $property, $sub_type);
+            CodeGenerator::addAdder($class, $property, $sub_type);
+            CodeGenerator::addRemover($class, $property, $sub_type);
+            CodeGenerator::addHasser($class, $property, $sub_type);
         } else {
             // Add setter.
-            $this->addSetter($class, $property);
+            CodeGenerator::addSetter($class, $property);
         }
-    }
-
-    private static function camelCase(string $string): string
-    {
-        $parts = explode('_', $string);
-        array_walk($parts, function (&$part) {
-            $part = ucfirst($part);
-        });
-        return implode($parts);
     }
 
     private static function hasAttribute(ClassLike|Property $object, string $check): bool
@@ -712,125 +676,5 @@ class GenerateEntityCommand extends Command
     private function isNullable(StyleInterface $io): bool
     {
         return $io->confirm('Is this property nullable?', false);
-    }
-
-    /**
-     * Add a getter method for a given property to a given class.
-     *
-     * @param ClassType $class    The class to add a getter method to.
-     * @param Property  $property The property to get.
-     */
-    private function addGetter(ClassType $class, Property $property): void
-    {
-        $class->addMethod('get' . self::camelCase($property->getName()))
-            ->setReturnType(($property->isNullable() ? '?' : '') . $property->getType())
-            ->addBody('return $this->' . $property->getName() . ';');
-    }
-
-    /**
-     * Add a setter method for a given property to a given class.
-     *
-     * @param ClassType $class    The class to add a setter method to.
-     * @param Property  $property The property to set.
-     */
-    private function addSetter(ClassType $class, Property $property): void
-    {
-        $class->addMethod('set' . self::camelCase($property->getName()))
-            ->setReturnType('self')
-            ->addBody('$this->' . $property->getName() . ' = $' . $property->getName() . ';')
-            ->addBody('return $this;')
-            ->addParameter($property->getName())
-            ->setType(($property->isNullable() ? '?' : '') . $property->getType());
-    }
-
-    /**
-     * Add an adder method for a given property to a given class.
-     *
-     * @param ClassType $class    The class to add an adder method to.
-     * @param Property  $property The property to add to.
-     */
-    private function addAdder(ClassType $class, Property $property, ?string $type = null): void
-    {
-        // Singularize the sub name.
-        $sub_name = $this->inflector->singularize($property->getName());
-
-        // Create adder method.
-        $method = $class->addMethod('add' . self::camelCase($sub_name))
-            ->setReturnType('self');
-
-        // If this is a collection use api, otherwise treat as array.
-        if ($property->getType() === Collection::class) {
-            $method->addBody('$this->' . $property->getName() . '->add($' . $sub_name . ');');
-        } else {
-            $method->addBody('$this->' . $property->getName() . '[] = $' . $sub_name . ';');
-        }
-
-        // Add the return and parameter to the method.
-        $method->addBody('return $this;')
-            ->addParameter($sub_name)
-            ->setType($type);
-    }
-
-    /**
-     * Add a remover method for a given property to a given class.
-     *
-     * @param ClassType $class    The class to add a remover method to.
-     * @param Property  $property The property to remove from.
-     */
-    private function addRemover(ClassType $class, Property $property, ?string $type = null): void
-    {
-        // Singularize the sub name.
-        $sub_name = $this->inflector->singularize($property->getName());
-
-        // Create remover method.
-        $method = $class->addMethod('remove' . self::camelCase($sub_name))
-            ->setReturnType('self');
-
-        // If this is a collection use api, otherwise treat as array.
-        if ($property->getType() === Collection::class) {
-            $method->addBody('$this->' . $property->getName() . '->removeElement($' . $sub_name . ');');
-        } else {
-            $method->addBody(
-                'unset($this->'
-                . $property->getName()
-                . '[array_search($'
-                . $sub_name
-                . ', $this->'
-                . $property->getName()
-                . ')]);'
-            );
-        }
-
-        // Add the return and parameter to the method.
-        $method->addBody('return $this;')
-            ->addParameter($sub_name)
-            ->setType($type);
-    }
-
-    /**
-     * Add a hasser method for a given property to a given class.
-     *
-     * @param ClassType $class    The class to add a hasser method to.
-     * @param Property  $property The property to has from.
-     */
-    private function addHasser(ClassType $class, Property $property, ?string $type = null): void
-    {
-        // Singularize the sub name.
-        $sub_name = $this->inflector->singularize($property->getName());
-
-        // Create hasser method.
-        $method = $class->addMethod('has' . self::camelCase($sub_name))
-            ->setReturnType('bool');
-
-        // If this is a collection use api, otherwise treat as array.
-        if ($property->getType() === Collection::class) {
-            $method->addBody('return $this->' . $property->getName() . '->contains($' . $sub_name . ');');
-        } else {
-            $method->addBody('return in_array($' . $sub_name . ', $this->' . $property->getName() . ');');
-        }
-
-        // Add the parameter to the method.
-        $method->addParameter($sub_name)
-            ->setType($type);
     }
 }
