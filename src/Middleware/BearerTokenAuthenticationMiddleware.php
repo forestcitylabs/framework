@@ -11,14 +11,12 @@ declare(strict_types=1);
 
 namespace ForestCityLabs\Framework\Middleware;
 
-use DateTimeImmutable;
 use ForestCityLabs\Framework\Security\Manager\AccessTokenManagerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-class BearerTokenAuthenticationMiddleware implements MiddlewareInterface
+class BearerTokenAuthenticationMiddleware extends AbstractAuthenticationMiddleware
 {
     public function __construct(
         private AccessTokenManagerInterface $token_manager,
@@ -40,8 +38,6 @@ class BearerTokenAuthenticationMiddleware implements MiddlewareInterface
             && str_starts_with($request->getHeader('Authorization')[0], 'Bearer ')
             && null === $request->getAttribute('_access_token')
         ) {
-            $now = new DateTimeImmutable();
-
             // Get the header and strip the "Bearer" part.
             $token = substr($request->getHeader('Authorization')[0], 7);
 
@@ -50,11 +46,8 @@ class BearerTokenAuthenticationMiddleware implements MiddlewareInterface
                 return $handler->handle($request);
             }
 
-            // Check that the token is not expired.
-            if ($access_token->getExpiresAt() > $now) {
-                // Attach the token to the request.
-                $request = $request->withAttribute('_access_token', $access_token);
-            }
+            // Dispatch request with token attached.
+            return $handler->handle($this->dispatchRequestWithToken($request, $access_token));
         }
 
         // Dispatch the request.

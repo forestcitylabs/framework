@@ -15,8 +15,6 @@ interface UserInterface
 {
     public function getIdentifier(): string;
 
-    public function getPassword(): string;
-
     public function getRoles(): array;
 
     public function hasRole(string $role): bool;

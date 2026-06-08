@@ -14,6 +14,7 @@ namespace ForestCityLabs\Framework\Middleware;
 use Dflydev\FigCookies\Cookies;
 use Dflydev\FigCookies\SetCookie;
 use ForestCityLabs\Framework\Session\Session;
+use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -21,6 +22,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class SessionMiddleware implements MiddlewareInterface
 {
+    private const SESSION_ATTRIBUTE = '_session';
+
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler
@@ -41,7 +44,7 @@ class SessionMiddleware implements MiddlewareInterface
         }
 
         // Dispatch the request with the session attached.
-        $response = $handler->handle($request->withAttribute('_session', $session));
+        $response = $handler->handle($request->withAttribute(self::SESSION_ATTRIBUTE, $session));
 
         // If the session is dirty we need to either persist or destroy it.
         if ($session->isDirty()) {
@@ -66,5 +69,14 @@ class SessionMiddleware implements MiddlewareInterface
 
         // Return the response.
         return $response;
+    }
+
+    public static function getSessionFromRequest(ServerRequestInterface $request): Session
+    {
+        if (!$request->hasAttribute(self::SESSION_ATTRIBUTE)) {
+            throw new LogicException('No session found!');
+        }
+
+        return $request->getAttribute(self::SESSION_ATTRIBUTE);
     }
 }
